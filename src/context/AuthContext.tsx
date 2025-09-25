@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         // ADMIN
         'a.guennoun@aui.ma': {
-          id: 101,
+          id: 1,
           nom: 'Guennoun',
           prenom: 'Dr.Adnane',
           username: 'a.guennoun@aui.ma',
@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'ACTIF' as UserStatus
         },
         'f.elmajdoubi@aui.ma': {
-          id: 302,
+          id: 2,
           nom: 'Elmajdoub',
           prenom: 'Fatima',
           username: 'f.elmajdoubi@aui.ma',
