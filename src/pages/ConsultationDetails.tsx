@@ -24,7 +24,7 @@ const ConsultationDetails: React.FC = () => {
         setLoading(true);
         setError('');
         const [cRes, sRes] = await Promise.all([
-          fetch(`https://196.12.203.182/consultations/${id}`),
+          fetch(`https://196.12.203.182/api/consultations/${id}`),
           fetch(`https://196.12.203.182/sortie-stock?consultationId=${id}`)
         ]);
         if (!cRes.ok) throw new Error(`Consultation ${cRes.status}`);

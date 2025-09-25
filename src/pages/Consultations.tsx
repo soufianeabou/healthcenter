@@ -43,7 +43,7 @@ const Consultations = () => {
   const fetchConsultations = async () => {
     try {
       setError('');
-      const res = await fetch('https://196.12.203.182/consultations');
+      const res = await fetch('https://196.12.203.182/api/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
       const rows: ConsultationRow[] = data.map((c: any) => ({
@@ -86,7 +86,7 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
-      console.log("Creating consultation with payload:", { patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement }); const res = await fetch('https://196.12.203.182/consultations', {
+      console.log("Creating consultation with payload:", { patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement }); const res = await fetch('https://196.12.203.182/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
@@ -103,7 +103,7 @@ const Consultations = () => {
   const handleEditConsultation = async (payload: any) => {
     if (!editingConsultation) return;
     try {
-      const res = await fetch(`https://196.12.203.182/consultations/${editingConsultation.id}`, {
+      const res = await fetch(`https://196.12.203.182/api/consultations/${editingConsultation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingConsultation.id, patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
@@ -121,7 +121,7 @@ const Consultations = () => {
   const handleDeleteConsultation = async (id: number) => {
     if (!confirm('Supprimer cette consultation ?')) return;
     try {
-      const res = await fetch(`https://196.12.203.182/consultations/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://196.12.203.182/api/consultations/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Delete failed (${res.status}): ${await readErrorText(res)}`);
       await fetchConsultations();
     } catch (e) {
