@@ -45,7 +45,7 @@ const Consultations = () => {
       setError('');
       const res = await fetch('https://196.12.203.182/api/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
-      const data = await res.json(); console.log("Consultation data:", data);
+      const data = await res.json(); console.log("Consultation data:", data); console.log("First consultation patient:", data[0]?.patient);
       const rows: ConsultationRow[] = data.map((c: any) => ({
         id: c.id,
         patientId: c.patient?.id,
