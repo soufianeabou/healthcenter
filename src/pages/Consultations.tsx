@@ -43,7 +43,7 @@ const Consultations = () => {
   const fetchConsultations = async () => {
     try {
       setError('');
-      const res = await fetch('/api/consultations');
+      const res = await fetch('https://196.12.203.182/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
       const rows: ConsultationRow[] = data.map((c: any) => ({
@@ -86,7 +86,7 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
-      const res = await fetch('/api/consultations', {
+      const res = await fetch('https://196.12.203.182/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, id: null })
@@ -103,7 +103,7 @@ const Consultations = () => {
   const handleEditConsultation = async (payload: any) => {
     if (!editingConsultation) return;
     try {
-      const res = await fetch(`/api/consultations/${editingConsultation.id}`, {
+      const res = await fetch(`https://196.12.203.182/consultations/${editingConsultation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, id: editingConsultation.id })
@@ -121,7 +121,7 @@ const Consultations = () => {
   const handleDeleteConsultation = async (id: number) => {
     if (!confirm('Supprimer cette consultation ?')) return;
     try {
-      const res = await fetch(`/api/consultations/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://196.12.203.182/consultations/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Delete failed (${res.status}): ${await readErrorText(res)}`);
       await fetchConsultations();
     } catch (e) {
@@ -162,7 +162,7 @@ const Consultations = () => {
 
   const handleCreateSortie = async (payload: any) => {
     try {
-      const res = await fetch('/api/sortie-stock', {
+      const res = await fetch('https://196.12.203.182/sortie-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

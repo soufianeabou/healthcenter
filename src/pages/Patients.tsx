@@ -36,7 +36,7 @@ const Patients: React.FC = () => {
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
+        const res = await fetch(`https://196.12.203.182/patients/${term}`, { signal: controller.signal });
         if (!res.ok) {
           setPatients([]);
           return;
@@ -67,7 +67,7 @@ const Patients: React.FC = () => {
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://196/api/patients');
+      const response = await fetch('https://196.12.203.182/patients');
       if (response.ok) {
         const data = await response.json();
         setPatients(data);
