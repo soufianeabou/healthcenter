@@ -23,7 +23,6 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loadingPatients, setLoadingPatients] = useState(false);
 
-  // Instant lookup against external API by idNum while typing (minimal change)
   useEffect(() => {
     const controller = new AbortController();
     const term = patientSearch.trim();

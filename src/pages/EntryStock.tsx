@@ -26,7 +26,7 @@ const EntryStockPage: React.FC = () => {
     try {
       setLoading(true);
       // Replace with your actual API endpoint
-      const response = await fetch('/api/entreStocks');
+      const response = await fetch('https://196.12.203.182/entreStocks');
       if (response.ok) {
         const data = await response.json();
         setEntryStocks(data);
@@ -89,7 +89,7 @@ const EntryStockPage: React.FC = () => {
         console.log('Sending entry stock data:', entryStockData);
         console.log('Medicine unit price:', medicine.unitPrice);
 
-        const response = await fetch('/api/entreStocks', {
+        const response = await fetch('https://196.12.203.182/entreStocks', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ const EntryStockPage: React.FC = () => {
       console.log('Sending update payload:', payload);
       console.log('First medicine unit price:', first.unitPrice);
 
-      const response = await fetch(`/api/entreStocks/${editingStock.id}`, {
+      const response = await fetch(`https://196.12.203.182/entreStocks/${editingStock.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +168,7 @@ const EntryStockPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/entreStocks/${id}`, {
+      const response = await fetch(`https://196.12.203.182/entreStocks/${id}`, {
         method: 'DELETE',
       });
 

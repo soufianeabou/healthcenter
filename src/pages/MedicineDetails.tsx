@@ -34,7 +34,7 @@ const MedicineDetails: React.FC = () => {
     const fetchOne = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/medicaments/${id}`);
+        const res = await fetch(`https://196.12.203.182/medicaments/${id}`);
         if (!res.ok) throw new Error('Failed');
         const data = await res.json();
         setMedicine(data);
@@ -67,7 +67,7 @@ const MedicineDetails: React.FC = () => {
 
   const handleEdit = async (data: Omit<Medicine, 'id' | 'compteurPiles'>) => {
     try {
-      const response = await fetch(`/api/medicaments/${medicine?.id}`, {
+      const response = await fetch(`https://196.12.203.182/medicaments/${medicine?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -32,9 +32,9 @@ const Personnel = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching personnel from:', '/api/personnels');
+      console.log('Fetching personnel from:', 'https://196.12.203.182/personnels');
       
-      const response = await fetch('/api/personnels', {
+      const response = await fetch('https://196.12.203.182/personnels', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -82,7 +82,7 @@ const Personnel = () => {
 
   const handleAddPersonnel = async (personnelData: Omit<Personnel, 'id'>) => {
     try {
-      const response = await fetch('/api/personnels', {
+      const response = await fetch('https://196.12.203.182/personnels', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ const Personnel = () => {
   const handleEditPersonnel = async (personnelData: Omit<Personnel, 'id'>) => {
     if (editingPersonnel) {
       try {
-        const response = await fetch(`/api/personnels/${editingPersonnel.id}`, {
+        const response = await fetch(`https://196.12.203.182/personnels/${editingPersonnel.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ const Personnel = () => {
   const handleDeletePersonnel = async (id: number) => {
     if (confirm('Are you sure you want to delete this personnel record?')) {
       try {
-        const response = await fetch(`/api/personnels/${id}`, {
+        const response = await fetch(`https://196.12.203.182/personnels/${id}`, {
           method: 'DELETE',
         });
 
@@ -238,7 +238,7 @@ const Personnel = () => {
             onClick={async () => {
               try {
                 console.log('Testing API connection...');
-                const response = await fetch('/api/personnels', {
+                const response = await fetch('https://196.12.203.182/personnels', {
                   method: 'GET',
                   headers: { 'Accept': 'application/json' },
                   mode: 'cors'

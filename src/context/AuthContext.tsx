@@ -257,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!userData.passwd || userData.passwd.toString().trim() === '') {
         delete payload.passwd;
       }
-      const response = await fetch(`/api/personnels/${user.id}`, {
+      const response = await fetch(`https://196.12.203.182/personnels/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

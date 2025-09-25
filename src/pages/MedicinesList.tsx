@@ -18,7 +18,7 @@ const MedicinesList = () => {
   const fetchMedicines = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/medicaments');
+      const response = await fetch('https://196.12.203.182/medicaments');
       if (!response.ok) {
         throw new Error('Failed to fetch medicines');
       }
@@ -75,7 +75,7 @@ const MedicinesList = () => {
     if (!editingMedicine?.id) return false;
 
     try {
-      const response = await fetch(`/api/medicaments/${editingMedicine.id}`, {
+      const response = await fetch(`https://196.12.203.182/medicaments/${editingMedicine.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ const MedicinesList = () => {
     }
 
     try {
-      const response = await fetch(`/api/medicaments/${id}`, {
+      const response = await fetch(`https://196.12.203.182/medicaments/${id}`, {
         method: 'DELETE',
       });
 

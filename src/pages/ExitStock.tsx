@@ -23,7 +23,7 @@ const ExitStockPage: React.FC = () => {
     try {
       setLoading(true);
       // Replace with your actual API endpoint
-      const response = await fetch('/api/sortie-stock');
+      const response = await fetch('https://196.12.203.182/sortie-stock');
       if (response.ok) {
         const data = await response.json();
         setExitStocks(data);

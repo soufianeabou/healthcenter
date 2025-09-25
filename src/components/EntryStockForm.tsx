@@ -82,7 +82,7 @@ const EntryStockForm: React.FC<EntryStockFormProps> = ({
       setIsLoadingMedicines(true);
       setMedicinesError('');
       
-      const response = await fetch('/api/medicaments', {
+      const response = await fetch('https://196.12.203.182/medicaments', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -123,7 +123,7 @@ const EntryStockForm: React.FC<EntryStockFormProps> = ({
       setSuppliersError('');
       
       // Test if the backend is accessible
-      const response = await fetch('/api/fournisseurs', {
+      const response = await fetch('https://196.12.203.182/fournisseurs', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

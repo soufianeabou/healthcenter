@@ -30,9 +30,9 @@ const Suppliers = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching suppliers from:', '/api/fournisseurs');
+      console.log('Fetching suppliers from:', 'https://196.12.203.182/fournisseurs');
       
-      const response = await fetch('/api/fournisseurs', {
+      const response = await fetch('https://196.12.203.182/fournisseurs', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -80,7 +80,7 @@ const Suppliers = () => {
 
   const handleAddSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
     try {
-      const response = await fetch('/api/fournisseurs', {
+      const response = await fetch('https://196.12.203.182/fournisseurs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ const Suppliers = () => {
   const handleEditSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
     if (editingSupplier) {
       try {
-        const response = await fetch(`/api/fournisseurs/${editingSupplier.id}`, {
+        const response = await fetch(`https://196.12.203.182/fournisseurs/${editingSupplier.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ const Suppliers = () => {
   const handleDeleteSupplier = async (id: number) => {
     if (confirm('Are you sure you want to delete this supplier?')) {
       try {
-        const response = await fetch(`/api/fournisseurs/${id}`, {
+        const response = await fetch(`https://196.12.203.182/fournisseurs/${id}`, {
           method: 'DELETE',
         });
 
@@ -241,7 +241,7 @@ const Suppliers = () => {
             onClick={async () => {
               try {
                 console.log('Testing API connection...');
-                const response = await fetch('/api/fournisseurs', {
+                const response = await fetch('https://196.12.203.182/fournisseurs', {
                   method: 'GET',
                   headers: { 'Accept': 'application/json' },
                   mode: 'cors'
