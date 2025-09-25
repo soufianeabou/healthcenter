@@ -77,7 +77,6 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     if (!validate()) return;
     const dateTimeLocal = `${date}T${time}:00`;
     onSubmit({
-      id: initial?.id,
       patient: { id: selectedPatientId as number },
       personnel: { id: personnelId },
       dateConsultation: dateTimeLocal,

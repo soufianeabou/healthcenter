@@ -62,7 +62,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
   const fetchConsultations = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://196.12.203.182/api/consultations/patient/${patient.id}`);
+      const response = await fetch(`https://196.12.203.182/consultations/patient/${patient.id}`);
       if (response.ok) {
         const data = await response.json();
         setConsultations(data);
@@ -78,7 +78,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
 
   const handleAddConsultation = async (values: any) => {
     try {
-      const response = await fetch(`https://196.12.203.182/api/consultations/add`, {
+      const response = await fetch(`https://196.12.203.182/consultations/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
