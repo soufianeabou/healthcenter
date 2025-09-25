@@ -89,7 +89,7 @@ const Consultations = () => {
       const res = await fetch('https://196.12.203.182/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, id: null })
+        body: JSON.stringify({ id: null, patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
       });
       if (!res.ok) throw new Error(`Create failed (${res.status}): ${await readErrorText(res)}`);
       setIsModalOpen(false);
@@ -106,7 +106,7 @@ const Consultations = () => {
       const res = await fetch(`https://196.12.203.182/consultations/${editingConsultation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, id: editingConsultation.id })
+        body: JSON.stringify({ id: editingConsultation.id, patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
       });
       if (!res.ok) throw new Error(`Update failed (${res.status}): ${await readErrorText(res)}`);
       setEditingConsultation(null);
