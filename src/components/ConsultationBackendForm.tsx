@@ -33,12 +33,12 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     setLoadingPatients(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
-        if (!res.ok) {
+        console.log("Searching for patient:", term); const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
+        console.log("Patient search response:", res.status); if (!res.ok) {
           setPatients([]);
           return;
         }
-        const r = await res.json();
+        const r = await res.json(); console.log("Patient data:", r);
         // Map API shape to local Patient shape; map idNum -> id
         const mapped: Patient[] = [{
           id: (r.idNum ?? r.id) as number,
