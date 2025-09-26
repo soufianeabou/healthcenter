@@ -361,7 +361,10 @@ const Consultations = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {new Date(consultation.consultationDate).toLocaleString()}
+                      {consultation.consultationDate ? 
+                        new Date(consultation.consultationDate).toLocaleString() : 
+                        new Date().toLocaleString()
+                      }
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
