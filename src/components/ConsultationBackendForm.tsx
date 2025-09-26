@@ -33,8 +33,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     setLoadingPatients(true);
     const timer = setTimeout(async () => {
       try {
-        console.log("Searching for patient:", term); const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
-        console.log("Patient search response:", res.status); if (!res.ok) {
+        const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
+        if (!res.ok) {
           setPatients([]);
           return;
         }

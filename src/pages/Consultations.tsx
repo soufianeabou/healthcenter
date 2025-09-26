@@ -86,7 +86,7 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
-      console.log("Creating consultation with payload:", { patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement }); const res = await fetch('https://196.12.203.182/api/consultations', {
+      const res = await fetch('https://196.12.203.182/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
