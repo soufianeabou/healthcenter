@@ -46,17 +46,27 @@ const Consultations = () => {
       const res = await fetch('https://196.12.203.182/api/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json(); console.log("Consultation data:", data); console.log("First consultation patient:", data[0]?.patient);
-      const rows: ConsultationRow[] = data.map((c: any) => ({
-        id: c.id,
-        patientId: c.patient?.idNum || c.patientId,
-        patientName: c.patient ? 
-        `${c.patient.prenom || ''} ${c.patient.nom || ''} #${c.patient.idNum}`.trim() : 
-        `#${c.patientId}`,        doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
-        consultationDate: c.dateConsultation,
-        notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
-        status: 'COMPLETED',
-        prescriptionItems: []
-      }));
+      
+      const rows: ConsultationRow[] = data.map((c: any) => {
+        console.log('Processing consultation:', c); // Debug log
+        const patientName = c.patient ? 
+          `${(c.patient.prenom || '').trim()} ${(c.patient.nom || '').trim()} #${c.patient.idNum}`.replace(/\s+/g, ' ').trim() : 
+          `#${c.patientId || c.patient?.idNum || 'Unknown'}`;
+        
+        console.log('Generated patient name:', patientName); // Debug log
+        
+        return {
+          id: c.id,
+          patientId: c.patient?.idNum || c.patientId,
+          patientName: patientName,
+          doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
+          consultationDate: c.dateConsultation,
+          notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
+          status: 'COMPLETED',
+          prescriptionItems: []
+        };
+      });
+      
       setConsultations(rows);
     } catch (e) {
       console.error(e);
