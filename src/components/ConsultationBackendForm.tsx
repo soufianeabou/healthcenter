@@ -50,7 +50,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           telephone: r.telephone || '',
           email: r.email || ''
         }];
-        setPatients(mapped);
+        console.log("Setting patients:", mapped); setPatients(mapped);
       } catch (e) {
         setPatients([]);
       } finally {
