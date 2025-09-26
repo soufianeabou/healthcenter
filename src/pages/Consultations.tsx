@@ -49,8 +49,9 @@ const Consultations = () => {
       const rows: ConsultationRow[] = data.map((c: any) => ({
         id: c.id,
         patientId: c.patient?.idNum || c.patientId,
-        patientName: `${c.patient?.prenom || ''} ${c.patient?.nom || ''}`.trim() || `#${c.patientId}`,
-        doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
+        patientName: c.patient ? 
+        `${c.patient.prenom || ''} ${c.patient.nom || ''} #${c.patient.idNum}`.trim() : 
+        `#${c.patientId}`,        doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
         consultationDate: c.dateConsultation,
         notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
         status: 'COMPLETED',
