@@ -45,15 +45,35 @@ const Consultations = () => {
       setError('');
       const res = await fetch('https://196.12.203.182/api/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
-      const data = await res.json(); console.log("Consultation data:", data); console.log("First consultation patient:", data[0]?.patient);
+      const data = await res.json(); 
       
-      const rows: ConsultationRow[] = data.map((c: any) => {
-        console.log('Processing consultation:', c); // Debug log
-        const patientName = c.patient ? 
-          `${(c.patient.prenom || '').trim()} ${(c.patient.nom || '').trim()} #${c.patient.idNum}`.replace(/\s+/g, ' ').trim() : 
-          `#${c.patientId || c.patient?.idNum || 'Unknown'}`;
+      console.log("Full consultation data:", data);
+      console.log("First consultation:", data[0]);
+      console.log("First consultation patient:", data[0]?.patient);
+      
+      const rows: ConsultationRow[] = data.map((c: any, index: number) => {
+        console.log(`Processing consultation ${index}:`, c);
+        console.log(`Patient object for consultation ${index}:`, c.patient);
         
-        console.log('Generated patient name:', patientName); // Debug log
+        // Handle patient name generation
+        let patientName;
+        if (c.patient && typeof c.patient === 'object' && c.patient.nom && c.patient.prenom) {
+          // Case 1: Full patient object with name details
+          patientName = `${c.patient.prenom.trim()} ${c.patient.nom.trim()} #${c.patient.idNum}`;
+          console.log(`Generated full name for consultation ${index}:`, patientName);
+        } else if (c.patient && c.patient.idNum) {
+          // Case 2: Patient object but missing name fields
+          patientName = `#${c.patient.idNum}`;
+          console.log(`Generated ID-only name for consultation ${index}:`, patientName);
+        } else if (c.patientId) {
+          // Case 3: Direct patientId field
+          patientName = `#${c.patientId}`;
+          console.log(`Generated direct ID name for consultation ${index}:`, patientName);
+        } else {
+          // Case 4: No patient info found
+          patientName = `#Unknown`;
+          console.log(`No patient info found for consultation ${index}`);
+        }
         
         return {
           id: c.id,
@@ -67,6 +87,7 @@ const Consultations = () => {
         };
       });
       
+      console.log("Final processed rows:", rows);
       setConsultations(rows);
     } catch (e) {
       console.error(e);
