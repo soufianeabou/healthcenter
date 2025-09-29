@@ -25,8 +25,7 @@ const EntryStockPage: React.FC = () => {
   const fetchEntryStocks = async () => {
     try {
       setLoading(true);
-      // Replace with your actual API endpoint
-      const response = await fetch('https://196.12.203.182/entreStocks');
+      const response = await fetch('https://196.12.203.182/api/consultations/entreStocks');
       if (response.ok) {
         const data = await response.json();
         setEntryStocks(data);
@@ -68,17 +67,13 @@ const EntryStockPage: React.FC = () => {
 
   const handleCreate = async (data: { supplier: any; badge: string; dateEntre: string; medicines: any[] }) => {
     try {
-      // Create multiple entry stocks - one for each medicine
       const promises = data.medicines.map(async (medicine) => {
         const entryStockData = {
           medicament: {
-            id: parseInt(medicine.medicamentId),
-            nomMedicament: '', // Will be filled by backend
-            codeBarre39: '' // Will be filled by backend
+            id: parseInt(medicine.medicamentId)
           },
           fournisseur: {
-            id: data.supplier.id,
-            nomFournisseur: data.supplier.nomFournisseur
+            id: data.supplier.id
           },
           dateEntre: data.dateEntre,
           qte: medicine.qte,
@@ -87,9 +82,8 @@ const EntryStockPage: React.FC = () => {
         };
 
         console.log('Sending entry stock data:', entryStockData);
-        console.log('Medicine unit price:', medicine.unitPrice);
 
-        const response = await fetch('https://196.12.203.182/entreStocks', {
+        const response = await fetch('https://196.12.203.182/api/consultations/entreStocks', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -98,20 +92,19 @@ const EntryStockPage: React.FC = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to create entry stock for medicine ${medicine.medicamentId}`);
+          const errorText = await response.text();
+          throw new Error(`Failed to create entry stock: ${errorText}`);
         }
 
         return response.json();
       });
 
-      // Wait for all entries to be created
       await Promise.all(promises);
-      
-      // Refresh the list
       await fetchEntryStocks();
       return true;
     } catch (error) {
       console.error('Error creating entry stocks:', error);
+      setError(error instanceof Error ? error.message : 'Erreur lors de la création');
       return false;
     }
   };
@@ -120,29 +113,25 @@ const EntryStockPage: React.FC = () => {
     if (!editingStock?.id) return false;
 
     try {
-      // In edit mode we only allow a single medicine row; take the first
       const first = data.medicines[0];
       if (!first) throw new Error('Aucun médicament sélectionné');
 
-      // Build backend-expected payload
       const payload = {
-        id: editingStock.id,
         medicament: {
           id: parseInt(first.medicamentId)
         },
         fournisseur: {
           id: data.supplier.id
         },
-        dateEntre: data.dateEntre, // YYYY-MM-DD
+        dateEntre: data.dateEntre,
         qte: first.qte,
         badge: data.badge,
         unite_prix: first.unitPrice
       };
 
       console.log('Sending update payload:', payload);
-      console.log('First medicine unit price:', first.unitPrice);
 
-      const response = await fetch(`https://196.12.203.182/entreStocks/${editingStock.id}`, {
+      const response = await fetch(`https://196.12.203.182/api/consultations/entreStocks/${editingStock.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -154,10 +143,12 @@ const EntryStockPage: React.FC = () => {
         await fetchEntryStocks();
         return true;
       } else {
-        throw new Error('Failed to update entry stock');
+        const errorText = await response.text();
+        throw new Error(`Failed to update: ${errorText}`);
       }
     } catch (error) {
       console.error('Error updating entry stock:', error);
+      setError(error instanceof Error ? error.message : 'Erreur lors de la mise à jour');
       return false;
     }
   };
@@ -168,17 +159,19 @@ const EntryStockPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`https://196.12.203.182/entreStocks/${id}`, {
+      const response = await fetch(`https://196.12.203.182/api/consultations/entreStocks/${id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         await fetchEntryStocks();
       } else {
-        throw new Error('Failed to delete entry stock');
+        const errorText = await response.text();
+        throw new Error(`Failed to delete: ${errorText}`);
       }
     } catch (error) {
       console.error('Error deleting entry stock:', error);
+      setError(error instanceof Error ? error.message : 'Erreur lors de la suppression');
     }
   };
 
@@ -196,7 +189,6 @@ const EntryStockPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
-  // Group stocks by badge
   const stocksByBadge = filteredStocks.reduce((acc, stock) => {
     if (!acc[stock.badge]) {
       acc[stock.badge] = [];
@@ -205,8 +197,23 @@ const EntryStockPage: React.FC = () => {
     return acc;
   }, {} as Record<string, EntryStock[]>);
 
-  const getUnitPrice = (s: EntryStock) => s.unitPrice ?? s.unite_prix ?? 0;
-  const itemTotal = (s: EntryStock) => (s.qte || 0) * getUnitPrice(s);
+  const getUnitPrice = (s: EntryStock) => {
+    return s.unite_prix ?? 0;
+  };
+
+  const itemTotal = (s: EntryStock) => {
+    const qty = s.qte || 0;
+    const price = getUnitPrice(s);
+    return qty * price;
+  };
+
+  const badgeTotal = (stocks: EntryStock[]) => {
+    return stocks.reduce((sum, s) => sum + itemTotal(s), 0);
+  };
+
+  const grandTotal = () => {
+    return filteredStocks.reduce((sum, s) => sum + itemTotal(s), 0);
+  };
 
   if (loading) {
     return (
@@ -218,7 +225,6 @@ const EntryStockPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestion des Entrées de Stock</h1>
@@ -233,7 +239,6 @@ const EntryStockPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -260,14 +265,13 @@ const EntryStockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
+          <button onClick={() => setError('')} className="text-red-600 underline text-sm mt-2">Fermer</button>
         </div>
       )}
 
-      {/* Badge Groups */}
       <div className="space-y-6">
         {Object.keys(stocksByBadge).length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
@@ -278,7 +282,6 @@ const EntryStockPage: React.FC = () => {
         ) : (
           Object.entries(stocksByBadge).map(([badge, stocks]) => (
             <div key={badge} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              {/* Badge Header */}
               <div className="bg-blue-50 px-6 py-4 border-b border-blue-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -287,8 +290,9 @@ const EntryStockPage: React.FC = () => {
                       <span className="font-medium">{stocks.length}</span> médicament(s) • 
                       Fournisseur: <span className="font-medium">{stocks[0].fournisseur.nomFournisseur}</span> • 
                       Date: <span className="font-medium">{formatDate(stocks[0].dateEntre)}</span>
-                      {/* Badge total */}
-                      <span className="ml-2 font-semibold text-blue-900">• Total lot: {stocks.reduce((sum, s) => sum + itemTotal(s), 0)} MAD</span>
+                      <span className="ml-2 font-semibold text-blue-900">
+                        • Total lot: {badgeTotal(stocks).toFixed(2)} MAD
+                      </span>
                     </div>
                   </div>
                   <button
@@ -301,7 +305,6 @@ const EntryStockPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Badge Details */}
               {selectedBadge === badge && (
                 <div className="p-6 bg-gray-50">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -315,8 +318,8 @@ const EntryStockPage: React.FC = () => {
                             </p>
                             <p className="text-sm text-gray-500">Code: {stock.medicament.codeBarre39}</p>
                             <p className="text-sm font-medium text-green-600">Quantité: {stock.qte}</p>
-                            <p className="text-sm text-gray-700">Prix unitaire: {getUnitPrice(stock)} MAD</p>
-                            <p className="text-sm font-semibold text-gray-900">Total: {itemTotal(stock)} MAD</p>
+                            <p className="text-sm text-gray-700">Prix unitaire: {getUnitPrice(stock).toFixed(2)} MAD</p>
+                            <p className="text-sm font-semibold text-gray-900">Total: {itemTotal(stock).toFixed(2)} MAD</p>
                           </div>
                           <div className="flex items-center space-x-2 ml-4">
                             <button
@@ -345,20 +348,18 @@ const EntryStockPage: React.FC = () => {
         )}
       </div>
 
-      {/* Summary */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
             Total: <span className="font-medium">{Object.keys(stocksByBadge).length}</span> lot(s) • 
             <span className="font-medium"> {filteredStocks.length}</span> entrée(s)
           </div>
-          <div className="text-sm text-gray-900 font-semibold">
-            Montant total filtré: {filteredStocks.reduce((sum, s) => sum + itemTotal(s), 0)} MAD
+          <div className="text-lg text-gray-900 font-bold">
+            Montant total: {grandTotal().toFixed(2)} MAD
           </div>
         </div>
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <EntryStockForm
           initialData={editingStock}

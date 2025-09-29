@@ -24,42 +24,23 @@ const Suppliers = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
-  // Fetch suppliers from API
   const fetchSuppliers = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching suppliers from:', 'https://196.12.203.182/fournisseurs');
-      
-      const response = await fetch('https://196.12.203.182/fournisseurs', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors', // Explicitly set CORS mode
-      });
-      
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      const response = await fetch('https://196.12.203.182/api/consultations/fournisseurs');
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error text:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Fetched data:', data);
       setSuppliers(data);
     } catch (err) {
       console.error('Error fetching suppliers:', err);
-      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
-        setError('CORS Error: Cannot connect to backend. Make sure your backend allows requests from this origin.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to fetch suppliers');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to fetch suppliers');
     } finally {
       setLoading(false);
     }
@@ -80,7 +61,7 @@ const Suppliers = () => {
 
   const handleAddSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
     try {
-      const response = await fetch('https://196.12.203.182/fournisseurs', {
+      const response = await fetch('https://196.12.203.182/api/consultations/fournisseurs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,10 +70,10 @@ const Suppliers = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to add supplier: ${errorText}`);
       }
 
-      // Refresh the suppliers list
       await fetchSuppliers();
       setIsModalOpen(false);
     } catch (err) {
@@ -104,7 +85,7 @@ const Suppliers = () => {
   const handleEditSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
     if (editingSupplier) {
       try {
-        const response = await fetch(`https://196.12.203.182/fournisseurs/${editingSupplier.id}`, {
+        const response = await fetch(`https://196.12.203.182/api/consultations/fournisseurs/${editingSupplier.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -113,10 +94,10 @@ const Suppliers = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(`Failed to update supplier: ${errorText}`);
         }
 
-        // Refresh the suppliers list
         await fetchSuppliers();
         setEditingSupplier(null);
         setIsModalOpen(false);
@@ -128,17 +109,17 @@ const Suppliers = () => {
   };
 
   const handleDeleteSupplier = async (id: number) => {
-    if (confirm('Are you sure you want to delete this supplier?')) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?')) {
       try {
-        const response = await fetch(`https://196.12.203.182/fournisseurs/${id}`, {
+        const response = await fetch(`https://196.12.203.182/api/consultations/fournisseurs/${id}`, {
           method: 'DELETE',
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          throw new Error(`Failed to delete supplier: ${errorText}`);
         }
 
-        // Refresh the suppliers list
         await fetchSuppliers();
       } catch (err) {
         console.error('Error deleting supplier:', err);
@@ -200,23 +181,7 @@ const Suppliers = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading suppliers...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-          <p className="text-red-800 mb-4">{error}</p>
-          <button
-            onClick={fetchSuppliers}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Retry
-          </button>
+          <p className="text-gray-600">Chargement des fournisseurs...</p>
         </div>
       </div>
     );
@@ -226,8 +191,8 @@ const Suppliers = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Supplier Management</h1>
-          <p className="text-gray-600">Manage pharmaceutical suppliers and contacts</p>
+          <h1 className="text-2xl font-bold text-gray-800">Gestion des Fournisseurs</h1>
+          <p className="text-gray-600">Gérez les fournisseurs pharmaceutiques et leurs contacts</p>
         </div>
         <div className="flex items-center space-x-3">
           <button
@@ -235,47 +200,30 @@ const Suppliers = () => {
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
           >
             <RefreshCw className="w-5 h-5" />
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                console.log('Testing API connection...');
-                const response = await fetch('https://196.12.203.182/fournisseurs', {
-                  method: 'GET',
-                  headers: { 'Accept': 'application/json' },
-                  mode: 'cors'
-                });
-                console.log('Test response:', response);
-                if (response.ok) {
-                  alert('API connection successful! Check console for details.');
-                } else {
-                  alert(`API connection failed with status: ${response.status}`);
-                }
-              } catch (err) {
-                console.error('Test connection error:', err);
-                alert(`API connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-              }
-            }}
-            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
-          >
-            <span>Test API</span>
+            <span>Actualiser</span>
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
           >
             <Plus className="w-5 h-5" />
-            <span>Add Supplier</span>
+            <span>Ajouter Fournisseur</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700">{error}</p>
+          <button onClick={() => setError(null)} className="text-red-600 underline text-sm mt-2">Fermer</button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Suppliers</p>
+              <p className="text-sm font-medium text-gray-600">Total Fournisseurs</p>
               <p className="text-2xl font-bold text-blue-600 mt-2">{suppliers.length}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -293,7 +241,7 @@ const Suppliers = () => {
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <Plus className="w-6 h-6 text-green-600" />
+              <Filter className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -301,7 +249,7 @@ const Suppliers = () => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Suppliers</p>
+              <p className="text-sm font-medium text-gray-600">Actifs</p>
               <p className="text-2xl font-bold text-emerald-600 mt-2">
                 {suppliers.filter(s => s.status === 'ACTIVE').length}
               </p>
@@ -315,7 +263,7 @@ const Suppliers = () => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">This Year</p>
+              <p className="text-sm font-medium text-gray-600">Cette Année</p>
               <p className="text-2xl font-bold text-purple-600 mt-2">
                 {suppliers.filter(s => new Date(s.dateJointure).getFullYear() === new Date().getFullYear()).length}
               </p>
@@ -334,7 +282,7 @@ const Suppliers = () => {
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search suppliers..."
+                placeholder="Rechercher des fournisseurs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -345,7 +293,7 @@ const Suppliers = () => {
               onChange={(e) => setTypeFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="ALL">All Types</option>
+              <option value="ALL">Tous les types</option>
               {Array.from(new Set(suppliers.map(s => s.typeFournisseur))).map((type) => (
                 <option key={type} value={type}>{type}</option>
               ))}
@@ -355,15 +303,11 @@ const Suppliers = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="ALL">All Statuses</option>
+              <option value="ALL">Tous les statuts</option>
               {Array.from(new Set(suppliers.map(s => s.status))).map((status) => (
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
-            <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="w-5 h-5" />
-              <span>Filter</span>
-            </button>
           </div>
         </div>
 
@@ -376,20 +320,20 @@ const Suppliers = () => {
                   {getTypeBadge(supplier.typeFournisseur)}
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1">
-                    <button
-                      onClick={() => openEditModal(supplier)}
-                      className="text-green-600 hover:text-green-900 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSupplier(supplier.id)}
-                      className="text-red-600 hover:text-red-900 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => openEditModal(supplier)}
+                    className="text-green-600 hover:text-green-900 transition-colors"
+                    title="Modifier"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSupplier(supplier.id)}
+                    className="text-red-600 hover:text-red-900 transition-colors"
+                    title="Supprimer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
@@ -410,11 +354,10 @@ const Suppliers = () => {
 
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Type: <span className="font-medium">{supplier.typeFournisseur}</span></span>
-                  <span className="text-gray-500">Since {new Date(supplier.dateJointure).getFullYear()}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-1">
-                  <span className="text-gray-600">Status: <span className="font-medium">{getStatusBadge(supplier.status)}</span></span>
+                  <span className="text-gray-600">
+                    Depuis <span className="font-medium">{new Date(supplier.dateJointure).getFullYear()}</span>
+                  </span>
+                  {getStatusBadge(supplier.status)}
                 </div>
               </div>
             </div>
@@ -424,13 +367,13 @@ const Suppliers = () => {
         {filteredSuppliers.length === 0 && (
           <div className="p-12 text-center">
             <Plus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No suppliers found</h3>
-            <p className="text-gray-600 mb-4">Try adjusting your search criteria or add a new supplier.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun fournisseur trouvé</h3>
+            <p className="text-gray-600 mb-4">Essayez d'ajuster vos critères de recherche ou ajoutez un nouveau fournisseur.</p>
             <button
               onClick={() => setIsModalOpen(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
             >
-              Add Supplier
+              Ajouter Fournisseur
             </button>
           </div>
         )}
@@ -439,7 +382,7 @@ const Suppliers = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+        title={editingSupplier ? 'Modifier Fournisseur' : 'Nouveau Fournisseur'}
       >
         <SupplierForm
           initialData={editingSupplier}

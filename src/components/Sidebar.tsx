@@ -25,6 +25,7 @@ const Sidebar = () => {
   const adminNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Pill, label: 'Medicines', path: '/medicines' },
+    { icon: Stethoscope, label: 'Consultations', path: '/consultations' },
     { icon: PackagePlus, label: 'Entrées de Stock', path: '/entry-stock' },
     { icon: PackageMinus, label: 'Sorties de Stock', path: '/exit-stock' },
     { icon: UserCog, label: 'Personnel', path: '/personnel' },

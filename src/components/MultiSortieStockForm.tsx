@@ -76,7 +76,7 @@ const MultiSortieStockForm: React.FC<Props> = ({ consultationId, onSubmitted, on
       }
 
       for (const p of payloads) {
-        const res = await fetch('https://196.12.203.182/api/consultations/sortie-stock', {
+        const res = await fetch('https://196.12.203.182/sortie-stock', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(p)

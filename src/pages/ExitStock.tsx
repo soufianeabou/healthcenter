@@ -1,6 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, Eye } from 'lucide-react';
-import { ExitStock } from '../types/stock';
+
+interface Medicament {
+  id: number;
+  nomMedicament: string;
+  codeBarre39: string;
+  dosage?: number;
+  uniteDosage?: string;
+}
+
+interface Consultation {
+  id: number;
+  patient?: {
+    nom: string;
+    prenom: string;
+    idNum: number;
+  };
+}
+
+interface ExitStock {
+  id: number;
+  consultation: Consultation;
+  medicament: Medicament;
+  parUnite: boolean;
+  quantite: number;
+  dateSortie: string;
+}
 
 const ExitStockPage: React.FC = () => {
   const [exitStocks, setExitStocks] = useState<ExitStock[]>([]);
@@ -22,8 +47,7 @@ const ExitStockPage: React.FC = () => {
   const fetchExitStocks = async () => {
     try {
       setLoading(true);
-      // Replace with your actual API endpoint
-      const response = await fetch('https://196.12.203.182/sortie-stock');
+      const response = await fetch('https://196.12.203.182/api/consultations/sortiestocks');
       if (response.ok) {
         const data = await response.json();
         setExitStocks(data);
@@ -42,12 +66,17 @@ const ExitStockPage: React.FC = () => {
     let filtered = [...exitStocks];
 
     if (searchTerm) {
-      filtered = filtered.filter(stock =>
-        stock.medicament.nomMedicament.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stock.medicament.codeBarre39.includes(searchTerm) ||
-        stock.motif.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (stock.beneficiaire && stock.beneficiaire.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      filtered = filtered.filter(stock => {
+        const medicamentMatch = stock.medicament.nomMedicament.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          stock.medicament.codeBarre39.includes(searchTerm);
+        
+        const patientName = stock.consultation.patient 
+          ? `${stock.consultation.patient.prenom} ${stock.consultation.patient.nom}`.toLowerCase()
+          : '';
+        const patientMatch = patientName.includes(searchTerm.toLowerCase());
+        
+        return medicamentMatch || patientMatch;
+      });
     }
 
     if (filterDate) {
@@ -63,6 +92,13 @@ const ExitStockPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
+  const getPatientDisplay = (consultation: Consultation) => {
+    if (consultation.patient) {
+      return `${consultation.patient.prenom} ${consultation.patient.nom} #${consultation.patient.idNum}`;
+    }
+    return `Consultation #${consultation.id}`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -73,7 +109,6 @@ const ExitStockPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Consultation des Sorties de Stock</h1>
@@ -81,7 +116,6 @@ const ExitStockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters and Search */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -89,7 +123,7 @@ const ExitStockPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
                 type="text"
-                placeholder="Rechercher par médicament, code-barres, motif ou bénéficiaire..."
+                placeholder="Rechercher par médicament, code-barres ou patient..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -108,14 +142,13 @@ const ExitStockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
+          <button onClick={() => setError('')} className="text-red-600 underline text-sm mt-2">Fermer</button>
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -125,16 +158,16 @@ const ExitStockPage: React.FC = () => {
                   Médicament
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Patient
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date de Sortie
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Quantité
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Motif
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Bénéficiaire
+                  Mode
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -162,20 +195,22 @@ const ExitStockPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {getPatientDisplay(stock.consultation)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{formatDate(stock.dateSortie)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{stock.qte}</div>
+                      <div className="text-sm text-gray-900">{stock.quantite}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 max-w-xs truncate" title={stock.motif}>
-                        {stock.motif}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {stock.beneficiaire || '-'}
-                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        stock.parUnite ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {stock.parUnite ? 'Par unité' : 'Par paquet'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
@@ -194,7 +229,6 @@ const ExitStockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
@@ -202,7 +236,6 @@ const ExitStockPage: React.FC = () => {
           </div>
           <button
             onClick={() => {
-              // Export functionality can be implemented here
               console.log('Export clicked');
             }}
             className="px-3 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2"
@@ -213,7 +246,6 @@ const ExitStockPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Detail Modal */}
       {selectedStock && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -233,6 +265,18 @@ const ExitStockPage: React.FC = () => {
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Médicament</h3>
                   <p className="text-lg font-medium text-gray-900">{selectedStock.medicament.nomMedicament}</p>
                   <p className="text-sm text-gray-500">{selectedStock.medicament.codeBarre39}</p>
+                  {selectedStock.medicament.dosage && (
+                    <p className="text-sm text-gray-500">
+                      {selectedStock.medicament.dosage} {selectedStock.medicament.uniteDosage}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Patient</h3>
+                  <p className="text-lg font-medium text-gray-900">
+                    {getPatientDisplay(selectedStock.consultation)}
+                  </p>
                 </div>
 
                 <div>
@@ -242,19 +286,21 @@ const ExitStockPage: React.FC = () => {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-500 mb-2">Quantité</h3>
-                  <p className="text-lg font-medium text-gray-900">{selectedStock.qte}</p>
+                  <p className="text-lg font-medium text-gray-900">{selectedStock.quantite}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Bénéficiaire</h3>
-                  <p className="text-lg font-medium text-gray-900">
-                    {selectedStock.beneficiaire || 'Non spécifié'}
-                  </p>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Mode de sortie</h3>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    selectedStock.parUnite ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                  }`}>
+                    {selectedStock.parUnite ? 'Par unité' : 'Par paquet'}
+                  </span>
                 </div>
 
-                <div className="md:col-span-2">
-                  <h3 className="text-sm font-medium text-gray-500 mb-2">Motif</h3>
-                  <p className="text-lg font-medium text-gray-900">{selectedStock.motif}</p>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Consultation ID</h3>
+                  <p className="text-lg font-medium text-gray-900">#{selectedStock.consultation.id}</p>
                 </div>
               </div>
             </div>
