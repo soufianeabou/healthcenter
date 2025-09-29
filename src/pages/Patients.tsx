@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Tag, Modal, message } from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined, UserOutlined } from '@ant-design/icons';
+import { Table, Button, Space, message } from 'antd';
+import { UserOutlined, PlusOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import MedicalRecord from '../components/MedicalRecord';
 
 interface Patient {
   id: number;
   nom: string;
   prenom: string;
-  cne: string;
-  dateNaissance: string;
-  sexe: string;
+  idNum: number;
   telephone: string;
   email: string;
-  departement: string;
-  typePatient: string;
 }
 
 const Patients: React.FC = () => {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -43,16 +41,12 @@ const Patients: React.FC = () => {
         }
         const r = await res.json();
         const mapped: Patient = {
-          id: r.idNum ?? r.id,
+          id: r.id,
           nom: r.nom || '',
           prenom: r.prenom || '',
-          cne: r.cne || '',
-          dateNaissance: r.dateNaissance || new Date().toISOString(),
-          sexe: r.sexe || 'M',
+          idNum: r.idNum,
           telephone: r.telephone || '',
-          email: r.email || '',
-          departement: r.departement || '',
-          typePatient: r.typePatient || 'STUDENT'
+          email: r.email || ''
         };
         setPatients([mapped]);
       } catch (e) {
@@ -92,12 +86,17 @@ const Patients: React.FC = () => {
     setSelectedPatient(null);
   };
 
+  const handleAddConsultation = (patient: Patient) => {
+    // Navigate to consultations page with patient pre-selected
+    navigate('/consultations', { state: { selectedPatient: patient } });
+  };
+
   const columns = [
     {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 60,
+      width: 80,
     },
     {
       title: 'Nom',
@@ -106,25 +105,9 @@ const Patients: React.FC = () => {
       render: (text: string, record: Patient) => `${record.prenom} ${record.nom}`,
     },
     {
-      title: 'CNE',
-      dataIndex: 'cne',
-      key: 'cne',
-    },
-    {
-      title: 'Date de naissance',
-      dataIndex: 'dateNaissance',
-      key: 'dateNaissance',
-      render: (date: string) => new Date(date).toLocaleDateString('fr-FR'),
-    },
-    {
-      title: 'Sexe',
-      dataIndex: 'sexe',
-      key: 'sexe',
-      render: (sexe: string) => (
-        <Tag color={sexe === 'M' ? 'blue' : 'pink'}>
-          {sexe === 'M' ? 'Homme' : 'Femme'}
-        </Tag>
-      ),
+      title: 'ID Number',
+      dataIndex: 'idNum',
+      key: 'idNum',
     },
     {
       title: 'Téléphone',
@@ -137,23 +120,9 @@ const Patients: React.FC = () => {
       key: 'email',
     },
     {
-      title: 'Département',
-      dataIndex: 'departement',
-      key: 'departement',
-    },
-    {
-      title: 'Type',
-      dataIndex: 'typePatient',
-      key: 'typePatient',
-      render: (type: string) => (
-        <Tag color={type === 'STUDENT' ? 'green' : 'orange'}>
-          {type === 'STUDENT' ? 'Étudiant' : 'Personnel'}
-        </Tag>
-      ),
-    },
-    {
       title: 'Actions',
       key: 'actions',
+      width: 300,
       render: (text: string, record: Patient) => (
         <Space size="small">
           <Button
@@ -166,18 +135,12 @@ const Patients: React.FC = () => {
           </Button>
           <Button
             type="default"
-            icon={<EditOutlined />}
+            icon={<PlusOutlined />}
             size="small"
+            style={{ backgroundColor: '#52c41a', color: 'white', borderColor: '#52c41a' }}
+            onClick={() => handleAddConsultation(record)}
           >
-            Modifier
-          </Button>
-          <Button
-            type="default"
-            danger
-            icon={<DeleteOutlined />}
-            size="small"
-          >
-            Supprimer
+            Ajouter Consultation
           </Button>
         </Space>
       ),
@@ -195,9 +158,6 @@ const Patients: React.FC = () => {
             placeholder="Recherche par ID (idNum)"
             style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
           />
-          <Button type="primary">
-            Ajouter un Patient
-          </Button>
         </div>
       </div>
 
@@ -207,7 +167,7 @@ const Patients: React.FC = () => {
         loading={loading}
         rowKey="id"
         pagination={{ pageSize: 10 }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1000 }}
       />
 
       {selectedPatient && (

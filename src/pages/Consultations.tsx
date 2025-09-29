@@ -90,10 +90,18 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
+      const currentDateTime = new Date().toISOString();
       const res = await fetch('https://196.12.203.182/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
+        body: JSON.stringify({ 
+          patientId: payload.patient.id, 
+          personnelId: payload.personnel.id, 
+          dateConsultation: currentDateTime, 
+          motif: payload.motif, 
+          diagnostic: payload.diagnostic, 
+          traitement: payload.traitement 
+        })
       });
       if (!res.ok) throw new Error(`Create failed (${res.status}): ${await readErrorText(res)}`);
       setIsModalOpen(false);
@@ -363,7 +371,7 @@ const Consultations = () => {
                     <div className="text-sm text-gray-900">
                       {consultation.consultationDate ? 
                         new Date(consultation.consultationDate).toLocaleString() : 
-                        new Date().toLocaleString()
+                        'No date'
                       }
                     </div>
                   </td>
