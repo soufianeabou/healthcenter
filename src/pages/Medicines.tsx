@@ -1,32 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Eye } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import MedicineForm from '../components/MedicineForm';
-import { Medicine, getCategorieDisplayName, getUniteDisplayName, getCategorieBadgeColors } from '../types/medicine';
+import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Upload, Download, X } from 'lucide-react';
+
+interface Medicine {
+  id?: number;
+  nomMedicament: string;
+  description: string;
+  codeBarre39: string;
+  perPile: boolean;
+  categorie: string;
+  dosage: number;
+  uniteDosage: string;
+  defaultSize: number;
+  qteStock: number;
+  compteurPiles?: number;
+  qteMinimum: number;
+}
 
 const Medicines = () => {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [filteredMedicines, setFilteredMedicines] = useState<Medicine[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  
+  const [formData, setFormData] = useState<Medicine>({
+    nomMedicament: '',
+    description: '',
+    codeBarre39: '',
+    perPile: true,
+    categorie: 'ANTALGIQUE',
+    dosage: 0,
+    uniteDosage: 'MG',
+    defaultSize: 1,
+    qteStock: 0,
+    qteMinimum: 10
+  });
 
-  // Fetch medicines from API
   const fetchMedicines = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://196.12.203.182/medicaments');
-      if (!response.ok) {
-        throw new Error('Failed to fetch medicines');
-      }
+      const response = await fetch('https://196.12.203.182/api/consultations/medicaments');
+      if (!response.ok) throw new Error('Failed to fetch medicines');
       const data = await response.json();
       setMedicines(data);
       setFilteredMedicines(data);
     } catch (error) {
-      console.error('Error fetching medicines:', error);
+      console.error('Error:', error);
       setError('Erreur lors du chargement des médicaments');
     } finally {
       setIsLoading(false);
@@ -37,132 +60,148 @@ const Medicines = () => {
     fetchMedicines();
   }, []);
 
-  // Filter medicines based on search term and category
   useEffect(() => {
     let filtered = medicines;
-
     if (searchTerm) {
-      filtered = filtered.filter(medicine =>
-        medicine.nomMedicament.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.codeBarre39.includes(searchTerm)
+      filtered = filtered.filter(m =>
+        m.nomMedicament.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.codeBarre39.includes(searchTerm)
       );
     }
-
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(medicine => medicine.categorie === selectedCategory);
+      filtered = filtered.filter(m => m.categorie === selectedCategory);
     }
-
     setFilteredMedicines(filtered);
   }, [medicines, searchTerm, selectedCategory]);
 
-  // Add new medicine
-  const handleAddMedicine = async (medicineData: Omit<Medicine, 'id' | 'compteurPiles'>) => {
-    try {
-      const response = await fetch('https://196.12.203.182/medicaments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(medicineData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add medicine');
-      }
-
-      const newMedicine = await response.json();
-      setMedicines(prev => [...prev, newMedicine]);
-      setShowForm(false);
-      return true;
-    } catch (error) {
-      console.error('Error adding medicine:', error);
-      setError('Erreur lors de l\'ajout du médicament');
-      return false;
-    }
+  const resetForm = () => {
+    setFormData({
+      nomMedicament: '',
+      description: '',
+      codeBarre39: '',
+      perPile: true,
+      categorie: 'ANTALGIQUE',
+      dosage: 0,
+      uniteDosage: 'MG',
+      defaultSize: 1,
+      qteStock: 0,
+      qteMinimum: 10
+    });
   };
 
-  // Update existing medicine
-  const handleEditMedicine = async (medicineData: Omit<Medicine, 'id' | 'compteurPiles'>) => {
-    if (!editingMedicine?.id) return false;
-
-    try {
-      const response = await fetch(`https://196.12.203.182/medicaments/${editingMedicine.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(medicineData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update medicine');
-      }
-
-      const updatedMedicine = await response.json();
-      setMedicines(prev =>
-        prev.map(med => med.id === editingMedicine.id ? updatedMedicine : med)
-      );
-      setEditingMedicine(null);
-      return true;
-    } catch (error) {
-      console.error('Error updating medicine:', error);
-      setError('Erreur lors de la mise à jour du médicament');
-      return false;
-    }
-  };
-
-  // Delete medicine
-  const handleDeleteMedicine = async (id: number) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce médicament ?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`https://196.12.203.182/medicaments/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete medicine');
-      }
-
-      setMedicines(prev => prev.filter(med => med.id !== id));
-    } catch (error) {
-      console.error('Error deleting medicine:', error);
-      setError('Erreur lors de la suppression du médicament');
-    }
-  };
-
-  // Open edit form
-  const openEditModal = (medicine: Medicine) => {
-    setEditingMedicine(medicine);
+  const openAddForm = () => {
+    resetForm();
+    setEditingMedicine(null);
     setShowForm(true);
   };
 
-  // Close form
+  const openEditForm = (med: Medicine) => {
+    setFormData(med);
+    setEditingMedicine(med);
+    setShowForm(true);
+  };
+
   const closeForm = () => {
     setShowForm(false);
     setEditingMedicine(null);
-    setError('');
+    resetForm();
   };
 
-  // Check if stock is low
-  const isLowStock = (medicine: Medicine) => medicine.qteStock <= medicine.qteMinimum;
-
-  // Get stock status color
-  const getStockStatusColor = (medicine: Medicine) => {
-    if (medicine.qteStock === 0) return 'text-red-600';
-    if (isLowStock(medicine)) return 'text-yellow-600';
-    return 'text-green-600';
+  const handleSubmit = async () => {
+    try {
+      const url = editingMedicine 
+        ? `https://196.12.203.182/api/consultations/medicaments/${editingMedicine.id}`
+        : 'https://196.12.203.182/api/consultations/medicaments';
+      
+      const response = await fetch(url, {
+        method: editingMedicine ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      if (!response.ok) throw new Error('Failed to save');
+      
+      closeForm();
+      await fetchMedicines();
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Erreur lors de l\'enregistrement du médicament');
+    }
   };
 
-  // Get stock status text
-  const getStockStatusText = (medicine: Medicine) => {
-    if (medicine.qteStock === 0) return 'Rupture de stock';
-    if (isLowStock(medicine)) return 'Stock faible';
-    return 'En stock';
+  const handleDeleteMedicine = async (id: number) => {
+    if (!confirm('Supprimer ce médicament ?')) return;
+    try {
+      const response = await fetch(`https://196.12.203.182/api/consultations/medicaments/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete');
+      await fetchMedicines();
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Erreur lors de la suppression');
+    }
   };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      
+      const medicamentsToImport: Omit<Medicine, 'id'>[] = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        if (values.length < 10) continue;
+        
+        medicamentsToImport.push({
+          nomMedicament: values[0],
+          description: values[1],
+          codeBarre39: values[2],
+          perPile: values[3].toLowerCase() === 'true',
+          categorie: values[4],
+          dosage: parseFloat(values[5]),
+          uniteDosage: values[6],
+          defaultSize: parseInt(values[7]),
+          qteStock: parseInt(values[8]),
+          qteMinimum: parseInt(values[9])
+        });
+      }
+
+      for (const med of medicamentsToImport) {
+        await fetch('https://196.12.203.182/api/consultations/medicaments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(med)
+        });
+      }
+      
+      setShowImportModal(false);
+      await fetchMedicines();
+      alert(`${medicamentsToImport.length} médicaments importés`);
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Erreur lors de l\'importation');
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = 'nomMedicament,description,codeBarre39,perPile,categorie,dosage,uniteDosage,defaultSize,qteStock,qteMinimum\n' +
+      'Paracétamol,Analgésique et antipyrétique,123456789,true,ANTALGIQUE,500,MG,20,100,20\n' +
+      'Ibuprofène,Anti-inflammatoire,987654321,false,ANTI_INFLAMMATOIRE,400,MG,30,50,15';
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_medicaments.csv';
+    a.click();
+  };
+
+  const isLowStock = (m: Medicine) => m.qteStock <= m.qteMinimum;
 
   if (isLoading) {
     return (
@@ -173,30 +212,37 @@ const Medicines = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestion des Médicaments</h1>
           <p className="text-gray-600">Gérez votre inventaire de médicaments</p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Ajouter un médicament</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Upload className="w-5 h-5" />
+            <span>Importer</span>
+          </button>
+          <button
+            onClick={openAddForm}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Ajouter</span>
+          </button>
+        </div>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-700">{error}</p>
+          <button onClick={() => setError('')} className="text-red-600 underline text-sm mt-2">Fermer</button>
         </div>
       )}
 
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -208,19 +254,18 @@ const Medicines = () => {
                 placeholder="Nom, description ou code-barres..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
               />
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
-              <option value="all">Toutes les catégories</option>
+              <option value="all">Toutes</option>
               <option value="ANTIBIOTIQUE">Antibiotique</option>
               <option value="ANTI_INFLAMMATOIRE">Anti-inflammatoire</option>
               <option value="ANTALGIQUE">Antalgique</option>
@@ -231,108 +276,78 @@ const Medicines = () => {
               <option value="AUTRE">Autre</option>
             </select>
           </div>
-
           <div className="flex items-end">
             <div className="text-sm text-gray-600">
-              <span className="font-medium">{filteredMedicines.length}</span> médicament(s) trouvé(s)
+              <span className="font-medium">{filteredMedicines.length}</span> médicament(s)
             </div>
           </div>
         </div>
       </div>
 
-      {/* Medicines Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMedicines.map((medicine) => (
-          <div key={medicine.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            {/* Header */}
+        {filteredMedicines.map((med) => (
+          <div key={med.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-4 border-b border-gray-200">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {medicine.nomMedicament}
-                  </h3>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategorieBadgeColors(medicine.categorie)}`}>
-                      {getCategorieDisplayName(medicine.categorie)}
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{med.nomMedicament}</h3>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {med.categorie}
                     </span>
-                    <span className="text-sm text-gray-500">
-                      {medicine.dosage} {getUniteDisplayName(medicine.uniteDosage)}
-                    </span>
+                    <span className="text-sm text-gray-500">{med.dosage} {med.uniteDosage}</span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Link
-                    to={`/medicines/${medicine.id}`}
-                    state={{ medicine }}
-                    className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                    title="Détails"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Link>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => openEditModal(medicine)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                    title="Modifier"
+                    onClick={() => openEditForm(med)}
+                    className="p-2 text-gray-400 hover:text-blue-600"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteMedicine(medicine.id!)}
-                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                    title="Supprimer"
+                    onClick={() => handleDeleteMedicine(med.id!)}
+                    className="p-2 text-gray-400 hover:text-red-600"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             </div>
-
-            {/* Content */}
             <div className="p-4">
-              <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                {medicine.description}
-              </p>
-
+              <p className="text-sm text-gray-600 mb-3">{med.description}</p>
               <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between">
                   <span className="text-gray-500">Code-barres:</span>
-                  <span className="font-mono text-gray-900">{medicine.codeBarre39}</span>
+                  <span className="font-mono">{med.codeBarre39}</span>
                 </div>
-                
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between">
                   <span className="text-gray-500">Vente:</span>
-                  <span className="text-gray-900">
-                    {medicine.perPile ? 'À l\'unité' : 'En paquet'}
-                  </span>
+                  <span>{med.perPile ? 'À l\'unité' : 'En paquet'}</span>
                 </div>
-
-                {!medicine.perPile && (
-                  <div className="flex items-center justify-between">
+                {!med.perPile && (
+                  <div className="flex justify-between">
                     <span className="text-gray-500">Taille paquet:</span>
-                    <span className="text-gray-900">{medicine.defaultSize}</span>
+                    <span>{med.defaultSize}</span>
                   </div>
                 )}
               </div>
-
-              {/* Stock Status */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Stock</span>
-                  <span className={`text-sm font-semibold ${getStockStatusColor(medicine)}`}>
-                    {medicine.qteStock}
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm font-medium">Stock</span>
+                  <span className={`text-sm font-semibold ${isLowStock(med) ? 'text-red-600' : 'text-green-600'}`}>
+                    {med.qteStock}
                   </span>
                 </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{getStockStatusText(medicine)}</span>
-                  {isLowStock(medicine) && (
-                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  )}
+                <div className="flex justify-between">
+                  <span className="text-xs text-gray-500">
+                    {med.qteStock === 0 ? 'Rupture' : isLowStock(med) ? 'Stock faible' : 'En stock'}
+                  </span>
+                  {isLowStock(med) && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
                 </div>
-
-                {medicine.compteurPiles !== undefined && medicine.compteurPiles > 0 && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    Compteur unités: {medicine.compteurPiles}
+                {med.compteurPiles !== undefined && med.compteurPiles > 0 && (
+                  <div className="mt-2 text-xs text-blue-600">
+                    Compteur: {med.compteurPiles}
                   </div>
                 )}
               </div>
@@ -341,27 +356,169 @@ const Medicines = () => {
         ))}
       </div>
 
-      {/* Empty State */}
-      {filteredMedicines.length === 0 && !isLoading && (
+      {filteredMedicines.length === 0 && (
         <div className="text-center py-12">
           <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun médicament trouvé</h3>
-          <p className="text-gray-500">
-            {searchTerm || selectedCategory !== 'all' 
-              ? 'Essayez de modifier vos critères de recherche'
-              : 'Commencez par ajouter votre premier médicament'
-            }
-          </p>
         </div>
       )}
 
-      {/* Medicine Form Modal */}
       {showForm && (
-        <MedicineForm
-          initialData={editingMedicine}
-          onSubmit={editingMedicine ? handleEditMedicine : handleAddMedicine}
-          onCancel={closeForm}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">{editingMedicine ? 'Modifier' : 'Ajouter'} un médicament</h2>
+              <button onClick={closeForm} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Nom du médicament *</label>
+                  <input 
+                    value={formData.nomMedicament} 
+                    onChange={(e) => setFormData({...formData, nomMedicament: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium mb-1">Description *</label>
+                  <textarea 
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                    rows={3} 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Code-barres *</label>
+                  <input 
+                    value={formData.codeBarre39}
+                    onChange={(e) => setFormData({...formData, codeBarre39: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Catégorie *</label>
+                  <select 
+                    value={formData.categorie}
+                    onChange={(e) => setFormData({...formData, categorie: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="ANTIBIOTIQUE">Antibiotique</option>
+                    <option value="ANTI_INFLAMMATOIRE">Anti-inflammatoire</option>
+                    <option value="ANTALGIQUE">Antalgique</option>
+                    <option value="ANTIPYRETIQUE">Antipyrétique</option>
+                    <option value="ANTIVIRAL">Antiviral</option>
+                    <option value="VITAMINE">Vitamine</option>
+                    <option value="VACCIN">Vaccin</option>
+                    <option value="AUTRE">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Dosage *</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    value={formData.dosage}
+                    onChange={(e) => setFormData({...formData, dosage: parseFloat(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Unité *</label>
+                  <select 
+                    value={formData.uniteDosage}
+                    onChange={(e) => setFormData({...formData, uniteDosage: e.target.value})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="MG">mg</option>
+                    <option value="ML">ml</option>
+                    <option value="G">g</option>
+                    <option value="UI">UI</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Vente *</label>
+                  <select 
+                    value={formData.perPile ? 'true' : 'false'}
+                    onChange={(e) => setFormData({...formData, perPile: e.target.value === 'true'})}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="true">À l'unité</option>
+                    <option value="false">En paquet</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Taille paquet *</label>
+                  <input 
+                    type="number"
+                    value={formData.defaultSize}
+                    onChange={(e) => setFormData({...formData, defaultSize: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Quantité stock *</label>
+                  <input 
+                    type="number"
+                    value={formData.qteStock}
+                    onChange={(e) => setFormData({...formData, qteStock: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Stock minimum *</label>
+                  <input 
+                    type="number"
+                    value={formData.qteMinimum}
+                    onChange={(e) => setFormData({...formData, qteMinimum: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border rounded-lg" 
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end pt-4">
+                <button onClick={closeForm} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
+                  Annuler
+                </button>
+                <button onClick={handleSubmit} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                  {editingMedicine ? 'Modifier' : 'Ajouter'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Importer des médicaments</h2>
+              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">Importez un fichier CSV avec les colonnes :</p>
+            <div className="bg-gray-50 p-3 rounded mb-4 text-xs font-mono overflow-x-auto">
+              nomMedicament, description, codeBarre39, perPile, categorie, dosage, uniteDosage, defaultSize, qteStock, qteMinimum
+            </div>
+            <button
+              onClick={downloadTemplate}
+              className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>Télécharger le modèle CSV</span>
+            </button>
+            <input
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleImportFile}
+              className="w-full mb-4 px-3 py-2 border rounded-lg"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
