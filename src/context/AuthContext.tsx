@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const emailDirectory: Record<string, User> = {
         // MEDECIN
         'm.aslaf@aui.ma': {
-          id: 201,
+          id: 3,
           nom: 'Aslaf',
           prenom: 'Dr.Mounia',
           username: 'm.aslaf@aui.ma',
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'ACTIF' as UserStatus
         },
         'health.center.doctor@aui.ma': {
-          id: 202,
+          id: 4,
           nom: 'Physician',
           prenom: 'Intern',
           username: 'Health.Center.Doctor@aui.ma',
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'ACTIF' as UserStatus
         },
         'o.ghazal@aui.ma': {
-          id: 102,
+          id: 5,
           nom: 'GHazal',
           prenom: 'Oumaima',
           username: 'o.ghazal@aui.ma',
@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         // INFIRMIER
         'm.ouakki@ai.ma': {
-          id: 301,
+          id: 6,
           nom: 'Ouakki',
           prenom: 'Meriem',
           username: 'm.ouakki@ai.ma',
@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'ACTIF' as UserStatus
         },
         's.ghazal@aui.ma': {
-          id: 303,
+          id: 7,
           nom: 'GHazal',
           prenom: 'Siham',
           username: 's.ghazal@aui.ma',
@@ -145,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'ACTIF' as UserStatus
         },
         'g.makhsou@aui.ma': {
-          id: 304,
+          id: 8,
           nom: 'Makhsou',
           prenom: 'Ghizlane',
           username: 'g.makhsou@aui.ma',
@@ -157,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           status: 'ACTIF' as UserStatus
         },
         'health.center.nurse@aui.ma': {
-          id: 305,
+          id: 9,
           nom: 'Nurses',
           prenom: 'Intern',
           username: 'Health.Center.Nurse@aui.ma',
