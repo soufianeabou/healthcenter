@@ -113,6 +113,28 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
     try {
       setLoading(true);
       
+      // Fetch the logo image and convert to base64
+      const logoSrc = '/assets/auilogo.png';
+      // Use a hardcoded AUI logo directly to ensure it works
+      let logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTEvMjQwODQ5MzcwMDBaQqYE0QAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMS0wN1QwODo0OTozNyswMDowMDP7vG0AAAAASUVORK5CYII=';
+      
+      // Skip the fetch attempt since it's unreliable in popup windows
+      /*
+      try {
+        const response = await fetch(logoSrc);
+        const blob = await response.blob();
+        logoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (error) {
+        console.error('Error loading logo:', error);
+        // Use a hardcoded AUI logo as fallback
+        logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTEvMjQwODQ5MzcwMDBaQqYE0QAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMS0wN1QwODo0OTozNyswMDowMDP7vG0AAAAASUVORK5CYII=';
+      }
+      */
+      
       // Create a new window for PDF generation
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -160,18 +182,19 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
             .logo {
               width: 60px;
               height: 60px;
-              background: #2c5f2d;
+              background: transparent;
               border-radius: 8px;
               display: flex;
               align-items: center;
               justify-content: center;
-              color: white;
-              font-weight: bold;
-              font-size: 16px;
+              overflow: hidden;
             }
-            /* Minimal overrides to use actual logo image */
-            .logo { background: transparent; }
-            .logo img { width: 60px; height: 60px; object-fit: contain; display: block; }
+            .logo img { 
+              width: 100%; 
+              height: 100%; 
+              object-fit: contain; 
+              display: block; 
+            }
             .header-text {
               flex: 1;
             }
@@ -308,7 +331,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
             <!-- Header -->
             <div class="header">
               <div class="logo-section">
-                <div class="logo"><img src="../public/assets/auilogo.png" alt="AUI Logo" /></div>
+                <div class="logo"><img src="${logoBase64}" alt="AUI Logo" /></div>
                 <div class="header-text">
                   <div class="university-name">Al Akhawayn University</div>
                   <div class="health-center">Health Center</div>
