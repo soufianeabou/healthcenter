@@ -132,196 +132,173 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Times New Roman', serif; 
-              line-height: 1.3; 
-              color: #1a1a1a; 
+              font-family: 'Arial', sans-serif; 
+              line-height: 1.4; 
+              color: #333; 
               background: white;
-              font-size: 10px;
+              font-size: 11px;
             }
             .container { 
               max-width: 210mm; 
               margin: 0 auto; 
-              padding: 15mm;
+              padding: 20mm;
               min-height: 297mm;
             }
             .header {
               display: flex;
               align-items: center;
               justify-content: space-between;
-              margin-bottom: 20px;
-              padding-bottom: 15px;
-              border-bottom: 2px solid #1a1a1a;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #2c5f2d;
             }
             .logo-section {
               display: flex;
               align-items: center;
-              gap: 12px;
+              gap: 15px;
             }
             .logo {
-              width: 50px;
-              height: 50px;
-              background: transparent;
-              border: 1px solid #ddd;
-              border-radius: 4px;
+              width: 60px;
+              height: 60px;
+              background: #2c5f2d;
+              border-radius: 8px;
               display: flex;
               align-items: center;
               justify-content: center;
-              overflow: hidden;
+              color: white;
+              font-weight: bold;
+              font-size: 16px;
             }
-            .logo img { 
-              width: 100%; 
-              height: 100%; 
-              object-fit: contain; 
-              display: block; 
-            }
+            /* Minimal overrides to use actual logo image */
+            .logo { background: transparent; }
+            .logo img { width: 60px; height: 60px; object-fit: contain; display: block; }
             .header-text {
               flex: 1;
             }
             .university-name {
-              font-size: 16px;
+              font-size: 18px;
               font-weight: bold;
-              color: #1a1a1a;
+              color: #2c5f2d;
               margin-bottom: 2px;
-              letter-spacing: 0.5px;
             }
             .health-center {
-              font-size: 12px;
-              color: #333;
+              font-size: 14px;
+              color: #666;
               margin-bottom: 2px;
-              font-weight: 600;
             }
             .address {
-              font-size: 9px;
-              color: #666;
+              font-size: 10px;
+              color: #888;
             }
             .document-info {
               text-align: right;
-              font-size: 9px;
-              color: #333;
-              line-height: 1.4;
+              font-size: 10px;
+              color: #666;
             }
             .title {
               text-align: center;
-              font-size: 18px;
+              font-size: 20px;
               font-weight: bold;
-              margin: 20px 0 25px 0;
-              color: #1a1a1a;
+              margin: 30px 0;
+              color: #2c5f2d;
               text-transform: uppercase;
-              letter-spacing: 1.5px;
-              border: 2px solid #1a1a1a;
-              padding: 8px 0;
+              letter-spacing: 1px;
             }
             .patient-header {
               background: #f8f9fa;
-              padding: 12px;
-              border-radius: 4px;
-              margin-bottom: 20px;
-              border-left: 4px solid #1a1a1a;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 25px;
+              border-left: 4px solid #2c5f2d;
             }
             .patient-name {
-              font-size: 14px;
+              font-size: 16px;
               font-weight: bold;
-              color: #1a1a1a;
-              margin-bottom: 6px;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
+              color: #2c5f2d;
+              margin-bottom: 5px;
             }
             .patient-details {
               display: grid;
               grid-template-columns: 1fr 1fr 1fr;
-              gap: 8px;
-              font-size: 9px;
-              color: #333;
+              gap: 10px;
+              font-size: 10px;
+              color: #666;
             }
             .section {
-              margin-bottom: 18px;
+              margin-bottom: 25px;
               break-inside: avoid;
             }
             .section-title {
-              font-size: 12px;
+              font-size: 14px;
               font-weight: bold;
-              color: #1a1a1a;
-              margin-bottom: 8px;
-              padding-bottom: 3px;
-              border-bottom: 1px solid #ccc;
+              color: #2c5f2d;
+              margin-bottom: 12px;
+              padding-bottom: 5px;
+              border-bottom: 2px solid #e9ecef;
               text-transform: uppercase;
-              letter-spacing: 0.5px;
             }
             .info-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 12px;
-              margin-bottom: 12px;
+              gap: 15px;
+              margin-bottom: 15px;
             }
             .info-item {
-              margin-bottom: 6px;
+              margin-bottom: 8px;
             }
             .info-label {
               font-weight: bold;
-              color: #333;
-              margin-bottom: 1px;
-              font-size: 9px;
+              color: #555;
+              margin-bottom: 2px;
             }
             .info-value {
-              color: #1a1a1a;
-              padding-left: 8px;
-              font-size: 9px;
+              color: #333;
+              padding-left: 10px;
             }
             .conditions-grid {
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 8px;
-              margin-bottom: 12px;
+              gap: 10px;
+              margin-bottom: 15px;
             }
             .condition-item {
               display: flex;
               align-items: center;
-              margin-bottom: 3px;
-              font-size: 9px;
+              margin-bottom: 5px;
+              font-size: 10px;
             }
             .condition-check {
               color: #28a745;
               font-weight: bold;
-              margin-right: 6px;
-              font-size: 10px;
+              margin-right: 8px;
             }
             .explanation-box {
               background: #f8f9fa;
-              padding: 8px;
-              border-radius: 3px;
-              margin-top: 8px;
+              padding: 10px;
+              border-radius: 4px;
+              margin-top: 10px;
               border-left: 3px solid #ffc107;
-              font-size: 9px;
             }
             .footer {
-              margin-top: 25px;
-              padding-top: 15px;
-              border-top: 1px solid #ccc;
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #dee2e6;
               display: grid;
               grid-template-columns: 1fr 1fr;
-              gap: 25px;
-              font-size: 9px;
+              gap: 30px;
+              font-size: 10px;
             }
             .signature-section {
               text-align: center;
             }
             .signature-line {
               border-bottom: 1px solid #333;
-              margin: 25px 0 5px 0;
-              height: 30px;
-            }
-            .compact-section {
-              margin-bottom: 12px;
-            }
-            .compact-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
-              gap: 10px;
-              margin-bottom: 10px;
+              margin: 30px 0 5px 0;
+              height: 40px;
             }
             @media print {
               body { margin: 0; }
-              .container { margin: 0; padding: 12mm; }
+              .container { margin: 0; padding: 15mm; }
               .section { page-break-inside: avoid; }
             }
           </style>
@@ -331,7 +308,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
             <!-- Header -->
             <div class="header">
               <div class="logo-section">
-                <div class="logo"><img src="./assets/auilogo.png" alt="AUI Logo" /></div>
+                <div class="logo"><img src="/assets/auilogo.png" alt="AUI Logo" /></div>
                 <div class="header-text">
                   <div class="university-name">Al Akhawayn University</div>
                   <div class="health-center">Health Center</div>
@@ -424,26 +401,24 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
               ${medicalRecord.conditionsExplanation ? `
                 <div class="explanation-box">
                   <div class="info-label">Explications des conditions:</div>
-                  <div style="margin-top: 3px;">${medicalRecord.conditionsExplanation}</div>
+                  <div style="margin-top: 5px;">${medicalRecord.conditionsExplanation}</div>
                 </div>
               ` : ''}
             </div>
 
             <!-- Medications and Vaccinations Section -->
-            <div class="compact-section">
+            <div class="section">
               <div class="section-title">Médicaments et Vaccinations</div>
               <div class="info-item">
                 <div class="info-label">Médicaments actuels:</div>
                 <div class="info-value">${medicalRecord.currentMedications || 'Aucun'}</div>
               </div>
-              <div class="compact-grid" style="margin-top: 8px;">
+              <div class="info-grid" style="margin-top: 15px;">
                 <div>
                   <div class="info-item">
                     <div class="info-label">COVID-19 - 1ère dose:</div>
                     <div class="info-value">${medicalRecord.covidFirstShot || 'Non administrée'}</div>
                   </div>
-                </div>
-                <div>
                   <div class="info-item">
                     <div class="info-label">COVID-19 - 2ème dose:</div>
                     <div class="info-value">${medicalRecord.covidSecondShot || 'Non administrée'}</div>
@@ -459,7 +434,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
             </div>
 
             <!-- Surgical History Section -->
-            <div class="compact-section">
+            <div class="section">
               <div class="section-title">Historique Chirurgical</div>
               <div class="info-item">
                 <div class="info-value">${medicalRecord.surgicalHistory || 'Aucune intervention chirurgicale'}</div>
@@ -469,17 +444,17 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
             <!-- Footer -->
             <div class="footer">
               <div>
-                <div style="font-weight: bold; margin-bottom: 8px;">Informations Importantes:</div>
-                <div style="margin-bottom: 3px;">• Document confidentiel médical</div>
-                <div style="margin-bottom: 3px;">• Statut de consentement: ${medicalRecord.consentStatus}</div>
-                <div style="margin-bottom: 3px;">• Date de création: ${medicalRecord.recordCreatedDate || 'N/A'}</div>
+                <div style="font-weight: bold; margin-bottom: 10px;">Informations Importantes:</div>
+                <div style="margin-bottom: 5px;">• Document confidentiel médical</div>
+                <div style="margin-bottom: 5px;">• Statut de consentement: ${medicalRecord.consentStatus}</div>
+                <div style="margin-bottom: 5px;">• Date de création: ${medicalRecord.recordCreatedDate || 'N/A'}</div>
                 <div>• Dernière mise à jour: ${medicalRecord.lastUpdatedDate || 'N/A'}</div>
               </div>
               <div class="signature-section">
-                <div style="font-weight: bold; margin-bottom: 8px;">Signature du Médecin</div>
+                <div style="font-weight: bold; margin-bottom: 10px;">Signature du Médecin</div>
                 <div class="signature-line"></div>
                 <div>Dr. ___________________</div>
-                <div style="margin-top: 8px; font-size: 8px;">Centre de Santé - Al Akhawayn University</div>
+                <div style="margin-top: 10px; font-size: 9px;">Centre de Santé - Al Akhawayn University</div>
               </div>
             </div>
           </div>
