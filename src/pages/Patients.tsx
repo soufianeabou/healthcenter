@@ -274,6 +274,8 @@ const Patients: React.FC = () => {
       title: 'ID Number',
       dataIndex: 'idNum',
       key: 'idNum',
+      defaultSortOrder: 'descend' as const,
+      sorter: (a: Patient, b: Patient) => b.idNum - a.idNum,
     },
     {
       title: 'Téléphone',
