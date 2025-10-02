@@ -169,6 +169,9 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
               font-weight: bold;
               font-size: 16px;
             }
+            /* Minimal overrides to use actual logo image */
+            .logo { background: transparent; }
+            .logo img { width: 60px; height: 60px; object-fit: contain; display: block; }
             .header-text {
               flex: 1;
             }
@@ -305,7 +308,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
             <!-- Header -->
             <div class="header">
               <div class="logo-section">
-                <div class="logo">AUI</div>
+                <div class="logo"><img src="/assets/auilogo.png" alt="AUI Logo" /></div>
                 <div class="header-text">
                   <div class="university-name">Al Akhawayn University</div>
                   <div class="health-center">Health Center</div>
