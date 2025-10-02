@@ -113,28 +113,6 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
     try {
       setLoading(true);
       
-      // Fetch the logo image and convert to base64
-      const logoSrc = '/assets/auilogo.png';
-      // Use a hardcoded AUI logo directly to ensure it works
-      let logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTEvMjQwODQ5MzcwMDBaQqYE0QAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMS0wN1QwODo0OTozNyswMDowMDP7vG0AAAAASUVORK5CYII=';
-      
-      // Skip the fetch attempt since it's unreliable in popup windows
-      /*
-      try {
-        const response = await fetch(logoSrc);
-        const blob = await response.blob();
-        logoBase64 = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-      } catch (error) {
-        console.error('Error loading logo:', error);
-        // Use a hardcoded AUI logo as fallback
-        logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTEvMjQwODQ5MzcwMDBaQqYE0QAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMS0wN1QwODo0OTozNyswMDowMDP7vG0AAAAASUVORK5CYII=';
-      }
-      */
-      
       // Create a new window for PDF generation
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -174,40 +152,22 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
               padding-bottom: 20px;
               border-bottom: 3px solid #2c5f2d;
             }
-            .logo-section {
-              display: flex;
-              align-items: center;
-              gap: 15px;
-            }
-            .logo {
-              width: 60px;
-              height: 60px;
-              background: transparent;
-              border-radius: 8px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              overflow: hidden;
-            }
-            .logo img { 
-              width: 100%; 
-              height: 100%; 
-              object-fit: contain; 
-              display: block; 
-            }
             .header-text {
               flex: 1;
             }
             .university-name {
-              font-size: 18px;
+              font-size: 24px;
               font-weight: bold;
               color: #2c5f2d;
-              margin-bottom: 2px;
+              margin-bottom: 5px;
+              letter-spacing: 1px;
+              text-transform: uppercase;
             }
             .health-center {
-              font-size: 14px;
-              color: #666;
-              margin-bottom: 2px;
+              font-size: 16px;
+              color: #444;
+              margin-bottom: 4px;
+              font-weight: 600;
             }
             .address {
               font-size: 10px;
@@ -330,13 +290,10 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
           <div class="container">
             <!-- Header -->
             <div class="header">
-              <div class="logo-section">
-                <div class="logo"><img src="${logoBase64}" alt="AUI Logo" /></div>
-                <div class="header-text">
-                  <div class="university-name">Al Akhawayn University</div>
-                  <div class="health-center">Health Center</div>
-                  <div class="address">Avenue Hassan II, Ifrane 53000, Morocco</div>
-                </div>
+              <div class="header-text">
+                <div class="university-name">Al Akhawayn University</div>
+                <div class="health-center">Health Center</div>
+                <div class="address">Avenue Hassan II, Ifrane 53000, Morocco</div>
               </div>
               <div class="document-info">
                 <div><strong>Date d'émission:</strong> ${currentDate}</div>
