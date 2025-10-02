@@ -18,13 +18,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, getRoleDisplayName } from '../types/roles';
-
 const Sidebar = () => {
   const { user, logout } = useAuth();
 
   const adminNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Stethoscope, label: 'Consultations', path: '/consultations' },
     { icon: Users, label: 'Patients', path: '/patients' },
     { icon: Pill, label: 'Medicines', path: '/medicines' },
     { icon: PackagePlus, label: 'Entrées de Stock', path: '/entry-stock' },
@@ -50,7 +48,7 @@ const Sidebar = () => {
       case UserRole.MEDECIN:
         return medecinNavItems;
       case UserRole.INFIRMIER:
-        return medecinNavItems; // Nurses see same as doctors
+        return medecinNavItems;
       default:
         return adminNavItems;
     }
