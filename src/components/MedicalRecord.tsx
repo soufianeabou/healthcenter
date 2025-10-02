@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Input, Select, Row, Col, Card, DatePicker, Spin, Divider, Checkbox, Space } from 'antd';
-import { UserOutlined, SaveOutlined, EditOutlined, FileTextOutlined } from '@ant-design/icons';
+import { UserOutlined, SaveOutlined, EditOutlined, FileTextOutlined, FilePdfOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 interface Patient {
@@ -48,6 +48,8 @@ interface MedicalRecordData {
   covidThirdShot: string | null;
   surgicalHistory: string;
   consentStatus: string;
+  recordCreatedDate?: string;
+  lastUpdatedDate?: string;
 }
 
 interface MedicalRecordProps {
@@ -105,6 +107,376 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
     });
   };
 
+  const exportToPDF = async () => {
+    if (!medicalRecord) return;
+
+    try {
+      setLoading(true);
+      
+      // Create a new window for PDF generation
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to export PDF');
+        return;
+      }
+
+      const currentDate = new Date().toLocaleDateString('fr-FR');
+      
+      // Professional PDF HTML structure
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Dossier Médical - ${patient.prenom} ${patient.nom}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Arial', sans-serif; 
+              line-height: 1.4; 
+              color: #333; 
+              background: white;
+              font-size: 11px;
+            }
+            .container { 
+              max-width: 210mm; 
+              margin: 0 auto; 
+              padding: 20mm;
+              min-height: 297mm;
+            }
+            .header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #2c5f2d;
+            }
+            .logo-section {
+              display: flex;
+              align-items: center;
+              gap: 15px;
+            }
+            .logo {
+              width: 60px;
+              height: 60px;
+              background: #2c5f2d;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: bold;
+              font-size: 16px;
+            }
+            .header-text {
+              flex: 1;
+            }
+            .university-name {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c5f2d;
+              margin-bottom: 2px;
+            }
+            .health-center {
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 2px;
+            }
+            .address {
+              font-size: 10px;
+              color: #888;
+            }
+            .document-info {
+              text-align: right;
+              font-size: 10px;
+              color: #666;
+            }
+            .title {
+              text-align: center;
+              font-size: 20px;
+              font-weight: bold;
+              margin: 30px 0;
+              color: #2c5f2d;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .patient-header {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 25px;
+              border-left: 4px solid #2c5f2d;
+            }
+            .patient-name {
+              font-size: 16px;
+              font-weight: bold;
+              color: #2c5f2d;
+              margin-bottom: 5px;
+            }
+            .patient-details {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 10px;
+              font-size: 10px;
+              color: #666;
+            }
+            .section {
+              margin-bottom: 25px;
+              break-inside: avoid;
+            }
+            .section-title {
+              font-size: 14px;
+              font-weight: bold;
+              color: #2c5f2d;
+              margin-bottom: 12px;
+              padding-bottom: 5px;
+              border-bottom: 2px solid #e9ecef;
+              text-transform: uppercase;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 15px;
+              margin-bottom: 15px;
+            }
+            .info-item {
+              margin-bottom: 8px;
+            }
+            .info-label {
+              font-weight: bold;
+              color: #555;
+              margin-bottom: 2px;
+            }
+            .info-value {
+              color: #333;
+              padding-left: 10px;
+            }
+            .conditions-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+              margin-bottom: 15px;
+            }
+            .condition-item {
+              display: flex;
+              align-items: center;
+              margin-bottom: 5px;
+              font-size: 10px;
+            }
+            .condition-check {
+              color: #28a745;
+              font-weight: bold;
+              margin-right: 8px;
+            }
+            .explanation-box {
+              background: #f8f9fa;
+              padding: 10px;
+              border-radius: 4px;
+              margin-top: 10px;
+              border-left: 3px solid #ffc107;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #dee2e6;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 30px;
+              font-size: 10px;
+            }
+            .signature-section {
+              text-align: center;
+            }
+            .signature-line {
+              border-bottom: 1px solid #333;
+              margin: 30px 0 5px 0;
+              height: 40px;
+            }
+            @media print {
+              body { margin: 0; }
+              .container { margin: 0; padding: 15mm; }
+              .section { page-break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <!-- Header -->
+            <div class="header">
+              <div class="logo-section">
+                <div class="logo">AUI</div>
+                <div class="header-text">
+                  <div class="university-name">Al Akhawayn University</div>
+                  <div class="health-center">Health Center</div>
+                  <div class="address">Avenue Hassan II, Ifrane 53000, Morocco</div>
+                </div>
+              </div>
+              <div class="document-info">
+                <div><strong>Date d'émission:</strong> ${currentDate}</div>
+                <div><strong>Document N°:</strong> MR-${patient.idNum}-${new Date().getFullYear()}</div>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <div class="title">Dossier Médical Confidentiel</div>
+
+            <!-- Patient Information -->
+            <div class="patient-header">
+              <div class="patient-name">${patient.prenom} ${patient.nom}</div>
+              <div class="patient-details">
+                <div><strong>ID Patient:</strong> ${patient.idNum}</div>
+                <div><strong>Téléphone:</strong> ${patient.telephone || 'N/A'}</div>
+                <div><strong>Email:</strong> ${patient.email || 'N/A'}</div>
+              </div>
+            </div>
+
+            <!-- Personal Information Section -->
+            <div class="section">
+              <div class="section-title">Informations Personnelles</div>
+              <div class="info-grid">
+                <div>
+                  <div class="info-item">
+                    <div class="info-label">Rôle:</div>
+                    <div class="info-value">${medicalRecord.role}</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Date de naissance:</div>
+                    <div class="info-value">${medicalRecord.birthDate || 'N/A'}</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Sexe:</div>
+                    <div class="info-value">${medicalRecord.sex}</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="info-item">
+                    <div class="info-label">Téléphone:</div>
+                    <div class="info-value">${medicalRecord.phoneNumber}</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Contact d'urgence 1:</div>
+                    <div class="info-value">${medicalRecord.emergencyContact1}</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Contact d'urgence 2:</div>
+                    <div class="info-value">${medicalRecord.emergencyContact2 || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Medical Conditions Section -->
+            <div class="section">
+              <div class="section-title">Conditions Médicales</div>
+              <div class="conditions-grid">
+                <div>
+                  ${medicalRecord.frequentHeadaches ? '<div class="condition-item"><span class="condition-check">✓</span>Maux de tête fréquents</div>' : ''}
+                  ${medicalRecord.epilepsySeizures ? '<div class="condition-item"><span class="condition-check">✓</span>Épilepsie ou convulsions</div>' : ''}
+                  ${medicalRecord.stroke ? '<div class="condition-item"><span class="condition-check">✓</span>AVC</div>' : ''}
+                  ${medicalRecord.hearingImpairment ? '<div class="condition-item"><span class="condition-check">✓</span>Déficience auditive</div>' : ''}
+                  ${medicalRecord.toothGumDisease ? '<div class="condition-item"><span class="condition-check">✓</span>Maladie dentaire/gingivale</div>' : ''}
+                  ${medicalRecord.asthmaLungConditions ? '<div class="condition-item"><span class="condition-check">✓</span>Asthme ou conditions pulmonaires</div>' : ''}
+                  ${medicalRecord.tuberculosis ? '<div class="condition-item"><span class="condition-check">✓</span>Tuberculose</div>' : ''}
+                  ${medicalRecord.gynecologicalDisorder ? '<div class="condition-item"><span class="condition-check">✓</span>Trouble gynécologique</div>' : ''}
+                  ${medicalRecord.hormonalDisorders ? '<div class="condition-item"><span class="condition-check">✓</span>Troubles hormonaux</div>' : ''}
+                  ${medicalRecord.diabetesMellitus ? '<div class="condition-item"><span class="condition-check">✓</span>Diabète</div>' : ''}
+                </div>
+                <div>
+                  ${medicalRecord.faintingSpells ? '<div class="condition-item"><span class="condition-check">✓</span>Évanouissements</div>' : ''}
+                  ${medicalRecord.heartCondition ? '<div class="condition-item"><span class="condition-check">✓</span>Problèmes cardiaques</div>' : ''}
+                  ${medicalRecord.eyeDisease ? '<div class="condition-item"><span class="condition-check">✓</span>Maladie oculaire</div>' : ''}
+                  ${medicalRecord.severeAllergies ? '<div class="condition-item"><span class="condition-check">✓</span>Allergies sévères</div>' : ''}
+                  ${medicalRecord.tropicalDiseases ? '<div class="condition-item"><span class="condition-check">✓</span>Maladies tropicales</div>' : ''}
+                  ${medicalRecord.mentalHealthConditions ? '<div class="condition-item"><span class="condition-check">✓</span>Conditions de santé mentale</div>' : ''}
+                  ${medicalRecord.bloodDisorders ? '<div class="condition-item"><span class="condition-check">✓</span>Troubles sanguins</div>' : ''}
+                  ${medicalRecord.cancer ? '<div class="condition-item"><span class="condition-check">✓</span>Cancer</div>' : ''}
+                  ${medicalRecord.hivAids ? '<div class="condition-item"><span class="condition-check">✓</span>VIH/SIDA</div>' : ''}
+                  ${medicalRecord.severeSkinDisorder ? '<div class="condition-item"><span class="condition-check">✓</span>Trouble cutané sévère</div>' : ''}
+                </div>
+              </div>
+              ${medicalRecord.conditionsExplanation ? `
+                <div class="explanation-box">
+                  <div class="info-label">Explications des conditions:</div>
+                  <div style="margin-top: 5px;">${medicalRecord.conditionsExplanation}</div>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Medications and Vaccinations Section -->
+            <div class="section">
+              <div class="section-title">Médicaments et Vaccinations</div>
+              <div class="info-item">
+                <div class="info-label">Médicaments actuels:</div>
+                <div class="info-value">${medicalRecord.currentMedications || 'Aucun'}</div>
+              </div>
+              <div class="info-grid" style="margin-top: 15px;">
+                <div>
+                  <div class="info-item">
+                    <div class="info-label">COVID-19 - 1ère dose:</div>
+                    <div class="info-value">${medicalRecord.covidFirstShot || 'Non administrée'}</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">COVID-19 - 2ème dose:</div>
+                    <div class="info-value">${medicalRecord.covidSecondShot || 'Non administrée'}</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="info-item">
+                    <div class="info-label">COVID-19 - 3ème dose:</div>
+                    <div class="info-value">${medicalRecord.covidThirdShot || 'Non administrée'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Surgical History Section -->
+            <div class="section">
+              <div class="section-title">Historique Chirurgical</div>
+              <div class="info-item">
+                <div class="info-value">${medicalRecord.surgicalHistory || 'Aucune intervention chirurgicale'}</div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+              <div>
+                <div style="font-weight: bold; margin-bottom: 10px;">Informations Importantes:</div>
+                <div style="margin-bottom: 5px;">• Document confidentiel médical</div>
+                <div style="margin-bottom: 5px;">• Statut de consentement: ${medicalRecord.consentStatus}</div>
+                <div style="margin-bottom: 5px;">• Date de création: ${medicalRecord.recordCreatedDate || 'N/A'}</div>
+                <div>• Dernière mise à jour: ${medicalRecord.lastUpdatedDate || 'N/A'}</div>
+              </div>
+              <div class="signature-section">
+                <div style="font-weight: bold; margin-bottom: 10px;">Signature du Médecin</div>
+                <div class="signature-line"></div>
+                <div>Dr. ___________________</div>
+                <div style="margin-top: 10px; font-size: 9px;">Centre de Santé - Al Akhawayn University</div>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      // Wait for content to load then print
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Erreur lors de la génération du PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (values: any) => {
     try {
       setLoading(true);
@@ -112,7 +484,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
       const payload = {
         // Only include id for PUT requests
         ...(medicalRecord?.id && { id: medicalRecord.id }),
-        patientId: patient.idNum, // Changed from patient.id to patient.idNum
+        patientId: patient.idNum, // Use patient.idNum to match backend expectation
         role: values.role,
         birthDate: values.birthDate ? values.birthDate.format('YYYY-MM-DD') : null,
         sex: values.sex,
@@ -253,9 +625,19 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
         </Card>
 
         <div style={{ marginTop: 16, textAlign: 'right' }}>
-          <Button type="primary" icon={<EditOutlined />} onClick={() => setIsEditing(true)}>
-            Modifier
-          </Button>
+          <Space>
+            <Button 
+              type="default" 
+              icon={<FilePdfOutlined />} 
+              onClick={exportToPDF}
+              style={{ backgroundColor: '#dc3545', color: 'white', borderColor: '#dc3545' }}
+            >
+              Exporter PDF
+            </Button>
+            <Button type="primary" icon={<EditOutlined />} onClick={() => setIsEditing(true)}>
+              Modifier
+            </Button>
+          </Space>
         </div>
       </div>
     );
