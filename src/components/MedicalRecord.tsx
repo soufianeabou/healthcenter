@@ -14,7 +14,7 @@ interface Patient {
 
 interface MedicalRecordData {
   id?: number;
-  patient?: { id: number };
+  patientId?: number; // Changed from patient?.id to patientId
   role: string;
   birthDate: string;
   sex: string;
@@ -110,7 +110,9 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
       setLoading(true);
       
       const payload = {
-        patient: { id: patient.id },
+        // Only include id for PUT requests
+        ...(medicalRecord?.id && { id: medicalRecord.id }),
+        patientId: patient.id, // Changed from patient: { id: patient.id } to patientId
         role: values.role,
         birthDate: values.birthDate ? values.birthDate.format('YYYY-MM-DD') : null,
         sex: values.sex,
