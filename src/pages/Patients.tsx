@@ -166,9 +166,9 @@ const Patients: React.FC = () => {
 
           const patient = await patientResponse.json();
 
-          // Check if medical record already exists
+          // Check if medical record already exists - Use idNum instead of patient.id
           const checkResponse = await fetch(
-            `https://196.12.203.182/api/consultations/medicalrecords/patient/${patient.id}`
+            `https://196.12.203.182/api/consultations/medicalrecords/patient/${patient.idNum}`
           );
           
           if (checkResponse.ok) {
@@ -177,9 +177,9 @@ const Patients: React.FC = () => {
             continue;
           }
 
-          // Map Excel data to medical record
+          // Map Excel data to medical record - Use idNum for patientId
           const medicalRecord = {
-            patient: { id: patient.id },
+            patientId: patient.idNum, // Changed from patient: { id: patient.id } to patientId: patient.idNum
             role: row[8] || 'Staff',
             birthDate: parseExcelDate(row[9]),
             sex: row[10] || 'Male',
