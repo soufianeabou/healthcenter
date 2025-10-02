@@ -71,7 +71,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
   const fetchMedicalRecord = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://196.12.203.182/api/consultations/medicalrecords/patient/${patient.id}`);
+      const response = await fetch(`https://196.12.203.182/api/consultations/medicalrecords/patient/${patient.idNum}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -112,7 +112,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
       const payload = {
         // Only include id for PUT requests
         ...(medicalRecord?.id && { id: medicalRecord.id }),
-        patientId: patient.id, // Changed from patient: { id: patient.id } to patientId
+        patientId: patient.idNum, // Changed from patient.id to patient.idNum
         role: values.role,
         birthDate: values.birthDate ? values.birthDate.format('YYYY-MM-DD') : null,
         sex: values.sex,
