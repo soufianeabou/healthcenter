@@ -16,7 +16,7 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
     perPile: false,
     categorie: CategorieMateriels.AUTRE,
     dosage: 0, // Keep field name for API compatibility
-    uniteDosage: Unite.UNITE, // Keep field name for API compatibility
+    uniteDosage: Unite.MG, // Keep field name for API compatibility
     defaultSize: 1,
     qteStock: 0,
     qteMinimum: 0

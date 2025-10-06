@@ -1,23 +1,22 @@
+// Using the same enum values as the backend for compatibility
 export enum CategorieMateriels {
-  EQUIPEMENT_MEDICAL = 'EQUIPEMENT_MEDICAL',
-  MATERIEL_JETABLE = 'MATERIEL_JETABLE',
-  MATERIEL_HYGIENE = 'MATERIEL_HYGIENE',
-  MATERIEL_DIAGNOSTIC = 'MATERIEL_DIAGNOSTIC',
-  MATERIEL_PROTECTION = 'MATERIEL_PROTECTION',
-  MATERIEL_URGENCE = 'MATERIEL_URGENCE',
-  FOURNITURE_BUREAU = 'FOURNITURE_BUREAU',
+  ANTIBIOTIQUE = 'ANTIBIOTIQUE',
+  ANTI_INFLAMMATOIRE = 'ANTI_INFLAMMATOIRE',
+  ANTALGIQUE = 'ANTALGIQUE',
+  ANTIPYRETIQUE = 'ANTIPYRETIQUE',
+  ANTIVIRAL = 'ANTIVIRAL',
+  VITAMINE = 'VITAMINE',
+  VACCIN = 'VACCIN',
   AUTRE = 'AUTRE'
 }
 
 export enum Unite {
-  UNITE = 'UNITE',
-  BOITE = 'BOITE',
-  PAQUET = 'PAQUET',
-  CARTON = 'CARTON',
-  LITRE = 'LITRE',
+  MG = 'MG',
+  G = 'G',
   ML = 'ML',
-  GRAMME = 'GRAMME',
-  KG = 'KG',
+  L = 'L',
+  UI = 'UI',
+  TABLETTE = 'TABLETTE',
   AUTRE = 'AUTRE'
 }
 
@@ -39,13 +38,13 @@ export interface Materiel {
 // Helper function to get category display name
 export function getCategorieDisplayName(categorie: CategorieMateriels): string {
   const names = {
-    [CategorieMateriels.EQUIPEMENT_MEDICAL]: 'Équipement médical',
-    [CategorieMateriels.MATERIEL_JETABLE]: 'Matériel jetable',
-    [CategorieMateriels.MATERIEL_HYGIENE]: 'Matériel d\'hygiène',
-    [CategorieMateriels.MATERIEL_DIAGNOSTIC]: 'Matériel de diagnostic',
-    [CategorieMateriels.MATERIEL_PROTECTION]: 'Matériel de protection',
-    [CategorieMateriels.MATERIEL_URGENCE]: 'Matériel d\'urgence',
-    [CategorieMateriels.FOURNITURE_BUREAU]: 'Fourniture de bureau',
+    [CategorieMateriels.ANTIBIOTIQUE]: 'Antibiotique',
+    [CategorieMateriels.ANTI_INFLAMMATOIRE]: 'Anti-inflammatoire',
+    [CategorieMateriels.ANTALGIQUE]: 'Antalgique',
+    [CategorieMateriels.ANTIPYRETIQUE]: 'Antipyrétique',
+    [CategorieMateriels.ANTIVIRAL]: 'Antiviral',
+    [CategorieMateriels.VITAMINE]: 'Vitamine',
+    [CategorieMateriels.VACCIN]: 'Vaccin',
     [CategorieMateriels.AUTRE]: 'Autre'
   };
   return names[categorie] || categorie;
@@ -54,14 +53,12 @@ export function getCategorieDisplayName(categorie: CategorieMateriels): string {
 // Helper function to get unit display name
 export function getUniteDisplayName(unite: Unite): string {
   const names = {
-    [Unite.UNITE]: 'Unité',
-    [Unite.BOITE]: 'Boîte',
-    [Unite.PAQUET]: 'Paquet',
-    [Unite.CARTON]: 'Carton',
-    [Unite.LITRE]: 'Litre',
+    [Unite.MG]: 'mg',
+    [Unite.G]: 'g',
     [Unite.ML]: 'ml',
-    [Unite.GRAMME]: 'g',
-    [Unite.KG]: 'kg',
+    [Unite.L]: 'L',
+    [Unite.UI]: 'UI',
+    [Unite.TABLETTE]: 'Tablette',
     [Unite.AUTRE]: 'Autre'
   };
   return names[unite] || unite;
@@ -70,13 +67,13 @@ export function getUniteDisplayName(unite: Unite): string {
 // Helper function to get category color classes
 export function getCategorieBadgeColors(categorie: CategorieMateriels): string {
   const colors = {
-    [CategorieMateriels.EQUIPEMENT_MEDICAL]: 'bg-blue-100 text-blue-800',
-    [CategorieMateriels.MATERIEL_JETABLE]: 'bg-green-100 text-green-800',
-    [CategorieMateriels.MATERIEL_HYGIENE]: 'bg-purple-100 text-purple-800',
-    [CategorieMateriels.MATERIEL_DIAGNOSTIC]: 'bg-yellow-100 text-yellow-800',
-    [CategorieMateriels.MATERIEL_PROTECTION]: 'bg-orange-100 text-orange-800',
-    [CategorieMateriels.MATERIEL_URGENCE]: 'bg-red-100 text-red-800',
-    [CategorieMateriels.FOURNITURE_BUREAU]: 'bg-indigo-100 text-indigo-800',
+    [CategorieMateriels.ANTIBIOTIQUE]: 'bg-blue-100 text-blue-800',
+    [CategorieMateriels.ANTI_INFLAMMATOIRE]: 'bg-red-100 text-red-800',
+    [CategorieMateriels.ANTALGIQUE]: 'bg-green-100 text-green-800',
+    [CategorieMateriels.ANTIPYRETIQUE]: 'bg-yellow-100 text-yellow-800',
+    [CategorieMateriels.ANTIVIRAL]: 'bg-purple-100 text-purple-800',
+    [CategorieMateriels.VITAMINE]: 'bg-orange-100 text-orange-800',
+    [CategorieMateriels.VACCIN]: 'bg-indigo-100 text-indigo-800',
     [CategorieMateriels.AUTRE]: 'bg-gray-100 text-gray-800'
   };
   return colors[categorie] || 'bg-gray-100 text-gray-800';

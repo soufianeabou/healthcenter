@@ -206,13 +206,13 @@ const MaterielsList = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
               <option value="all">Toutes les catégories</option>
-              <option value={CategorieMateriels.EQUIPEMENT_MEDICAL}>Équipement médical</option>
-              <option value={CategorieMateriels.MATERIEL_JETABLE}>Matériel jetable</option>
-              <option value={CategorieMateriels.MATERIEL_HYGIENE}>Matériel d'hygiène</option>
-              <option value={CategorieMateriels.MATERIEL_DIAGNOSTIC}>Matériel de diagnostic</option>
-              <option value={CategorieMateriels.MATERIEL_PROTECTION}>Matériel de protection</option>
-              <option value={CategorieMateriels.MATERIEL_URGENCE}>Matériel d'urgence</option>
-              <option value={CategorieMateriels.FOURNITURE_BUREAU}>Fourniture de bureau</option>
+              <option value={CategorieMateriels.ANTIBIOTIQUE}>Antibiotique</option>
+              <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Anti-inflammatoire</option>
+              <option value={CategorieMateriels.ANTALGIQUE}>Antalgique</option>
+              <option value={CategorieMateriels.ANTIPYRETIQUE}>Antipyrétique</option>
+              <option value={CategorieMateriels.ANTIVIRAL}>Antiviral</option>
+              <option value={CategorieMateriels.VITAMINE}>Vitamine</option>
+              <option value={CategorieMateriels.VACCIN}>Vaccin</option>
               <option value={CategorieMateriels.AUTRE}>Autre</option>
             </select>
           </div>

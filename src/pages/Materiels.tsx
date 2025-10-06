@@ -20,7 +20,7 @@ const Materiels = () => {
     perPile: true,
     categorie: CategorieMateriels.AUTRE,
     dosage: 0,
-    uniteDosage: Unite.UNITE,
+    uniteDosage: Unite.MG,
     defaultSize: 1,
     qteStock: 0,
     qteMinimum: 10
@@ -69,7 +69,7 @@ const Materiels = () => {
       perPile: true,
       categorie: CategorieMateriels.AUTRE,
       dosage: 0,
-      uniteDosage: Unite.UNITE,
+      uniteDosage: Unite.MG,
       defaultSize: 1,
       qteStock: 0,
       qteMinimum: 10
@@ -100,19 +100,28 @@ const Materiels = () => {
         ? `https://196.12.203.182/api/consultations/medicaments/${editingMateriel.id}`
         : 'https://196.12.203.182/api/consultations/medicaments';
       
+      console.log('Submitting data:', formData);
+      
       const response = await fetch(url, {
         method: editingMateriel ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(formData)
       });
       
-      if (!response.ok) throw new Error('Failed to save');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error:', errorText);
+        throw new Error(`Failed to save: ${response.status} ${errorText}`);
+      }
       
       closeForm();
       await fetchMateriels();
     } catch (error) {
       console.error('Error:', error);
-      setError('Erreur lors de l\'enregistrement du matériel');
+      setError(`Erreur lors de l'enregistrement du matériel: ${error.message}`);
     }
   };
 
@@ -252,13 +261,13 @@ const Materiels = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
             >
               <option value="all">Toutes</option>
-              <option value={CategorieMateriels.EQUIPEMENT_MEDICAL}>Équipement médical</option>
-              <option value={CategorieMateriels.MATERIEL_JETABLE}>Matériel jetable</option>
-              <option value={CategorieMateriels.MATERIEL_HYGIENE}>Matériel d'hygiène</option>
-              <option value={CategorieMateriels.MATERIEL_DIAGNOSTIC}>Matériel de diagnostic</option>
-              <option value={CategorieMateriels.MATERIEL_PROTECTION}>Matériel de protection</option>
-              <option value={CategorieMateriels.MATERIEL_URGENCE}>Matériel d'urgence</option>
-              <option value={CategorieMateriels.FOURNITURE_BUREAU}>Fourniture de bureau</option>
+              <option value={CategorieMateriels.ANTIBIOTIQUE}>Antibiotique</option>
+              <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Anti-inflammatoire</option>
+              <option value={CategorieMateriels.ANTALGIQUE}>Antalgique</option>
+              <option value={CategorieMateriels.ANTIPYRETIQUE}>Antipyrétique</option>
+              <option value={CategorieMateriels.ANTIVIRAL}>Antiviral</option>
+              <option value={CategorieMateriels.VITAMINE}>Vitamine</option>
+              <option value={CategorieMateriels.VACCIN}>Vaccin</option>
               <option value={CategorieMateriels.AUTRE}>Autre</option>
             </select>
           </div>
@@ -392,13 +401,13 @@ const Materiels = () => {
                     onChange={(e) => setFormData({...formData, categorie: e.target.value as CategorieMateriels})}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value={CategorieMateriels.EQUIPEMENT_MEDICAL}>Équipement médical</option>
-                    <option value={CategorieMateriels.MATERIEL_JETABLE}>Matériel jetable</option>
-                    <option value={CategorieMateriels.MATERIEL_HYGIENE}>Matériel d'hygiène</option>
-                    <option value={CategorieMateriels.MATERIEL_DIAGNOSTIC}>Matériel de diagnostic</option>
-                    <option value={CategorieMateriels.MATERIEL_PROTECTION}>Matériel de protection</option>
-                    <option value={CategorieMateriels.MATERIEL_URGENCE}>Matériel d'urgence</option>
-                    <option value={CategorieMateriels.FOURNITURE_BUREAU}>Fourniture de bureau</option>
+                    <option value={CategorieMateriels.ANTIBIOTIQUE}>Antibiotique</option>
+                    <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Anti-inflammatoire</option>
+                    <option value={CategorieMateriels.ANTALGIQUE}>Antalgique</option>
+                    <option value={CategorieMateriels.ANTIPYRETIQUE}>Antipyrétique</option>
+                    <option value={CategorieMateriels.ANTIVIRAL}>Antiviral</option>
+                    <option value={CategorieMateriels.VITAMINE}>Vitamine</option>
+                    <option value={CategorieMateriels.VACCIN}>Vaccin</option>
                     <option value={CategorieMateriels.AUTRE}>Autre</option>
                   </select>
                 </div>
@@ -419,14 +428,12 @@ const Materiels = () => {
                     onChange={(e) => setFormData({...formData, uniteDosage: e.target.value as Unite})}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value={Unite.UNITE}>Unité</option>
-                    <option value={Unite.BOITE}>Boîte</option>
-                    <option value={Unite.PAQUET}>Paquet</option>
-                    <option value={Unite.CARTON}>Carton</option>
-                    <option value={Unite.LITRE}>Litre</option>
+                    <option value={Unite.MG}>mg</option>
+                    <option value={Unite.G}>g</option>
                     <option value={Unite.ML}>ml</option>
-                    <option value={Unite.GRAMME}>g</option>
-                    <option value={Unite.KG}>kg</option>
+                    <option value={Unite.L}>L</option>
+                    <option value={Unite.UI}>UI</option>
+                    <option value={Unite.TABLETTE}>Tablette</option>
                     <option value={Unite.AUTRE}>Autre</option>
                   </select>
                 </div>
