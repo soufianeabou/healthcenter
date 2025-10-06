@@ -104,7 +104,6 @@ const MaterielDetails: React.FC = () => {
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategorieBadgeColors(materiel.categorie)}`}>
               {getCategorieDisplayName(materiel.categorie)}
             </span>
-            <p className="text-gray-600">{materiel.dosage} {getUniteDisplayName(materiel.uniteDosage)}</p>
           </div>
         </div>
         <div className="flex items-center space-x-3">
@@ -139,22 +138,16 @@ const MaterielDetails: React.FC = () => {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">Informations</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="text-gray-500">Type de stockage</div>
-              <div className="text-gray-900">{materiel.perPile ? "À l'unité" : 'En lot'}</div>
-              <div className="text-gray-500">Taille par lot</div>
-              <div className="text-gray-900">{materiel.defaultSize}</div>
+              <div className="text-gray-500">Catégorie</div>
+              <div className="text-gray-900">{getCategorieDisplayName(materiel.categorie)}</div>
+              <div className="text-gray-500">Code</div>
+              <div className="text-gray-900">{materiel.codeBarre39}</div>
               <div className="text-gray-500">Quantité en stock</div>
               <div className="text-gray-900">{materiel.qteStock}</div>
               <div className="text-gray-500">Quantité minimum</div>
               <div className="text-gray-900">{materiel.qteMinimum}</div>
             </div>
 
-            {materiel.perPile && (
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-gray-700">Unités restantes (lot courant)</div>
-                <BatteryBar value={remainingUnits} max={materiel.defaultSize || 0} />
-              </div>
-            )}
 
             {/* Stock Status */}
             <div className="space-y-2">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Upload, Download, X } from 'lucide-react';
-import { Materiel, CategorieMateriels, Unite } from '../types/materiel';
+import { Materiel, CategorieMateriels, Unite, getCategorieDisplayName } from '../types/materiel';
 
 const Materiels = () => {
   const [materiels, setMateriels] = useState<Materiel[]>([]);
@@ -297,9 +297,8 @@ const Materiels = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">{mat.nomMedicament}</h3>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {mat.categorie}
+                      {getCategorieDisplayName(mat.categorie as CategorieMateriels)}
                     </span>
-                    <span className="text-sm text-gray-500">{mat.dosage} {mat.uniteDosage}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -322,19 +321,9 @@ const Materiels = () => {
               <p className="text-sm text-gray-600 mb-3">{mat.description}</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Code-barres:</span>
+                  <span className="text-gray-500">Code:</span>
                   <span className="font-mono">{mat.codeBarre39}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Vente:</span>
-                  <span>{mat.perPile ? 'À l\'unité' : 'En lot'}</span>
-                </div>
-                {!mat.perPile && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Taille lot:</span>
-                    <span>{mat.defaultSize}</span>
-                  </div>
-                )}
               </div>
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between mb-2">
