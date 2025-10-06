@@ -1,13 +1,14 @@
 // Using the same enum values as the backend for compatibility
+// We're keeping the original enum keys for backend compatibility but changing the display names
 export enum CategorieMateriels {
-  ANTIBIOTIQUE = 'ANTIBIOTIQUE',
-  ANTI_INFLAMMATOIRE = 'ANTI_INFLAMMATOIRE',
-  ANTALGIQUE = 'ANTALGIQUE',
-  ANTIPYRETIQUE = 'ANTIPYRETIQUE',
-  ANTIVIRAL = 'ANTIVIRAL',
-  VITAMINE = 'VITAMINE',
-  VACCIN = 'VACCIN',
-  AUTRE = 'AUTRE'
+  ANTIBIOTIQUE = 'ANTIBIOTIQUE', // Will display as "Matériel médical"
+  ANTI_INFLAMMATOIRE = 'ANTI_INFLAMMATOIRE', // Will display as "Matériel jetable"
+  ANTALGIQUE = 'ANTALGIQUE', // Will display as "Fournitures"
+  ANTIPYRETIQUE = 'ANTIPYRETIQUE', // Will display as "Équipement"
+  ANTIVIRAL = 'ANTIVIRAL', // Will display as "Instruments"
+  VITAMINE = 'VITAMINE', // Will display as "Protection"
+  VACCIN = 'VACCIN', // Will display as "Hygiène"
+  AUTRE = 'AUTRE' // Will display as "Autre"
 }
 
 export enum Unite {
@@ -38,13 +39,13 @@ export interface Materiel {
 // Helper function to get category display name
 export function getCategorieDisplayName(categorie: CategorieMateriels): string {
   const names = {
-    [CategorieMateriels.ANTIBIOTIQUE]: 'Antibiotique',
-    [CategorieMateriels.ANTI_INFLAMMATOIRE]: 'Anti-inflammatoire',
-    [CategorieMateriels.ANTALGIQUE]: 'Antalgique',
-    [CategorieMateriels.ANTIPYRETIQUE]: 'Antipyrétique',
-    [CategorieMateriels.ANTIVIRAL]: 'Antiviral',
-    [CategorieMateriels.VITAMINE]: 'Vitamine',
-    [CategorieMateriels.VACCIN]: 'Vaccin',
+    [CategorieMateriels.ANTIBIOTIQUE]: 'Matériel médical',
+    [CategorieMateriels.ANTI_INFLAMMATOIRE]: 'Matériel jetable',
+    [CategorieMateriels.ANTALGIQUE]: 'Fournitures',
+    [CategorieMateriels.ANTIPYRETIQUE]: 'Équipement',
+    [CategorieMateriels.ANTIVIRAL]: 'Instruments',
+    [CategorieMateriels.VITAMINE]: 'Protection',
+    [CategorieMateriels.VACCIN]: 'Hygiène',
     [CategorieMateriels.AUTRE]: 'Autre'
   };
   return names[categorie] || categorie;

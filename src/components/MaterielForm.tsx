@@ -12,12 +12,12 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
   const [formData, setFormData] = useState({
     nomMedicament: '', // Keep field name for API compatibility
     description: '',
-    codeBarre39: '',
-    perPile: false,
+    codeBarre39: '', // We'll keep this in the state but hide it from UI
+    perPile: true, // Always true for materials (by piece)
     categorie: CategorieMateriels.AUTRE,
-    dosage: 0, // Keep field name for API compatibility
-    uniteDosage: Unite.MG, // Keep field name for API compatibility
-    defaultSize: 1,
+    dosage: 1, // Always 1 for materials
+    uniteDosage: Unite.MG, // Default value, will be hidden
+    defaultSize: 1, // Always 1 for materials
     qteStock: 0,
     qteMinimum: 0
   });
@@ -78,17 +78,11 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
       newErrors.description = 'La description est requise';
     }
 
-    if (!formData.codeBarre39.trim()) {
-      newErrors.codeBarre39 = 'Le code-barres est requis';
-    }
-
-    if (formData.dosage <= 0) {
-      newErrors.dosage = 'La quantité doit être supérieure à 0';
-    }
-
-    if (formData.defaultSize <= 0) {
-      newErrors.defaultSize = 'La taille par défaut doit être supérieure à 0';
-    }
+    // Set default values for fields we're hiding
+    formData.codeBarre39 = formData.codeBarre39 || 'MAT-' + Date.now().toString().slice(-6);
+    formData.perPile = true;
+    formData.dosage = 1;
+    formData.defaultSize = 1;
 
     if (formData.qteStock < 0) {
       newErrors.qteStock = 'La quantité en stock ne peut pas être négative';
@@ -141,7 +135,7 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nom du matériel *
               </label>
@@ -157,25 +151,6 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
               />
               {errors.nomMedicament && (
                 <p className="mt-1 text-sm text-red-600">{errors.nomMedicament}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Code-barres *
-              </label>
-              <input
-                type="text"
-                name="codeBarre39"
-                value={formData.codeBarre39}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                  errors.codeBarre39 ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Ex: 1234567890123"
-              />
-              {errors.codeBarre39 && (
-                <p className="mt-1 text-sm text-red-600">{errors.codeBarre39}</p>
               )}
             </div>
           </div>
@@ -200,8 +175,8 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
             )}
           </div>
 
-          {/* Category and Unit */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Category */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Catégorie *
@@ -219,83 +194,10 @@ const MaterielForm: React.FC<MaterielFormProps> = ({ initialData, onSubmit, onCa
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantité *
-              </label>
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  name="dosageInput"
-                  value={dosageInput}
-                  onChange={handleChange}
-                  className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                    errors.dosage ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="1.5"
-                />
-                <select
-                  name="uniteDosage"
-                  value={formData.uniteDosage}
-                  onChange={handleChange}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  {Object.values(Unite).map((unite) => (
-                    <option key={unite} value={unite}>
-                      {getUniteDisplayName(unite)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.dosage && (
-                <p className="mt-1 text-sm text-red-600">{errors.dosage}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Unit sale toggle - separate full row */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Vente à l'unité
-            </label>
-            <label className="inline-flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                name="perPile"
-                checked={formData.perPile}
-                onChange={handleChange}
-                className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
-              />
-              <span className="text-sm text-gray-600">
-                {formData.perPile ? 'Vendu à l\'unité' : 'Vendu en lot'}
-              </span>
-            </label>
           </div>
 
           {/* Stock Information */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Taille par lot *
-              </label>
-              <input
-                type="number"
-                name="defaultSize"
-                value={formData.defaultSize}
-                onChange={handleChange}
-                min="1"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                  errors.defaultSize ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="20"
-              />
-              {errors.defaultSize && (
-                <p className="mt-1 text-sm text-red-600">{errors.defaultSize}</p>
-              )}
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Quantité en stock *

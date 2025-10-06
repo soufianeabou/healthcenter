@@ -65,12 +65,12 @@ const Materiels = () => {
     setFormData({
       nomMedicament: '',
       description: '',
-      codeBarre39: '',
-      perPile: true,
+      codeBarre39: 'MAT-' + Date.now().toString().slice(-6), // Auto-generate a code
+      perPile: true, // Always true for materials
       categorie: CategorieMateriels.AUTRE,
-      dosage: 0,
-      uniteDosage: Unite.MG,
-      defaultSize: 1,
+      dosage: 1, // Always 1 for materials
+      uniteDosage: Unite.MG, // Default value
+      defaultSize: 1, // Always 1 for materials
       qteStock: 0,
       qteMinimum: 10
     });
@@ -96,11 +96,20 @@ const Materiels = () => {
 
   const handleSubmit = async () => {
     try {
+      // Ensure default values are set for hidden fields
+      const dataToSubmit = {
+        ...formData,
+        perPile: true,
+        dosage: 1,
+        defaultSize: 1,
+        codeBarre39: formData.codeBarre39 || 'MAT-' + Date.now().toString().slice(-6)
+      };
+      
       const url = editingMateriel 
         ? `https://196.12.203.182/api/consultations/medicaments/${editingMateriel.id}`
         : 'https://196.12.203.182/api/consultations/medicaments';
       
-      console.log('Submitting data:', formData);
+      console.log('Submitting data:', dataToSubmit);
       
       const response = await fetch(url, {
         method: editingMateriel ? 'PUT' : 'POST',
@@ -108,7 +117,7 @@ const Materiels = () => {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSubmit)
       });
       
       if (!response.ok) {
@@ -387,75 +396,21 @@ const Materiels = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Code-barres *</label>
-                  <input 
-                    value={formData.codeBarre39}
-                    onChange={(e) => setFormData({...formData, codeBarre39: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                  />
-                </div>
-                <div>
                   <label className="block text-sm font-medium mb-1">Catégorie *</label>
                   <select 
                     value={formData.categorie}
                     onChange={(e) => setFormData({...formData, categorie: e.target.value as CategorieMateriels})}
                     className="w-full px-3 py-2 border rounded-lg"
                   >
-                    <option value={CategorieMateriels.ANTIBIOTIQUE}>Antibiotique</option>
-                    <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Anti-inflammatoire</option>
-                    <option value={CategorieMateriels.ANTALGIQUE}>Antalgique</option>
-                    <option value={CategorieMateriels.ANTIPYRETIQUE}>Antipyrétique</option>
-                    <option value={CategorieMateriels.ANTIVIRAL}>Antiviral</option>
-                    <option value={CategorieMateriels.VITAMINE}>Vitamine</option>
-                    <option value={CategorieMateriels.VACCIN}>Vaccin</option>
+                    <option value={CategorieMateriels.ANTIBIOTIQUE}>Matériel médical</option>
+                    <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Matériel jetable</option>
+                    <option value={CategorieMateriels.ANTALGIQUE}>Fournitures</option>
+                    <option value={CategorieMateriels.ANTIPYRETIQUE}>Équipement</option>
+                    <option value={CategorieMateriels.ANTIVIRAL}>Instruments</option>
+                    <option value={CategorieMateriels.VITAMINE}>Protection</option>
+                    <option value={CategorieMateriels.VACCIN}>Hygiène</option>
                     <option value={CategorieMateriels.AUTRE}>Autre</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Quantité *</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={formData.dosage}
-                    onChange={(e) => setFormData({...formData, dosage: parseFloat(e.target.value)})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Unité *</label>
-                  <select 
-                    value={formData.uniteDosage}
-                    onChange={(e) => setFormData({...formData, uniteDosage: e.target.value as Unite})}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value={Unite.MG}>mg</option>
-                    <option value={Unite.G}>g</option>
-                    <option value={Unite.ML}>ml</option>
-                    <option value={Unite.L}>L</option>
-                    <option value={Unite.UI}>UI</option>
-                    <option value={Unite.TABLETTE}>Tablette</option>
-                    <option value={Unite.AUTRE}>Autre</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Vente *</label>
-                  <select 
-                    value={formData.perPile ? 'true' : 'false'}
-                    onChange={(e) => setFormData({...formData, perPile: e.target.value === 'true'})}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="true">À l'unité</option>
-                    <option value="false">En lot</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Taille lot *</label>
-                  <input 
-                    type="number"
-                    value={formData.defaultSize}
-                    onChange={(e) => setFormData({...formData, defaultSize: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Quantité stock *</label>

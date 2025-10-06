@@ -206,13 +206,13 @@ const MaterielsList = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
               <option value="all">Toutes les catégories</option>
-              <option value={CategorieMateriels.ANTIBIOTIQUE}>Antibiotique</option>
-              <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Anti-inflammatoire</option>
-              <option value={CategorieMateriels.ANTALGIQUE}>Antalgique</option>
-              <option value={CategorieMateriels.ANTIPYRETIQUE}>Antipyrétique</option>
-              <option value={CategorieMateriels.ANTIVIRAL}>Antiviral</option>
-              <option value={CategorieMateriels.VITAMINE}>Vitamine</option>
-              <option value={CategorieMateriels.VACCIN}>Vaccin</option>
+              <option value={CategorieMateriels.ANTIBIOTIQUE}>Matériel médical</option>
+              <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Matériel jetable</option>
+              <option value={CategorieMateriels.ANTALGIQUE}>Fournitures</option>
+              <option value={CategorieMateriels.ANTIPYRETIQUE}>Équipement</option>
+              <option value={CategorieMateriels.ANTIVIRAL}>Instruments</option>
+              <option value={CategorieMateriels.VITAMINE}>Protection</option>
+              <option value={CategorieMateriels.VACCIN}>Hygiène</option>
               <option value={CategorieMateriels.AUTRE}>Autre</option>
             </select>
           </div>
@@ -257,9 +257,6 @@ const MaterielsList = () => {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -308,16 +305,6 @@ const MaterielsList = () => {
                     {materiel.compteurPiles !== undefined && materiel.compteurPiles > 0 && (
                       <div className="text-xs text-blue-600">
                         Compteur: {materiel.compteurPiles}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {materiel.perPile ? 'À l\'unité' : 'En lot'}
-                    </div>
-                    {!materiel.perPile && (
-                      <div className="text-xs text-gray-500">
-                        {materiel.defaultSize} unités
                       </div>
                     )}
                   </td>
