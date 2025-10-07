@@ -25,13 +25,22 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
   useEffect(() => {
     const fetchMateriels = async () => {
       try {
+        console.log('Fetching materials...');
         const res = await fetch('https://196.12.203.182/api/consultations/medicaments');
-        if (!res.ok) throw new Error('Failed to load materials');
+        console.log('API response status:', res.status);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('API error response:', errorText);
+          throw new Error(`Failed to load materials: ${res.status} ${errorText}`);
+        }
+        
         const data = await res.json();
+        console.log('Materials loaded:', data.length);
         setMateriels(data);
       } catch (e) {
-        console.error(e);
-        setError('Erreur lors du chargement des matériels');
+        console.error('Error fetching materials:', e);
+        setError(`Erreur lors du chargement des matériels: ${e instanceof Error ? e.message : String(e)}`);
       }
     };
     fetchMateriels();
@@ -102,7 +111,12 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded text-sm">{error}</div>}
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-sm font-medium">{error}</div>}
+      {materiels.length === 0 && !error && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded text-sm">
+          Chargement des matériels en cours...
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Date d'assignation</label>
