@@ -3,7 +3,7 @@ import { Plus, Search, Filter, Calendar, User, FileText, Pill, Clock, Eye, Edit,
 import Modal from '../components/Modal';
 import ConsultationBackendForm from '../components/ConsultationBackendForm';
 import SortieStockForm from '../components/SortieStockForm';
-import MultiSortieStockForm from '../components/MultiSortieStockForm';
+import MaterielAssignmentForm from '../components/MaterielAssignmentForm';
 import { useAuth } from '../context/AuthContext';
 
 interface PrescriptionItem {
@@ -470,10 +470,10 @@ const Consultations = () => {
       <Modal
         isOpen={isSortieModalOpen}
         onClose={closeSortieModal}
-        title="Ajouter des Médicaments"
+        title="Assigner des Matériels"
       >
         {sortieConsultationId && (
-          <MultiSortieStockForm
+          <MaterielAssignmentForm
             consultationId={sortieConsultationId}
             onSubmitted={() => { closeSortieModal(); }}
             onCancel={closeSortieModal}
