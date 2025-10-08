@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Plus, Trash2 } from 'lucide-react';
 import { ConsultationDTO } from '../types/consultation';
 import { Patient } from '../types/patient';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types/roles';
 
 interface Props {
   personnelId: number;
@@ -10,7 +12,22 @@ interface Props {
   onCancel: () => void;
 }
 
+interface Materiel {
+  id: number;
+  nomMedicament: string;
+  qteStock: number;
+}
+
+interface MaterialLine {
+  id: string;
+  materielId: number | '';
+  quantite: number;
+}
+
 const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel }) => {
+  const { user } = useAuth();
+  const isNurse = user?.role === UserRole.INFIRMIER;
+  
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(initial?.patient?.id || null);
@@ -22,6 +39,35 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [traitement, setTraitement] = useState<string>(initial?.traitement || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loadingPatients, setLoadingPatients] = useState(false);
+  
+  // Constantes for nurses
+  const [temperature, setTemperature] = useState('');
+  const [tension, setTension] = useState('');
+  const [pouls, setPouls] = useState('');
+  const [frequenceRespiratoire, setFrequenceRespiratoire] = useState('');
+  const [poids, setPoids] = useState('');
+  const [taille, setTaille] = useState('');
+  
+  // Materials
+  const [materiels, setMateriels] = useState<Materiel[]>([]);
+  const [materialLines, setMaterialLines] = useState<MaterialLine[]>([]);
+  const [showMaterialSection, setShowMaterialSection] = useState(false);
+
+  // Fetch materials on mount
+  useEffect(() => {
+    const fetchMateriels = async () => {
+      try {
+        const res = await fetch('https://196.12.203.182/api/consultations/medicaments');
+        if (res.ok) {
+          const data = await res.json();
+          setMateriels(data);
+        }
+      } catch (e) {
+        console.error('Error fetching materials:', e);
+      }
+    };
+    fetchMateriels();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -38,7 +84,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           setPatients([]);
           return;
         }
-        const r = await res.json(); console.log("Patient data:", r);
+        const r = await res.json();
         // Map API shape to local Patient shape; map idNum -> id
         const mapped: Patient[] = [{
           id: (r.idNum ?? r.id) as number,
@@ -50,7 +96,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           telephone: r.telephone || '',
           email: r.email || ''
         }];
-        console.log("Setting patients:", mapped); setPatients(mapped);
+        setPatients(mapped);
       } catch (e) {
         setPatients([]);
       } finally {
@@ -62,28 +108,85 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
 
   const filteredPatients = useMemo(() => patients, [patients]);
 
+  const addMaterialLine = () => {
+    setMaterialLines([...materialLines, { id: Date.now().toString(), materielId: '', quantite: 1 }]);
+  };
+
+  const removeMaterialLine = (id: string) => {
+    setMaterialLines(materialLines.filter(line => line.id !== id));
+  };
+
+  const updateMaterialLine = (id: string, field: 'materielId' | 'quantite', value: number | '') => {
+    setMaterialLines(materialLines.map(line => 
+      line.id === id ? { ...line, [field]: value } : line
+    ));
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!selectedPatientId) e.patient = 'Sélectionner un patient';
     if (!motif.trim()) e.motif = 'Motif requis';
-    if (!diagnostic.trim()) e.diagnostic = 'Diagnostic requis';
+    if (!diagnostic.trim() && !isNurse) e.diagnostic = 'Diagnostic requis';
     if (!traitement.trim()) e.traitement = 'Traitement requis';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (ev: React.FormEvent) => {
+  const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!validate()) return;
+    
+    // Build diagnostic with constantes for nurses
+    let finalDiagnostic = diagnostic;
+    if (isNurse) {
+      const constantes = [];
+      if (temperature) constantes.push(`Température: ${temperature}°C`);
+      if (tension) constantes.push(`Tension: ${tension}`);
+      if (pouls) constantes.push(`Pouls: ${pouls} bpm`);
+      if (frequenceRespiratoire) constantes.push(`FR: ${frequenceRespiratoire}/min`);
+      if (poids) constantes.push(`Poids: ${poids} kg`);
+      if (taille) constantes.push(`Taille: ${taille} cm`);
+      
+      if (constantes.length > 0) {
+        finalDiagnostic = `CONSTANTES:\n${constantes.join('\n')}${diagnostic ? '\n\nNOTES:\n' + diagnostic : ''}`;
+      }
+    }
+    
     const dateTimeLocal = `${date}T${time}:00`;
-    onSubmit({
+    const consultationPayload = {
       patient: { id: selectedPatientId as number },
       personnel: { id: personnelId },
       dateConsultation: dateTimeLocal,
       motif,
-      diagnostic,
+      diagnostic: finalDiagnostic,
       traitement
-    });
+    };
+    
+    // Submit consultation
+    onSubmit(consultationPayload);
+    
+    // If there are materials to assign, submit them after consultation is created
+    if (materialLines.length > 0 && initial?.id) {
+      const validLines = materialLines.filter(line => line.materielId && line.quantite > 0);
+      for (const line of validLines) {
+        try {
+          const payload = {
+            consultation: { id: initial.id },
+            medicament: { id: line.materielId },
+            parUnite: true,
+            quantite: line.quantite,
+            dateSortie: date
+          };
+          await fetch('https://196.12.203.182/sortie-stock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (e) {
+          console.error('Error assigning material:', e);
+        }
+      }
+    }
   };
 
   return (
@@ -139,8 +242,81 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         {errors.motif && <p className="text-red-600 text-sm mt-1">{errors.motif}</p>}
       </div>
 
+      {/* Constantes section for nurses */}
+      {isNurse && (
+        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Constantes vitales</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Température (°C)</label>
+              <input 
+                type="number" 
+                step="0.1" 
+                value={temperature} 
+                onChange={(e) => setTemperature(e.target.value)} 
+                placeholder="37.0"
+                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tension</label>
+              <input 
+                type="text" 
+                value={tension} 
+                onChange={(e) => setTension(e.target.value)} 
+                placeholder="120/80"
+                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pouls (bpm)</label>
+              <input 
+                type="number" 
+                value={pouls} 
+                onChange={(e) => setPouls(e.target.value)} 
+                placeholder="70"
+                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">FR (/min)</label>
+              <input 
+                type="number" 
+                value={frequenceRespiratoire} 
+                onChange={(e) => setFrequenceRespiratoire(e.target.value)} 
+                placeholder="16"
+                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Poids (kg)</label>
+              <input 
+                type="number" 
+                step="0.1" 
+                value={poids} 
+                onChange={(e) => setPoids(e.target.value)} 
+                placeholder="70"
+                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Taille (cm)</label>
+              <input 
+                type="number" 
+                value={taille} 
+                onChange={(e) => setTaille(e.target.value)} 
+                placeholder="170"
+                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Diagnostic *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {isNurse ? 'Notes / Observations' : 'Diagnostic *'}
+        </label>
         <textarea value={diagnostic} onChange={(e) => setDiagnostic(e.target.value)} rows={3} className="w-full px-3 py-2 border rounded-md" />
         {errors.diagnostic && <p className="text-red-600 text-sm mt-1">{errors.diagnostic}</p>}
       </div>
@@ -150,6 +326,70 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         <textarea value={traitement} onChange={(e) => setTraitement(e.target.value)} rows={3} className="w-full px-3 py-2 border rounded-md" />
         {errors.traitement && <p className="text-red-600 text-sm mt-1">{errors.traitement}</p>}
       </div>
+
+      {/* Material assignment section */}
+      {initial?.id && (
+        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-semibold text-gray-700">Matériels à assigner</h3>
+            <button
+              type="button"
+              onClick={() => setShowMaterialSection(!showMaterialSection)}
+              className="text-xs px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              {showMaterialSection ? 'Masquer' : 'Ajouter matériel'}
+            </button>
+          </div>
+          
+          {showMaterialSection && (
+            <div className="space-y-2">
+              {materialLines.map((line) => {
+                const selectedMateriel = materiels.find(m => m.id === line.materielId);
+                return (
+                  <div key={line.id} className="flex gap-2 items-start bg-white p-2 rounded">
+                    <select
+                      value={line.materielId}
+                      onChange={(e) => updateMaterialLine(line.id, 'materielId', e.target.value ? Number(e.target.value) : '')}
+                      className="flex-1 px-2 py-1.5 text-sm border rounded-md"
+                    >
+                      <option value="">Sélectionner</option>
+                      {materiels.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.nomMedicament} (Stock: {m.qteStock})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      max={selectedMateriel?.qteStock || 999}
+                      value={line.quantite}
+                      onChange={(e) => updateMaterialLine(line.id, 'quantite', Number(e.target.value))}
+                      className="w-20 px-2 py-1.5 text-sm border rounded-md"
+                      placeholder="Qté"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeMaterialLine(line.id)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={addMaterialLine}
+                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+              >
+                <Plus className="w-4 h-4" />
+                Ajouter une ligne
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex justify-end space-x-2 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md">Annuler</button>
