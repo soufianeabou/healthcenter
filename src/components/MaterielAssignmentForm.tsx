@@ -1,7 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, ArrowLeft } from 'lucide-react';
-import { Materiel, getCategorieDisplayName } from '../types/materiel';
-import { SortieStockDTO } from '../types/consultation';
+import React, { useEffect, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
+
+interface Materiel {
+  id: number;
+  nomMedicament: string;
+  qteStock: number;
+  categorie: string;
+}
 
 interface Props {
   consultationId: number;
@@ -9,156 +14,168 @@ interface Props {
   onCancel: () => void;
 }
 
-interface Line {
+interface MaterialLine {
   id: string;
-  medicamentId: number | ''; // Keep field name for API compatibility
+  materielId: number | '';
   quantite: number;
 }
 
 const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, onCancel }) => {
   const [materiels, setMateriels] = useState<Materiel[]>([]);
-  const [lines, setLines] = useState<Line[]>([{ id: crypto.randomUUID(), medicamentId: '', quantite: 1 }]);
-  const [dateSortie, setDateSortie] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [submitting, setSubmitting] = useState(false);
+  const [lines, setLines] = useState<MaterialLine[]>([
+    { id: Date.now().toString(), materielId: '', quantite: 1 }
+  ]);
+  const [dateSortie, setDateSortie] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Fetch materials on mount
   useEffect(() => {
-    const fetchMateriels = async () => {
-      try {
-        setLoading(true);
-        console.log('Fetching materials from API...');
-        const res = await fetch('https://196.12.203.182/api/consultations/medicaments');
-        console.log('API response status:', res.status);
-        console.log('API response headers:', res.headers);
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error('API error response:', errorText);
-          throw new Error(`Failed to load materials: ${res.status}`);
-        }
-        
-        const data = await res.json();
-        console.log('Materials loaded successfully:', data.length, 'items');
-        console.log('First material:', data[0]);
-        setMateriels(data);
-        setError('');
-      } catch (e) {
-        console.error('Error fetching materials:', e);
-        setError(`Erreur lors du chargement des matériels. Veuillez réessayer.`);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchMateriels();
   }, []);
 
-  const canSubmit = useMemo(() => {
-    return !submitting;
-  }, [submitting]);
+  const fetchMateriels = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch('https://196.12.203.182/api/consultations/medicaments');
+      
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status}: Impossible de charger les matériels`);
+      }
+      
+      const data = await response.json();
+      console.log('Matériels chargés:', data);
+      setMateriels(data);
+    } catch (err) {
+      console.error('Erreur lors du chargement des matériels:', err);
+      setError(err instanceof Error ? err.message : 'Erreur de chargement');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const addLine = () => {
-    setLines(prev => [...prev, { id: crypto.randomUUID(), medicamentId: '', quantite: 1 }]);
+    setLines([...lines, { id: Date.now().toString(), materielId: '', quantite: 1 }]);
   };
 
   const removeLine = (id: string) => {
-    setLines(prev => prev.filter(l => l.id !== id));
+    if (lines.length > 1) {
+      setLines(lines.filter(line => line.id !== id));
+    }
   };
 
-  const updateLine = (id: string, patch: Partial<Line>) => {
-    setLines(prev => prev.map(l => (l.id === id ? { ...l, ...patch } : l)));
+  const updateLine = (id: string, field: 'materielId' | 'quantite', value: number | '') => {
+    setLines(lines.map(line => 
+      line.id === id ? { ...line, [field]: value } : line
+    ));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError('');
+    
+    // Validate
+    const validLines = lines.filter(line => line.materielId && line.quantite > 0);
+    if (validLines.length === 0) {
+      setError('Veuillez sélectionner au moins un matériel avec une quantité valide');
+      return;
+    }
+
     try {
-      const payloads: SortieStockDTO[] = lines
-        .filter(l => l.medicamentId && l.quantite > 0)
-        .map(l => ({
+      setSubmitting(true);
+      setError('');
+
+      // Submit each line
+      for (const line of validLines) {
+        const payload = {
           consultation: { id: consultationId },
-          medicament: { id: l.medicamentId as number },
-          parUnite: true, // Always true for materials
-          quantite: l.quantite,
-          dateSortie
-        }));
+          medicament: { id: line.materielId },
+          parUnite: true,
+          quantite: line.quantite,
+          dateSortie: dateSortie
+        };
 
-      if (payloads.length === 0) {
-        setError('Veuillez ajouter au moins un matériel');
-        setSubmitting(false);
-        return;
-      }
+        console.log('Envoi du payload:', payload);
 
-      for (const p of payloads) {
-        const res = await fetch('https://196.12.203.182/sortie-stock', {
+        const response = await fetch('https://196.12.203.182/sortie-stock', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(p)
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
         });
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`Erreur lors de l'assignation du matériel: ${res.status} ${txt}`);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Erreur ${response.status}: ${errorText}`);
         }
       }
 
+      // Success
       onSubmitted();
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : 'Erreur lors de l\'assignation des matériels');
+    } catch (err) {
+      console.error('Erreur lors de l\'assignation:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de l\'assignation');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getMaterielInfo = (medicamentId: number | '') => {
-    if (!medicamentId) return null;
-    return materiels.find(m => m.id === medicamentId);
-  };
-
+  // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement des matériels...</p>
-        </div>
+      <div className="p-8 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-600">Chargement des matériels...</p>
       </div>
     );
   }
 
-  if (error) {
+  // Error state
+  if (error && materiels.length === 0) {
     return (
-      <div className="p-6 space-y-4">
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded">
-          <p className="font-medium">Erreur</p>
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-4">
+          <p className="font-semibold">Erreur</p>
           <p className="text-sm mt-1">{error}</p>
         </div>
-        <div className="flex justify-end space-x-2">
-          <button 
-            type="button" 
-            onClick={onCancel} 
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+        <div className="flex justify-end space-x-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             Fermer
+          </button>
+          <button
+            type="button"
+            onClick={fetchMateriels}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Réessayer
           </button>
         </div>
       </div>
     );
   }
 
+  // Empty state
   if (materiels.length === 0) {
     return (
-      <div className="p-6 space-y-4">
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded">
-          <p className="font-medium">Aucun matériel disponible</p>
-          <p className="text-sm mt-1">Il n'y a pas de matériels dans le système pour le moment.</p>
+      <div className="p-6">
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded-lg mb-4">
+          <p className="font-semibold">Aucun matériel disponible</p>
+          <p className="text-sm mt-1">Il n'y a pas de matériels dans le système.</p>
         </div>
-        <div className="flex justify-end space-x-2">
-          <button 
-            type="button" 
-            onClick={onCancel} 
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             Fermer
           </button>
@@ -167,98 +184,113 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
     );
   }
 
+  // Main form
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-sm font-medium">{error}</div>}
+    <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
+      {/* Date field */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Date d'assignation</label>
-        <input 
-          type="date" 
-          value={dateSortie} 
-          onChange={(e) => setDateSortie(e.target.value)} 
-          className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500"
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Date d'assignation
+        </label>
+        <input
+          type="date"
+          value={dateSortie}
+          onChange={(e) => setDateSortie(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         />
       </div>
 
+      {/* Material lines */}
       <div className="space-y-3">
-        {lines.map(line => {
-          const materielInfo = getMaterielInfo(line.medicamentId);
+        <label className="block text-sm font-medium text-gray-700">
+          Matériels à assigner
+        </label>
+        
+        {lines.map((line, index) => {
+          const selectedMateriel = materiels.find(m => m.id === line.materielId);
+          
           return (
-            <div key={line.id} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end border border-gray-200 rounded-md p-3 bg-gray-50">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Matériel</label>
+            <div key={line.id} className="flex gap-3 items-start p-4 bg-gray-50 rounded-lg">
+              <div className="flex-1">
                 <select
-                  value={line.medicamentId}
-                  onChange={(e) => updateLine(line.id, { medicamentId: e.target.value ? Number(e.target.value) : '' })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500"
+                  value={line.materielId}
+                  onChange={(e) => updateLine(line.id, 'materielId', e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
                   <option value="">Sélectionner un matériel</option>
-                  {materiels.map(m => (
-                    <option key={m.id} value={m.id}>
-                      {m.nomMedicament} — Stock: {m.qteStock} — {getCategorieDisplayName(m.categorie)}
+                  {materiels.map(materiel => (
+                    <option key={materiel.id} value={materiel.id}>
+                      {materiel.nomMedicament} (Stock: {materiel.qteStock})
                     </option>
                   ))}
                 </select>
-                {materielInfo && (
-                  <div className="text-xs text-gray-500 mt-1">
-                    Stock disponible: {materielInfo.qteStock} unités
-                  </div>
+                {selectedMateriel && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Stock disponible: {selectedMateriel.qteStock} unités
+                  </p>
                 )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quantité</label>
+              
+              <div className="w-32">
                 <input
                   type="number"
-                  min={1}
-                  max={materielInfo ? materielInfo.qteStock : undefined}
+                  min="1"
+                  max={selectedMateriel?.qteStock || 999}
                   value={line.quantite}
-                  onChange={(e) => updateLine(line.id, { quantite: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500"
+                  onChange={(e) => updateLine(line.id, 'quantite', Number(e.target.value))}
+                  placeholder="Qté"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
-              <div className="flex justify-end">
-                <button 
-                  type="button" 
-                  onClick={() => removeLine(line.id)} 
-                  className="px-3 py-2 border border-red-300 rounded-md text-red-600 hover:bg-red-50 transition-colors"
-                  disabled={lines.length === 1}
-                  title="Supprimer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+              
+              <button
+                type="button"
+                onClick={() => removeLine(line.id)}
+                disabled={lines.length === 1}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Supprimer"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
             </div>
           );
         })}
         
-        <button 
-          type="button" 
-          onClick={addLine} 
-          className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-gray-700"
+        <button
+          type="button"
+          onClick={addLine}
+          className="flex items-center gap-2 px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50"
         >
           <Plus className="w-4 h-4" />
-          <span>Ajouter un matériel</span>
+          Ajouter un matériel
         </button>
       </div>
 
-      <div className="flex justify-end space-x-2 pt-4 border-t">
-        <button 
-          type="button" 
-          onClick={onCancel} 
-          className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+      {/* Action buttons */}
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={submitting}
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
         >
           Annuler
         </button>
-        <button 
-          type="submit" 
-          disabled={submitting || !canSubmit} 
-          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? 'En cours...' : 'Assigner'}
+          {submitting ? 'Assignation en cours...' : 'Assigner'}
         </button>
       </div>
     </form>
