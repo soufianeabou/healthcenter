@@ -20,27 +20,34 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
   const [lines, setLines] = useState<Line[]>([{ id: crypto.randomUUID(), medicamentId: '', quantite: 1 }]);
   const [dateSortie, setDateSortie] = useState<string>(new Date().toISOString().slice(0, 10));
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchMateriels = async () => {
       try {
-        console.log('Fetching materials...');
+        setLoading(true);
+        console.log('Fetching materials from API...');
         const res = await fetch('https://196.12.203.182/api/consultations/medicaments');
         console.log('API response status:', res.status);
+        console.log('API response headers:', res.headers);
         
         if (!res.ok) {
           const errorText = await res.text();
           console.error('API error response:', errorText);
-          throw new Error(`Failed to load materials: ${res.status} ${errorText}`);
+          throw new Error(`Failed to load materials: ${res.status}`);
         }
         
         const data = await res.json();
-        console.log('Materials loaded:', data.length);
+        console.log('Materials loaded successfully:', data.length, 'items');
+        console.log('First material:', data[0]);
         setMateriels(data);
+        setError('');
       } catch (e) {
         console.error('Error fetching materials:', e);
-        setError(`Erreur lors du chargement des matériels: ${e instanceof Error ? e.message : String(e)}`);
+        setError(`Erreur lors du chargement des matériels. Veuillez réessayer.`);
+      } finally {
+        setLoading(false);
       }
     };
     fetchMateriels();
@@ -109,14 +116,60 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
     return materiels.find(m => m.id === medicamentId);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des matériels...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded">
+          <p className="font-medium">Erreur</p>
+          <p className="text-sm mt-1">{error}</p>
+        </div>
+        <div className="flex justify-end space-x-2">
+          <button 
+            type="button" 
+            onClick={onCancel} 
+            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (materiels.length === 0) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded">
+          <p className="font-medium">Aucun matériel disponible</p>
+          <p className="text-sm mt-1">Il n'y a pas de matériels dans le système pour le moment.</p>
+        </div>
+        <div className="flex justify-end space-x-2">
+          <button 
+            type="button" 
+            onClick={onCancel} 
+            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-sm font-medium">{error}</div>}
-      {materiels.length === 0 && !error && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded text-sm">
-          Chargement des matériels en cours...
-        </div>
-      )}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Date d'assignation</label>
