@@ -244,69 +244,69 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
 
       {/* Constantes section for nurses */}
       {isNurse && (
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Constantes vitales</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
+          <h3 className="text-xs font-semibold text-gray-700 mb-2">Constantes vitales</h3>
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Température (°C)</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Temp (°C)</label>
               <input 
                 type="number" 
                 step="0.1" 
                 value={temperature} 
                 onChange={(e) => setTemperature(e.target.value)} 
                 placeholder="37.0"
-                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+                className="w-full px-2 py-1 text-xs border rounded" 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Tension</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Tension</label>
               <input 
                 type="text" 
                 value={tension} 
                 onChange={(e) => setTension(e.target.value)} 
                 placeholder="120/80"
-                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+                className="w-full px-2 py-1 text-xs border rounded" 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Pouls (bpm)</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Pouls</label>
               <input 
                 type="number" 
                 value={pouls} 
                 onChange={(e) => setPouls(e.target.value)} 
                 placeholder="70"
-                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+                className="w-full px-2 py-1 text-xs border rounded" 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">FR (/min)</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">FR</label>
               <input 
                 type="number" 
                 value={frequenceRespiratoire} 
                 onChange={(e) => setFrequenceRespiratoire(e.target.value)} 
                 placeholder="16"
-                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+                className="w-full px-2 py-1 text-xs border rounded" 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Poids (kg)</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Poids (kg)</label>
               <input 
                 type="number" 
                 step="0.1" 
                 value={poids} 
                 onChange={(e) => setPoids(e.target.value)} 
                 placeholder="70"
-                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+                className="w-full px-2 py-1 text-xs border rounded" 
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Taille (cm)</label>
+              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Taille (cm)</label>
               <input 
                 type="number" 
                 value={taille} 
                 onChange={(e) => setTaille(e.target.value)} 
                 placeholder="170"
-                className="w-full px-2 py-1.5 text-sm border rounded-md" 
+                className="w-full px-2 py-1 text-xs border rounded" 
               />
             </div>
           </div>
@@ -327,35 +327,35 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         {errors.traitement && <p className="text-red-600 text-sm mt-1">{errors.traitement}</p>}
       </div>
 
-      {/* Material assignment section */}
+      {/* Material assignment section - only for editing */}
       {initial?.id && (
-        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-semibold text-gray-700">Matériels à assigner</h3>
+        <div className="border border-blue-200 rounded-md p-2 bg-blue-50">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-xs font-semibold text-gray-700">Matériels</h3>
             <button
               type="button"
               onClick={() => setShowMaterialSection(!showMaterialSection)}
-              className="text-xs px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="text-[10px] px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
               {showMaterialSection ? 'Masquer' : 'Ajouter matériel'}
             </button>
           </div>
           
           {showMaterialSection && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {materialLines.map((line) => {
                 const selectedMateriel = materiels.find(m => m.id === line.materielId);
                 return (
-                  <div key={line.id} className="flex gap-2 items-start bg-white p-2 rounded">
+                  <div key={line.id} className="flex gap-1.5 items-center bg-white p-1.5 rounded">
                     <select
                       value={line.materielId}
                       onChange={(e) => updateMaterialLine(line.id, 'materielId', e.target.value ? Number(e.target.value) : '')}
-                      className="flex-1 px-2 py-1.5 text-sm border rounded-md"
+                      className="flex-1 px-1.5 py-1 text-xs border rounded"
                     >
                       <option value="">Sélectionner</option>
                       {materiels.map(m => (
                         <option key={m.id} value={m.id}>
-                          {m.nomMedicament} (Stock: {m.qteStock})
+                          {m.nomMedicament} ({m.qteStock})
                         </option>
                       ))}
                     </select>
@@ -365,15 +365,15 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
                       max={selectedMateriel?.qteStock || 999}
                       value={line.quantite}
                       onChange={(e) => updateMaterialLine(line.id, 'quantite', Number(e.target.value))}
-                      className="w-20 px-2 py-1.5 text-sm border rounded-md"
+                      className="w-16 px-1.5 py-1 text-xs border rounded"
                       placeholder="Qté"
                     />
                     <button
                       type="button"
                       onClick={() => removeMaterialLine(line.id)}
-                      className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                      className="p-1 text-red-600 hover:bg-red-50 rounded"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 );
@@ -381,10 +381,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
               <button
                 type="button"
                 onClick={addMaterialLine}
-                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
               >
-                <Plus className="w-4 h-4" />
-                Ajouter une ligne
+                <Plus className="w-3 h-3" />
+                Ajouter
               </button>
             </div>
           )}
