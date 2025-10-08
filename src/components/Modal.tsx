@@ -23,9 +23,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
             <X className="w-6 h-6" />
           </button>
         </div>
-        <div className="p-6">
-          {children}
-        </div>
+        {children}
       </div>
     </div>
   );

@@ -34,6 +34,7 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
 
   // Fetch materials on mount
   useEffect(() => {
+    console.log('MaterielAssignmentForm mounted for consultation:', consultationId);
     fetchMateriels();
   }, []);
 
