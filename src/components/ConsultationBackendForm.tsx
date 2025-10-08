@@ -327,69 +327,67 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         {errors.traitement && <p className="text-red-600 text-sm mt-1">{errors.traitement}</p>}
       </div>
 
-      {/* Material assignment section - only for editing */}
-      {initial?.id && (
-        <div className="border border-blue-200 rounded-md p-2 bg-blue-50">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-xs font-semibold text-gray-700">Matériels</h3>
+      {/* Material assignment section */}
+      <div className="border border-blue-200 rounded-md p-2 bg-blue-50">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-xs font-semibold text-gray-700">Matériels</h3>
+          <button
+            type="button"
+            onClick={() => setShowMaterialSection(!showMaterialSection)}
+            className="text-[10px] px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            {showMaterialSection ? 'Masquer' : 'Ajouter matériel'}
+          </button>
+        </div>
+        
+        {showMaterialSection && (
+          <div className="space-y-1.5">
+            {materialLines.map((line) => {
+              const selectedMateriel = materiels.find(m => m.id === line.materielId);
+              return (
+                <div key={line.id} className="flex gap-1.5 items-center bg-white p-1.5 rounded">
+                  <select
+                    value={line.materielId}
+                    onChange={(e) => updateMaterialLine(line.id, 'materielId', e.target.value ? Number(e.target.value) : '')}
+                    className="flex-1 px-1.5 py-1 text-xs border rounded"
+                  >
+                    <option value="">Sélectionner</option>
+                    {materiels.map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.nomMedicament} ({m.qteStock})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    min="1"
+                    max={selectedMateriel?.qteStock || 999}
+                    value={line.quantite}
+                    onChange={(e) => updateMaterialLine(line.id, 'quantite', Number(e.target.value))}
+                    className="w-16 px-1.5 py-1 text-xs border rounded"
+                    placeholder="Qté"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeMaterialLine(line.id)}
+                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
             <button
               type="button"
-              onClick={() => setShowMaterialSection(!showMaterialSection)}
-              className="text-[10px] px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              onClick={addMaterialLine}
+              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
             >
-              {showMaterialSection ? 'Masquer' : 'Ajouter matériel'}
+              <Plus className="w-3 h-3" />
+              Ajouter
             </button>
           </div>
-          
-          {showMaterialSection && (
-            <div className="space-y-1.5">
-              {materialLines.map((line) => {
-                const selectedMateriel = materiels.find(m => m.id === line.materielId);
-                return (
-                  <div key={line.id} className="flex gap-1.5 items-center bg-white p-1.5 rounded">
-                    <select
-                      value={line.materielId}
-                      onChange={(e) => updateMaterialLine(line.id, 'materielId', e.target.value ? Number(e.target.value) : '')}
-                      className="flex-1 px-1.5 py-1 text-xs border rounded"
-                    >
-                      <option value="">Sélectionner</option>
-                      {materiels.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.nomMedicament} ({m.qteStock})
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min="1"
-                      max={selectedMateriel?.qteStock || 999}
-                      value={line.quantite}
-                      onChange={(e) => updateMaterialLine(line.id, 'quantite', Number(e.target.value))}
-                      className="w-16 px-1.5 py-1 text-xs border rounded"
-                      placeholder="Qté"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeMaterialLine(line.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                );
-              })}
-              <button
-                type="button"
-                onClick={addMaterialLine}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-              >
-                <Plus className="w-3 h-3" />
-                Ajouter
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex justify-end space-x-2 pt-2">
         <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md">Annuler</button>
