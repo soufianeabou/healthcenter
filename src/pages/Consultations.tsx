@@ -477,8 +477,8 @@ const Consultations = () => {
             consultationId={sortieConsultationId}
             onSubmitted={() => { closeSortieModal(); }}
             onCancel={closeSortieModal}
-          />)
-        }
+          />
+        )}
       </Modal>
     </div>
   );
