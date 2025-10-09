@@ -30,7 +30,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(initial?.patient?.id || initial?.patient?.idNum || null);
+  // Use idNum (the patient's ID number), not the internal database id
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(
+    initial?.patient?.idNum || initial?.patient?.id || null
+  );
   const [selectedPatientName, setSelectedPatientName] = useState<string>('');
   
   // When editing, set patient name from initial data

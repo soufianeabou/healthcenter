@@ -170,6 +170,8 @@ const Consultations = () => {
 
   const openEditModal = (consultation: ConsultationRow) => {
     // Data is already stored in the consultation object from fetchConsultations
+    console.log('Opening edit modal for consultation:', consultation);
+    console.log('Consultation ID:', consultation.id);
     setEditingConsultation(consultation);
     setIsModalOpen(true);
   };
