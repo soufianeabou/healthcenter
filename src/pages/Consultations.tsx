@@ -47,18 +47,26 @@ const Consultations = () => {
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
       
-      const rows: ConsultationRow[] = data.map((c: any) => ({
-        id: c.id,
-        patientId: c.patient?.idNum || c.patientId,
-        patientName: c.patient ? 
-          `${c.patient.prenom || ''} ${c.patient.nom || ''} #${c.patient.idNum}`.trim() : 
-          `#${c.patientId}`,
-        doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
-        consultationDate: c.dateConsultation,
-        notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
-        status: 'COMPLETED',
-        prescriptionItems: []
-      }));
+      const rows: ConsultationRow[] = data.map((c: any) => {
+        const row: any = {
+          id: c.id,
+          patientId: c.patient?.idNum || c.patientId,
+          patientName: c.patient ? 
+            `${c.patient.prenom || ''} ${c.patient.nom || ''} #${c.patient.idNum}`.trim() : 
+            `#${c.patientId}`,
+          doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
+          consultationDate: c.dateConsultation,
+          notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
+          status: 'COMPLETED',
+          prescriptionItems: [],
+          // Store full data for editing
+          motif: c.motif,
+          diagnostic: c.diagnostic,
+          traitement: c.traitement,
+          patient: c.patient
+        };
+        return row;
+      });
       
       setConsultations(rows);
     } catch (e) {
@@ -142,39 +150,10 @@ const Consultations = () => {
     }
   };
 
-  const openEditModal = async (consultation: ConsultationRow) => {
-    try {
-      // Fetch full consultation data with all fields
-      const res = await fetch(`https://hc.aui.ma/api/consultations/${consultation.id}`);
-      if (!res.ok) throw new Error('Failed to fetch consultation details');
-      const fullData = await res.json();
-      
-      // Map to ConsultationRow with full data
-      const fullConsultation: ConsultationRow = {
-        ...consultation,
-        id: fullData.id,
-        patientId: fullData.patient?.idNum || fullData.patientId,
-        patientName: fullData.patient ? 
-          `${fullData.patient.prenom || ''} ${fullData.patient.nom || ''} #${fullData.patient.idNum}`.trim() : 
-          consultation.patientName,
-        consultationDate: fullData.dateConsultation,
-        notes: fullData.motif || '', // Store motif separately
-        status: consultation.status,
-        prescriptionItems: []
-      };
-      
-      // Store full data for form
-      (fullConsultation as any).motif = fullData.motif;
-      (fullConsultation as any).diagnostic = fullData.diagnostic;
-      (fullConsultation as any).traitement = fullData.traitement;
-      (fullConsultation as any).patient = fullData.patient;
-      
-      setEditingConsultation(fullConsultation);
-      setIsModalOpen(true);
-    } catch (e) {
-      console.error('Error fetching consultation:', e);
-      setError('Erreur lors du chargement des détails de la consultation');
-    }
+  const openEditModal = (consultation: ConsultationRow) => {
+    // Data is already stored in the consultation object from fetchConsultations
+    setEditingConsultation(consultation);
+    setIsModalOpen(true);
   };
 
   const openViewModal = (consultation: ConsultationRow) => {
