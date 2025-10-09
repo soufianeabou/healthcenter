@@ -123,12 +123,30 @@ const Consultations = () => {
   const handleEditConsultation = async (payload: any) => {
     if (!editingConsultation) return;
     try {
+      // Use the original patientId from the consultation (which is the idNum)
+      const updatePayload = {
+        id: editingConsultation.id,
+        patientId: editingConsultation.patientId, // Use the stored patientId (idNum), not payload.patient.id
+        personnelId: payload.personnel.id,
+        dateConsultation: payload.dateConsultation,
+        motif: payload.motif,
+        diagnostic: payload.diagnostic,
+        traitement: payload.traitement
+      };
+      
+      console.log('Updating consultation:', updatePayload);
+      
       const res = await fetch(`https://hc.aui.ma/api/consultations/${editingConsultation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingConsultation.id, patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
+        body: JSON.stringify(updatePayload)
       });
-      if (!res.ok) throw new Error(`Update failed (${res.status}): ${await readErrorText(res)}`);
+      
+      if (!res.ok) {
+        const errorText = await readErrorText(res);
+        throw new Error(`Update failed (${res.status}): ${errorText}`);
+      }
+      
       setEditingConsultation(null);
       setIsModalOpen(false);
       await fetchConsultations();

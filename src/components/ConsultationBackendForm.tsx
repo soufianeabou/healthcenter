@@ -19,7 +19,7 @@ interface Materiel {
 }
 
 interface MaterialLine {
-  id: string;
+  id: number;
   materielId: number | '';
   quantite: number;
 }
@@ -148,6 +148,11 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     ev.preventDefault();
     if (!validate()) return;
     
+    console.log('=== CONSULTATION SUBMIT ===');
+    console.log('Selected Patient ID:', selectedPatientId);
+    console.log('Is Editing:', !!initial);
+    console.log('Initial Patient:', initial?.patient);
+    
     // Build diagnostic with constantes for nurses
     let finalDiagnostic = diagnostic;
     if (isNurse) {
@@ -174,25 +179,39 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       traitement
     };
     
+    console.log('Consultation Payload:', consultationPayload);
+    
     // Submit consultation
     onSubmit(consultationPayload);
     
     // If there are materials to assign, use the new assign API
     if (materialLines.length > 0 && selectedPatientId) {
+      console.log('=== MATERIAL ASSIGNMENT ===');
+      console.log('Material Lines:', materialLines);
+      console.log('Selected Patient ID for materials:', selectedPatientId);
+      
       const validLines = materialLines.filter(line => line.materielId && line.quantite > 0);
+      console.log('Valid Material Lines:', validLines);
       
       for (const line of validLines) {
         try {
           const materialId = Number(line.materielId);
           const patientId = Number(selectedPatientId);
           
+          console.log('Processing line:', { 
+            rawMaterielId: line.materielId, 
+            rawPatientId: selectedPatientId,
+            convertedMaterialId: materialId,
+            convertedPatientId: patientId
+          });
+          
           // Validate IDs are not null/NaN
           if (!materialId || isNaN(materialId)) {
-            console.error('Invalid materialId:', line.materielId);
+            console.error('❌ Invalid materialId:', line.materielId);
             continue;
           }
           if (!patientId || isNaN(patientId)) {
-            console.error('Invalid patientId:', selectedPatientId);
+            console.error('❌ Invalid patientId:', selectedPatientId);
             continue;
           }
           
@@ -201,7 +220,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             patientId: patientId
           };
           
-          console.log('Assigning material:', payload);
+          console.log('📤 Sending material assignment request:', payload);
+          console.log('📤 URL: https://hc.aui.ma/api/consultations/materials/assign');
           
           // Assign material to patient (stock is automatically reduced by backend)
           const response = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
@@ -210,14 +230,16 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             body: JSON.stringify(payload)
           });
           
+          console.log('📥 Response status:', response.status, response.statusText);
+          
           if (!response.ok) {
             const errorText = await response.text();
-            console.error('Material assignment failed:', errorText);
+            console.error('❌ Material assignment failed:', errorText);
           } else {
-            console.log('Material assigned successfully');
+            console.log('✅ Material assigned successfully');
           }
         } catch (e) {
-          console.error('Error assigning material:', e);
+          console.error('❌ Error assigning material:', e);
         }
       }
     }
