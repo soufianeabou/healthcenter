@@ -221,7 +221,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           
           // Step 1: Assign material to patient
           const assignPayload = {
-            materialId: materialId,
+            id: materialId,  // Backend expects 'id', not 'materialId'
             patientId: patientId
           };
           
