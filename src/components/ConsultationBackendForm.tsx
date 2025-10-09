@@ -205,7 +205,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             rawMaterielId: line.materielId, 
             rawPatientId: selectedPatientId,
             convertedMaterialId: materialId,
-            convertedPatientId: patientId
+            convertedPatientId: patientId,
+            quantity: line.quantite
           });
           
           // Validate IDs are not null/NaN
@@ -218,31 +219,75 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             continue;
           }
           
-          const payload = {
+          // Step 1: Assign material to patient
+          const assignPayload = {
             materialId: materialId,
             patientId: patientId
           };
           
-          console.log('📤 Sending material assignment request:', payload);
-          console.log('📤 URL: https://hc.aui.ma/api/consultations/materials/assign');
+          console.log('📤 Step 1: Assigning material to patient:', assignPayload);
           
-          // Assign material to patient (stock is automatically reduced by backend)
-          const response = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
+          const assignResponse = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(assignPayload)
           });
           
-          console.log('📥 Response status:', response.status, response.statusText);
+          console.log('📥 Assignment response:', assignResponse.status, assignResponse.statusText);
           
-          if (!response.ok) {
-            const errorText = await response.text();
+          if (!assignResponse.ok) {
+            const errorText = await assignResponse.text();
             console.error('❌ Material assignment failed:', errorText);
-          } else {
-            console.log('✅ Material assigned successfully');
+            continue; // Skip to next material
           }
+          
+          console.log('✅ Material assigned successfully');
+          
+          // Step 2: Get the current material to update its quantity
+          console.log('📤 Step 2: Fetching material details to update stock');
+          
+          const getMaterialResponse = await fetch(`https://hc.aui.ma/api/consultations/materials/${materialId}`);
+          
+          if (!getMaterialResponse.ok) {
+            console.error('❌ Failed to fetch material details');
+            continue;
+          }
+          
+          const currentMaterial = await getMaterialResponse.json();
+          console.log('Current material:', currentMaterial);
+          
+          // Step 3: Update material quantity (subtract assigned quantity)
+          const newQuantity = currentMaterial.quantity - line.quantite;
+          
+          if (newQuantity < 0) {
+            console.error('❌ Not enough stock! Current:', currentMaterial.quantity, 'Requested:', line.quantite);
+            continue;
+          }
+          
+          const updatedMaterial = {
+            ...currentMaterial,
+            quantity: newQuantity
+          };
+          
+          console.log('📤 Step 3: Updating material stock:', updatedMaterial);
+          
+          const updateResponse = await fetch('https://hc.aui.ma/api/consultations/materials', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedMaterial)
+          });
+          
+          console.log('📥 Update response:', updateResponse.status, updateResponse.statusText);
+          
+          if (!updateResponse.ok) {
+            const errorText = await updateResponse.text();
+            console.error('❌ Failed to update material stock:', errorText);
+          } else {
+            console.log('✅ Material stock updated successfully. New quantity:', newQuantity);
+          }
+          
         } catch (e) {
-          console.error('❌ Error assigning material:', e);
+          console.error('❌ Error processing material:', e);
         }
       }
     }
