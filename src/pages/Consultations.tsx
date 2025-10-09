@@ -47,6 +47,8 @@ const Consultations = () => {
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
       
+      console.log('Raw API response (first item):', data[0]);
+      
       const rows: ConsultationRow[] = data.map((c: any) => {
         const row: any = {
           id: c.id,
@@ -65,8 +67,16 @@ const Consultations = () => {
           traitement: c.traitement,
           patient: c.patient
         };
+        
+        // Debug: log if id is null
+        if (!row.id) {
+          console.warn('⚠️ Consultation with null ID:', c);
+        }
+        
         return row;
       });
+      
+      console.log('Mapped consultations (first item):', rows[0]);
       
       setConsultations(rows);
     } catch (e) {
