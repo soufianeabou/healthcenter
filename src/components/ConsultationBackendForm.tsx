@@ -14,8 +14,8 @@ interface Props {
 
 interface Materiel {
   id: number;
-  nomMedicament: string;
-  qteStock: number;
+  name: string;
+  quantity: number;
 }
 
 interface MaterialLine {
@@ -180,22 +180,41 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     // If there are materials to assign, use the new assign API
     if (materialLines.length > 0 && selectedPatientId) {
       const validLines = materialLines.filter(line => line.materielId && line.quantite > 0);
+      
       for (const line of validLines) {
         try {
+          const materialId = Number(line.materielId);
+          const patientId = Number(selectedPatientId);
+          
+          // Validate IDs are not null/NaN
+          if (!materialId || isNaN(materialId)) {
+            console.error('Invalid materialId:', line.materielId);
+            continue;
+          }
+          if (!patientId || isNaN(patientId)) {
+            console.error('Invalid patientId:', selectedPatientId);
+            continue;
+          }
+          
+          const payload = {
+            materialId: materialId,
+            patientId: patientId
+          };
+          
+          console.log('Assigning material:', payload);
+          
           // Assign material to patient (stock is automatically reduced by backend)
-          // Use the patient's idNum (which is stored in selectedPatientId)
           const response = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              materialId: Number(line.materielId),
-              patientId: Number(selectedPatientId)
-            })
+            body: JSON.stringify(payload)
           });
           
           if (!response.ok) {
             const errorText = await response.text();
             console.error('Material assignment failed:', errorText);
+          } else {
+            console.log('Material assigned successfully');
           }
         } catch (e) {
           console.error('Error assigning material:', e);
