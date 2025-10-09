@@ -44,7 +44,7 @@ const ExitStockForm: React.FC<ExitStockFormProps> = ({
 
   const fetchMedicines = async () => {
     try {
-      const response = await fetch('https://196.12.203.182/medicaments');
+      const response = await fetch('https://hc.aui.ma/medicaments');
       if (response.ok) {
         const data = await response.json();
         setMedicines(data);

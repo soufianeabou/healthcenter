@@ -47,7 +47,7 @@ const ExitStockPage: React.FC = () => {
   const fetchExitStocks = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://196.12.203.182/api/consultations/sortiestocks');
+      const response = await fetch('https://hc.aui.ma/api/consultations/sortiestocks');
       if (response.ok) {
         const data = await response.json();
         setExitStocks(data);

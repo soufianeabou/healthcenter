@@ -73,7 +73,7 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
   const fetchMedicalRecord = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`https://196.12.203.182/api/consultations/medicalrecords/patient/${patient.idNum}`);
+      const response = await fetch(`https://hc.aui.ma/api/consultations/medicalrecords/patient/${patient.idNum}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -506,8 +506,8 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
       };
 
       const url = medicalRecord?.id 
-        ? `https://196.12.203.182/api/consultations/medicalrecords/${medicalRecord.id}`
-        : 'https://196.12.203.182/api/consultations/medicalrecords';
+        ? `https://hc.aui.ma/api/consultations/medicalrecords/${medicalRecord.id}`
+        : 'https://hc.aui.ma/api/consultations/medicalrecords';
       
       const method = medicalRecord?.id ? 'PUT' : 'POST';
 

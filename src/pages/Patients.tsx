@@ -40,7 +40,7 @@ const Patients: React.FC = () => {
     const timer = setTimeout(async () => {
       try {
         setLoading(true);
-        const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
+        const res = await fetch(`https://hc.aui.ma/api/patients/${term}`, { signal: controller.signal });
         if (!res.ok) {
           setPatients([]);
           return;
@@ -67,7 +67,7 @@ const Patients: React.FC = () => {
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://196.12.203.182/api/patients');
+      const response = await fetch('https://hc.aui.ma/api/patients');
       if (response.ok) {
         const data = await response.json();
         setPatients(data);
@@ -156,7 +156,7 @@ const Patients: React.FC = () => {
 
         try {
           // Find patient by idNum
-          const patientResponse = await fetch(`https://196.12.203.182/api/patients/${idNum}`);
+          const patientResponse = await fetch(`https://hc.aui.ma/api/patients/${idNum}`);
           
           if (!patientResponse.ok) {
             errors.push(`Row ${i + 1}: Patient with ID ${idNum} not found`);
@@ -168,7 +168,7 @@ const Patients: React.FC = () => {
 
           // Check if medical record already exists - Use patient.idNum
           const checkResponse = await fetch(
-            `https://196.12.203.182/api/consultations/medicalrecords/patient/${patient.idNum}`
+            `https://hc.aui.ma/api/consultations/medicalrecords/patient/${patient.idNum}`
           );
           
           if (checkResponse.ok) {
@@ -225,7 +225,7 @@ const Patients: React.FC = () => {
 
           // Create medical record
           const createResponse = await fetch(
-            'https://196.12.203.182/api/consultations/medicalrecords',
+            'https://hc.aui.ma/api/consultations/medicalrecords',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

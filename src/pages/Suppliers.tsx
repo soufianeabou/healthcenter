@@ -29,7 +29,7 @@ const Suppliers = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('https://196.12.203.182/api/consultations/fournisseurs');
+      const response = await fetch('https://hc.aui.ma/api/consultations/fournisseurs');
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -61,7 +61,7 @@ const Suppliers = () => {
 
   const handleAddSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
     try {
-      const response = await fetch('https://196.12.203.182/api/consultations/fournisseurs', {
+      const response = await fetch('https://hc.aui.ma/api/consultations/fournisseurs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ const Suppliers = () => {
   const handleEditSupplier = async (supplierData: Omit<Supplier, 'id'>) => {
     if (editingSupplier) {
       try {
-        const response = await fetch(`https://196.12.203.182/api/consultations/fournisseurs/${editingSupplier.id}`, {
+        const response = await fetch(`https://hc.aui.ma/api/consultations/fournisseurs/${editingSupplier.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ const Suppliers = () => {
   const handleDeleteSupplier = async (id: number) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce fournisseur ?')) {
       try {
-        const response = await fetch(`https://196.12.203.182/api/consultations/fournisseurs/${id}`, {
+        const response = await fetch(`https://hc.aui.ma/api/consultations/fournisseurs/${id}`, {
           method: 'DELETE',
         });
 

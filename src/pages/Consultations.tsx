@@ -43,7 +43,7 @@ const Consultations = () => {
   const fetchConsultations = async () => {
     try {
       setError('');
-      const res = await fetch('https://196.12.203.182/api/consultations');
+      const res = await fetch('https://hc.aui.ma/api/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
       
@@ -91,7 +91,7 @@ const Consultations = () => {
   const handleAddConsultation = async (payload: any) => {
     try {
       const currentDateTime = new Date().toISOString();
-      const res = await fetch('https://196.12.203.182/api/consultations', {
+      const res = await fetch('https://hc.aui.ma/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -115,7 +115,7 @@ const Consultations = () => {
   const handleEditConsultation = async (payload: any) => {
     if (!editingConsultation) return;
     try {
-      const res = await fetch(`https://196.12.203.182/api/consultations/${editingConsultation.id}`, {
+      const res = await fetch(`https://hc.aui.ma/api/consultations/${editingConsultation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingConsultation.id, patientId: payload.patient.id, personnelId: payload.personnel.id, dateConsultation: payload.dateConsultation, motif: payload.motif, diagnostic: payload.diagnostic, traitement: payload.traitement })
@@ -133,7 +133,7 @@ const Consultations = () => {
   const handleDeleteConsultation = async (id: number) => {
     if (!confirm('Supprimer cette consultation ?')) return;
     try {
-      const res = await fetch(`https://196.12.203.182/api/consultations/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://hc.aui.ma/api/consultations/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Delete failed (${res.status}): ${await readErrorText(res)}`);
       await fetchConsultations();
     } catch (e) {
@@ -174,7 +174,7 @@ const Consultations = () => {
 
   const handleCreateSortie = async (payload: any) => {
     try {
-      const res = await fetch('https://196.12.203.182/sortie-stock', {
+      const res = await fetch('https://hc.aui.ma/sortie-stock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

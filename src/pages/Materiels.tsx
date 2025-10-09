@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, AlertTriangle, Package, Upload, Download, X } from 'lucide-react';
-import { Materiel, CategorieMateriels, Unite, getCategorieDisplayName } from '../types/materiel';
+import { Plus, Search, Edit, Trash2, Package, RefreshCw } from 'lucide-react';
+import { Materiel, Supplier, getCategorieDisplayName, getCategorieBadgeColors, getStatusDisplayName, getStatusBadgeColors } from '../types/materiel';
+import Modal from '../components/Modal';
 
 const Materiels = () => {
   const [materiels, setMateriels] = useState<Materiel[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [filteredMateriels, setFilteredMateriels] = useState<Materiel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -11,26 +13,34 @@ const Materiels = () => {
   const [editingMateriel, setEditingMateriel] = useState<Materiel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showImportModal, setShowImportModal] = useState(false);
   
   const [formData, setFormData] = useState<Materiel>({
-    nomMedicament: '',
+    name: '',
+    category: 'OTHER',
     description: '',
-    codeBarre39: '',
-    perPile: true,
-    categorie: CategorieMateriels.AUTRE,
-    dosage: 0,
-    uniteDosage: Unite.MG,
-    defaultSize: 1,
-    qteStock: 0,
-    qteMinimum: 10
+    quantity: 0,
+    unit: 'pièce',
+    minThreshold: 10,
+    supplierId: undefined,
+    status: 'AVAILABLE'
   });
+
+  const categories = [
+    { value: 'MEDICAL', label: 'Matériel médical' },
+    { value: 'DISPOSABLE', label: 'Matériel jetable' },
+    { value: 'SUPPLIES', label: 'Fournitures' },
+    { value: 'EQUIPMENT', label: 'Équipement' },
+    { value: 'INSTRUMENTS', label: 'Instruments' },
+    { value: 'PROTECTION', label: 'Protection' },
+    { value: 'HYGIENE', label: 'Hygiène' },
+    { value: 'OTHER', label: 'Autre' }
+  ];
 
   const fetchMateriels = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://196.12.203.182/api/consultations/medicaments');
-      if (!response.ok) throw new Error('Failed to fetch materiels');
+      const response = await fetch('https://hc.aui.ma/api/consultations/materials');
+      if (!response.ok) throw new Error('Failed to fetch materials');
       const data = await response.json();
       setMateriels(data);
       setFilteredMateriels(data);
@@ -42,37 +52,47 @@ const Materiels = () => {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const response = await fetch('https://hc.aui.ma/api/consultations/fournisseurs');
+      if (response.ok) {
+        const data = await response.json();
+        setSuppliers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
   useEffect(() => {
     fetchMateriels();
+    fetchSuppliers();
   }, []);
 
   useEffect(() => {
     let filtered = materiels;
     if (searchTerm) {
       filtered = filtered.filter(m =>
-        m.nomMedicament.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.codeBarre39.includes(searchTerm)
+        m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(m => m.categorie === selectedCategory);
+      filtered = filtered.filter(m => m.category === selectedCategory);
     }
     setFilteredMateriels(filtered);
   }, [materiels, searchTerm, selectedCategory]);
 
   const resetForm = () => {
     setFormData({
-      nomMedicament: '',
+      name: '',
+      category: 'OTHER',
       description: '',
-      codeBarre39: 'MAT-' + Date.now().toString().slice(-6), // Auto-generate a code
-      perPile: true, // Always true for materials
-      categorie: CategorieMateriels.AUTRE,
-      dosage: 1, // Always 1 for materials
-      uniteDosage: Unite.MG, // Default value
-      defaultSize: 1, // Always 1 for materials
-      qteStock: 0,
-      qteMinimum: 10
+      quantity: 0,
+      unit: 'pièce',
+      minThreshold: 10,
+      supplierId: undefined,
+      status: 'AVAILABLE'
     });
   };
 
@@ -94,50 +114,39 @@ const Materiels = () => {
     resetForm();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      // Ensure default values are set for hidden fields
-      const dataToSubmit = {
-        ...formData,
-        perPile: true,
-        dosage: 1,
-        defaultSize: 1,
-        codeBarre39: formData.codeBarre39 || 'MAT-' + Date.now().toString().slice(-6)
-      };
-      
       const url = editingMateriel 
-        ? `https://196.12.203.182/api/consultations/medicaments/${editingMateriel.id}`
-        : 'https://196.12.203.182/api/consultations/medicaments';
+        ? `https://hc.aui.ma/api/consultations/materials`
+        : 'https://hc.aui.ma/api/consultations/materials';
       
-      console.log('Submitting data:', dataToSubmit);
+      const method = editingMateriel ? 'PUT' : 'POST';
+      const dataToSubmit = editingMateriel ? { ...formData, id: editingMateriel.id } : formData;
       
       const response = await fetch(url, {
-        method: editingMateriel ? 'PUT' : 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+        method,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSubmit)
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server error:', errorText);
-        throw new Error(`Failed to save: ${response.status} ${errorText}`);
+        throw new Error(`Failed to save material: ${errorText}`);
       }
-      
-      closeForm();
+
       await fetchMateriels();
+      closeForm();
     } catch (error) {
       console.error('Error:', error);
-      setError(`Erreur lors de l'enregistrement du matériel: ${error.message}`);
+      setError(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement');
     }
   };
 
-  const handleDeleteMateriel = async (id: number) => {
+  const handleDelete = async (id: number) => {
     if (!confirm('Supprimer ce matériel ?')) return;
     try {
-      const response = await fetch(`https://196.12.203.182/api/consultations/medicaments/${id}`, {
+      const response = await fetch(`https://hc.aui.ma/api/consultations/materials/${id}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete');
@@ -148,320 +157,247 @@ const Materiels = () => {
     }
   };
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(l => l.trim());
-      
-      const materielsToImport: Omit<Materiel, 'id'>[] = [];
-      
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length < 10) continue;
-        
-        materielsToImport.push({
-          nomMedicament: values[0],
-          description: values[1],
-          codeBarre39: values[2],
-          perPile: values[3].toLowerCase() === 'true',
-          categorie: values[4] as CategorieMateriels,
-          dosage: parseFloat(values[5]),
-          uniteDosage: values[6] as Unite,
-          defaultSize: parseInt(values[7]),
-          qteStock: parseInt(values[8]),
-          qteMinimum: parseInt(values[9])
-        });
-      }
-
-      for (const mat of materielsToImport) {
-        await fetch('https://196.12.203.182/api/consultations/medicaments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mat)
-        });
-      }
-      
-      setShowImportModal(false);
-      await fetchMateriels();
-      alert(`${materielsToImport.length} matériels importés`);
-    } catch (error) {
-      console.error('Error:', error);
-      setError('Erreur lors de l\'importation');
-    }
+  const getSupplierName = (supplierId?: number) => {
+    if (!supplierId) return 'N/A';
+    const supplier = suppliers.find(s => s.id === supplierId);
+    return supplier?.name || 'N/A';
   };
-
-  const downloadTemplate = () => {
-    const template = 'nomMedicament,description,codeBarre39,perPile,categorie,dosage,uniteDosage,defaultSize,qteStock,qteMinimum\n' +
-      'Gants d\'examen,Gants jetables en latex,123456789,true,MATERIEL_JETABLE,100,UNITE,20,100,20\n' +
-      'Compresses stériles,Compresses stériles 10x10cm,987654321,false,MATERIEL_HYGIENE,50,BOITE,30,50,15';
-    const blob = new Blob([template], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'template_materiels.csv';
-    a.click();
-  };
-
-  const isLowStock = (m: Materiel) => m.qteStock <= m.qteMinimum;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Gestion des Matériels</h1>
-          <p className="text-gray-600">Gérez votre inventaire de matériels</p>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+            <Package className="w-6 h-6 mr-2 text-blue-600" />
+            Gestion des Matériels
+          </h1>
+          <p className="text-gray-600 mt-1">Gérer l'inventaire des matériels médicaux</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+        <button
+          onClick={openAddForm}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-5 h-5" />
+          <span>Nouveau Matériel</span>
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="relative">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Rechercher un matériel..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
-            <Upload className="w-5 h-5" />
-            <span>Importer</span>
-          </button>
-          <button
-            onClick={openAddForm}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Ajouter</span>
-          </button>
+            <option value="all">Toutes les catégories</option>
+            {categories.map(cat => (
+              <option key={cat.value} value={cat.value}>{cat.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700">{error}</p>
-          <button onClick={() => setError('')} className="text-red-600 underline text-sm mt-2">Fermer</button>
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          {error}
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Materials Table */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-gray-500">Chargement...</div>
+        ) : filteredMateriels.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">Aucun matériel trouvé</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantité</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unité</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Seuil Min</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fournisseur</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredMateriels.map((materiel) => (
+                  <tr key={materiel.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900">{materiel.name}</div>
+                      <div className="text-xs text-gray-500">{materiel.description}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategorieBadgeColors(materiel.category)}`}>
+                        {getCategorieDisplayName(materiel.category)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-sm font-medium ${materiel.quantity <= materiel.minThreshold ? 'text-red-600' : 'text-gray-900'}`}>
+                        {materiel.quantity}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{materiel.unit}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{materiel.minThreshold}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{getSupplierName(materiel.supplierId)}</td>
+                    <td className="px-6 py-4">
+                      {materiel.status && (
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeColors(materiel.status)}`}>
+                          {getStatusDisplayName(materiel.status)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-medium">
+                      <button
+                        onClick={() => openEditForm(materiel)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => materiel.id && handleDelete(materiel.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Form Modal */}
+      <Modal
+        isOpen={showForm}
+        onClose={closeForm}
+        title={editingMateriel ? 'Modifier Matériel' : 'Nouveau Matériel'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie *</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg"
+              required
+            >
+              {categories.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quantité *</label>
+              <input
+                type="number"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                className="w-full px-3 py-2 border rounded-lg"
+                min="0"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unité *</label>
               <input
                 type="text"
-                placeholder="Nom, description ou code-barres..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                value={formData.unit}
+                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg"
+                placeholder="pièce, boîte, etc."
+                required
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-            >
-              <option value="all">Toutes</option>
-              <option value={CategorieMateriels.ANTIBIOTIQUE}>Antibiotique</option>
-              <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Anti-inflammatoire</option>
-              <option value={CategorieMateriels.ANTALGIQUE}>Antalgique</option>
-              <option value={CategorieMateriels.ANTIPYRETIQUE}>Antipyrétique</option>
-              <option value={CategorieMateriels.ANTIVIRAL}>Antiviral</option>
-              <option value={CategorieMateriels.VITAMINE}>Vitamine</option>
-              <option value={CategorieMateriels.VACCIN}>Vaccin</option>
-              <option value={CategorieMateriels.AUTRE}>Autre</option>
-            </select>
-          </div>
-          <div className="flex items-end">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">{filteredMateriels.length}</span> matériel(s)
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMateriels.map((mat) => (
-          <div key={mat.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">{mat.nomMedicament}</h3>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {getCategorieDisplayName(mat.categorie as CategorieMateriels)}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => openEditForm(mat)}
-                    className="p-2 text-gray-400 hover:text-blue-600"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteMateriel(mat.id!)}
-                    className="p-2 text-gray-400 hover:text-red-600"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="p-4">
-              <p className="text-sm text-gray-600 mb-3">{mat.description}</p>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Code:</span>
-                  <span className="font-mono">{mat.codeBarre39}</span>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">Stock</span>
-                  <span className={`text-sm font-semibold ${isLowStock(mat) ? 'text-red-600' : 'text-green-600'}`}>
-                    {mat.qteStock}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-500">
-                    {mat.qteStock === 0 ? 'Rupture' : isLowStock(mat) ? 'Stock faible' : 'En stock'}
-                  </span>
-                  {isLowStock(mat) && <AlertTriangle className="w-4 h-4 text-yellow-500" />}
-                </div>
-                {mat.compteurPiles !== undefined && mat.compteurPiles > 0 && (
-                  <div className="mt-2 text-xs text-blue-600">
-                    Compteur: {mat.compteurPiles}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredMateriels.length === 0 && (
-        <div className="text-center py-12">
-          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun matériel trouvé</h3>
-        </div>
-      )}
-
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{editingMateriel ? 'Modifier' : 'Ajouter'} un matériel</h2>
-              <button onClick={closeForm} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Nom du matériel *</label>
-                  <input 
-                    value={formData.nomMedicament} 
-                    onChange={(e) => setFormData({...formData, nomMedicament: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Description *</label>
-                  <textarea 
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                    rows={3} 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Catégorie *</label>
-                  <select 
-                    value={formData.categorie}
-                    onChange={(e) => setFormData({...formData, categorie: e.target.value as CategorieMateriels})}
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value={CategorieMateriels.ANTIBIOTIQUE}>Matériel médical</option>
-                    <option value={CategorieMateriels.ANTI_INFLAMMATOIRE}>Matériel jetable</option>
-                    <option value={CategorieMateriels.ANTALGIQUE}>Fournitures</option>
-                    <option value={CategorieMateriels.ANTIPYRETIQUE}>Équipement</option>
-                    <option value={CategorieMateriels.ANTIVIRAL}>Instruments</option>
-                    <option value={CategorieMateriels.VITAMINE}>Protection</option>
-                    <option value={CategorieMateriels.VACCIN}>Hygiène</option>
-                    <option value={CategorieMateriels.AUTRE}>Autre</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Quantité stock *</label>
-                  <input 
-                    type="number"
-                    value={formData.qteStock}
-                    onChange={(e) => setFormData({...formData, qteStock: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Stock minimum *</label>
-                  <input 
-                    type="number"
-                    value={formData.qteMinimum}
-                    onChange={(e) => setFormData({...formData, qteMinimum: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border rounded-lg" 
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2 justify-end pt-4">
-                <button onClick={closeForm} className="px-4 py-2 border rounded-lg hover:bg-gray-50">
-                  Annuler
-                </button>
-                <button onClick={handleSubmit} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                  {editingMateriel ? 'Modifier' : 'Ajouter'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showImportModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Importer des matériels</h2>
-              <button onClick={() => setShowImportModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">Importez un fichier CSV avec les colonnes :</p>
-            <div className="bg-gray-50 p-3 rounded mb-4 text-xs font-mono overflow-x-auto">
-              nomMedicament, description, codeBarre39, perPile, categorie, dosage, uniteDosage, defaultSize, qteStock, qteMinimum
-            </div>
-            <button
-              onClick={downloadTemplate}
-              className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Télécharger le modèle CSV</span>
-            </button>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Seuil Minimum *</label>
             <input
-              type="file"
-              accept=".csv,.xlsx"
-              onChange={handleImportFile}
-              className="w-full mb-4 px-3 py-2 border rounded-lg"
+              type="number"
+              value={formData.minThreshold}
+              onChange={(e) => setFormData({ ...formData, minThreshold: Number(e.target.value) })}
+              className="w-full px-3 py-2 border rounded-lg"
+              min="0"
+              required
             />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fournisseur</label>
+            <select
+              value={formData.supplierId || ''}
+              onChange={(e) => setFormData({ ...formData, supplierId: e.target.value ? Number(e.target.value) : undefined })}
+              className="w-full px-3 py-2 border rounded-lg"
+            >
+              <option value="">Aucun fournisseur</option>
+              {suppliers.map(supplier => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={closeForm}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              {editingMateriel ? 'Mettre à jour' : 'Créer'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

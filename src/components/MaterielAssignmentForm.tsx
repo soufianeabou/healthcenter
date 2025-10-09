@@ -43,7 +43,7 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
       setLoading(true);
       setError('');
       
-      const response = await fetch('https://196.12.203.182/api/consultations/medicaments');
+      const response = await fetch('https://hc.aui.ma/api/consultations/medicaments');
       
       if (!response.ok) {
         throw new Error(`Erreur ${response.status}: Impossible de charger les matériels`);
@@ -102,7 +102,7 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
 
         console.log('Envoi du payload:', payload);
 
-        const response = await fetch('https://196.12.203.182/sortie-stock', {
+        const response = await fetch('https://hc.aui.ma/sortie-stock', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

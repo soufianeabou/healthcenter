@@ -25,7 +25,7 @@ const EntryStockPage: React.FC = () => {
   const fetchEntryStocks = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://196.12.203.182/api/consultations/entreStocks');
+      const response = await fetch('https://hc.aui.ma/api/consultations/entreStocks');
       if (response.ok) {
         const data = await response.json();
         setEntryStocks(data);
@@ -83,7 +83,7 @@ const EntryStockPage: React.FC = () => {
 
         console.log('Sending entry stock data:', entryStockData);
 
-        const response = await fetch('https://196.12.203.182/api/consultations/entreStocks', {
+        const response = await fetch('https://hc.aui.ma/api/consultations/entreStocks', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -131,7 +131,7 @@ const EntryStockPage: React.FC = () => {
 
       console.log('Sending update payload:', payload);
 
-      const response = await fetch(`https://196.12.203.182/api/consultations/entreStocks/${editingStock.id}`, {
+      const response = await fetch(`https://hc.aui.ma/api/consultations/entreStocks/${editingStock.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ const EntryStockPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`https://196.12.203.182/api/consultations/entreStocks/${id}`, {
+      const response = await fetch(`https://hc.aui.ma/api/consultations/entreStocks/${id}`, {
         method: 'DELETE',
       });
 

@@ -37,7 +37,7 @@ const Header = () => {
       
       try {
         setIsLoadingNotifications(true);
-        const response = await fetch('https://196.12.203.182/medicaments');
+        const response = await fetch('https://hc.aui.ma/medicaments');
         if (response.ok) {
           const medicines: Medicine[] = await response.json();
           // Filter medicines with low stock (qteStock <= qteMinimum)
@@ -106,7 +106,7 @@ const Header = () => {
                         const fetchLowStockMedicines = async () => {
                           try {
                             setIsLoadingNotifications(true);
-                            const response = await fetch('https://196.12.203.182/medicaments');
+                            const response = await fetch('https://hc.aui.ma/medicaments');
                             if (response.ok) {
                               const medicines: Medicine[] = await response.json();
                               const lowStock = medicines.filter(med => med.qteStock <= med.qteMinimum);

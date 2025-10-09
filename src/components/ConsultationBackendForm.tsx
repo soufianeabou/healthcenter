@@ -57,7 +57,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   useEffect(() => {
     const fetchMateriels = async () => {
       try {
-        const res = await fetch('https://196.12.203.182/api/consultations/medicaments');
+        const res = await fetch('https://hc.aui.ma/api/consultations/materials');
         if (res.ok) {
           const data = await res.json();
           setMateriels(data);
@@ -79,7 +79,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     setLoadingPatients(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`https://196.12.203.182/api/patients/${term}`, { signal: controller.signal });
+        const res = await fetch(`https://hc.aui.ma/api/patients/${term}`, { signal: controller.signal });
         if (!res.ok) {
           setPatients([]);
           return;
@@ -165,22 +165,19 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     // Submit consultation
     onSubmit(consultationPayload);
     
-    // If there are materials to assign, submit them after consultation is created
-    if (materialLines.length > 0 && initial?.id) {
+    // If there are materials to assign, use the new assign API
+    if (materialLines.length > 0 && selectedPatientId) {
       const validLines = materialLines.filter(line => line.materielId && line.quantite > 0);
       for (const line of validLines) {
         try {
-          const payload = {
-            consultation: { id: initial.id },
-            medicament: { id: line.materielId },
-            parUnite: true,
-            quantite: line.quantite,
-            dateSortie: date
-          };
-          await fetch('https://196.12.203.182/sortie-stock', {
+          // Assign material to patient (stock is automatically reduced by backend)
+          await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+              materialId: line.materielId,
+              patientId: selectedPatientId
+            })
           });
         } catch (e) {
           console.error('Error assigning material:', e);
@@ -354,14 +351,14 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
                     <option value="">Sélectionner</option>
                     {materiels.map(m => (
                       <option key={m.id} value={m.id}>
-                        {m.nomMedicament} ({m.qteStock})
+                        {m.name} ({m.quantity})
                       </option>
                     ))}
                   </select>
                   <input
                     type="number"
                     min="1"
-                    max={selectedMateriel?.qteStock || 999}
+                    max={selectedMateriel?.quantity || 999}
                     value={line.quantite}
                     onChange={(e) => updateMaterialLine(line.id, 'quantite', Number(e.target.value))}
                     className="w-16 px-1.5 py-1 text-xs border rounded"

@@ -19,7 +19,7 @@ const SortieStockForm: React.FC<Props> = ({ consultationId, onSubmit, onCancel }
   useEffect(() => {
     const fetchMedicines = async () => {
       try {
-        const res = await fetch('https://196.12.203.182/api/consultations/medicaments');
+        const res = await fetch('https://hc.aui.ma/api/consultations/medicaments');
         if (!res.ok) throw new Error('Failed to load medicines');
         const data = await res.json();
         setMedicines(data);

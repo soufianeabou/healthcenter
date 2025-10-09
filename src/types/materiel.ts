@@ -1,81 +1,94 @@
-// Using the same enum values as the backend for compatibility
-// We're keeping the original enum keys for backend compatibility but changing the display names
+// Material categories matching backend
 export enum CategorieMateriels {
-  ANTIBIOTIQUE = 'ANTIBIOTIQUE', // Will display as "Matériel médical"
-  ANTI_INFLAMMATOIRE = 'ANTI_INFLAMMATOIRE', // Will display as "Matériel jetable"
-  ANTALGIQUE = 'ANTALGIQUE', // Will display as "Fournitures"
-  ANTIPYRETIQUE = 'ANTIPYRETIQUE', // Will display as "Équipement"
-  ANTIVIRAL = 'ANTIVIRAL', // Will display as "Instruments"
-  VITAMINE = 'VITAMINE', // Will display as "Protection"
-  VACCIN = 'VACCIN', // Will display as "Hygiène"
-  AUTRE = 'AUTRE' // Will display as "Autre"
+  MEDICAL = 'MEDICAL',
+  DISPOSABLE = 'DISPOSABLE',
+  SUPPLIES = 'SUPPLIES',
+  EQUIPMENT = 'EQUIPMENT',
+  INSTRUMENTS = 'INSTRUMENTS',
+  PROTECTION = 'PROTECTION',
+  HYGIENE = 'HYGIENE',
+  OTHER = 'OTHER'
 }
 
-export enum Unite {
-  MG = 'MG',
-  G = 'G',
-  ML = 'ML',
-  L = 'L',
-  UI = 'UI',
-  TABLETTE = 'TABLETTE',
-  AUTRE = 'AUTRE'
+// Material status
+export enum MaterialStatus {
+  AVAILABLE = 'AVAILABLE',
+  LOW_STOCK = 'LOW_STOCK',
+  OUT_OF_STOCK = 'OUT_OF_STOCK',
+  ASSIGNED = 'ASSIGNED'
 }
 
+// Material interface matching MaterialRequest from backend
 export interface Materiel {
   id?: number;
-  nomMedicament: string; // Keep field name for API compatibility
+  patientId?: number; // For assigned materials
+  name: string;
+  category: string;
   description: string;
-  codeBarre39: string;
-  perPile: boolean;
-  categorie: CategorieMateriels;
-  dosage: number; // Keep field name for API compatibility
-  uniteDosage: Unite; // Keep field name for API compatibility
-  defaultSize: number;
-  qteStock: number;
-  qteMinimum: number;
-  compteurPiles?: number; // Optional as it's initialized to 0
+  quantity: number;
+  unit: string;
+  minThreshold: number;
+  supplierId?: number; // Supplier ID
+  status?: string;
+}
+
+// Supplier interface
+export interface Supplier {
+  id: number;
+  name: string;
+  contact?: string;
+  email?: string;
+  phone?: string;
 }
 
 // Helper function to get category display name
-export function getCategorieDisplayName(categorie: CategorieMateriels): string {
-  const names = {
-    [CategorieMateriels.ANTIBIOTIQUE]: 'Matériel médical',
-    [CategorieMateriels.ANTI_INFLAMMATOIRE]: 'Matériel jetable',
-    [CategorieMateriels.ANTALGIQUE]: 'Fournitures',
-    [CategorieMateriels.ANTIPYRETIQUE]: 'Équipement',
-    [CategorieMateriels.ANTIVIRAL]: 'Instruments',
-    [CategorieMateriels.VITAMINE]: 'Protection',
-    [CategorieMateriels.VACCIN]: 'Hygiène',
-    [CategorieMateriels.AUTRE]: 'Autre'
+export function getCategorieDisplayName(categorie: string): string {
+  const names: Record<string, string> = {
+    'MEDICAL': 'Matériel médical',
+    'DISPOSABLE': 'Matériel jetable',
+    'SUPPLIES': 'Fournitures',
+    'EQUIPMENT': 'Équipement',
+    'INSTRUMENTS': 'Instruments',
+    'PROTECTION': 'Protection',
+    'HYGIENE': 'Hygiène',
+    'OTHER': 'Autre'
   };
   return names[categorie] || categorie;
 }
 
-// Helper function to get unit display name
-export function getUniteDisplayName(unite: Unite): string {
-  const names = {
-    [Unite.MG]: 'mg',
-    [Unite.G]: 'g',
-    [Unite.ML]: 'ml',
-    [Unite.L]: 'L',
-    [Unite.UI]: 'UI',
-    [Unite.TABLETTE]: 'Tablette',
-    [Unite.AUTRE]: 'Autre'
-  };
-  return names[unite] || unite;
-}
-
 // Helper function to get category color classes
-export function getCategorieBadgeColors(categorie: CategorieMateriels): string {
-  const colors = {
-    [CategorieMateriels.ANTIBIOTIQUE]: 'bg-blue-100 text-blue-800',
-    [CategorieMateriels.ANTI_INFLAMMATOIRE]: 'bg-red-100 text-red-800',
-    [CategorieMateriels.ANTALGIQUE]: 'bg-green-100 text-green-800',
-    [CategorieMateriels.ANTIPYRETIQUE]: 'bg-yellow-100 text-yellow-800',
-    [CategorieMateriels.ANTIVIRAL]: 'bg-purple-100 text-purple-800',
-    [CategorieMateriels.VITAMINE]: 'bg-orange-100 text-orange-800',
-    [CategorieMateriels.VACCIN]: 'bg-indigo-100 text-indigo-800',
-    [CategorieMateriels.AUTRE]: 'bg-gray-100 text-gray-800'
+export function getCategorieBadgeColors(categorie: string): string {
+  const colors: Record<string, string> = {
+    'MEDICAL': 'bg-blue-100 text-blue-800',
+    'DISPOSABLE': 'bg-red-100 text-red-800',
+    'SUPPLIES': 'bg-green-100 text-green-800',
+    'EQUIPMENT': 'bg-yellow-100 text-yellow-800',
+    'INSTRUMENTS': 'bg-purple-100 text-purple-800',
+    'PROTECTION': 'bg-orange-100 text-orange-800',
+    'HYGIENE': 'bg-indigo-100 text-indigo-800',
+    'OTHER': 'bg-gray-100 text-gray-800'
   };
   return colors[categorie] || 'bg-gray-100 text-gray-800';
+}
+
+// Helper function to get status color
+export function getStatusBadgeColors(status: string): string {
+  const colors: Record<string, string> = {
+    'AVAILABLE': 'bg-green-100 text-green-800',
+    'LOW_STOCK': 'bg-yellow-100 text-yellow-800',
+    'OUT_OF_STOCK': 'bg-red-100 text-red-800',
+    'ASSIGNED': 'bg-blue-100 text-blue-800'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-800';
+}
+
+// Helper function to get status display name
+export function getStatusDisplayName(status: string): string {
+  const names: Record<string, string> = {
+    'AVAILABLE': 'Disponible',
+    'LOW_STOCK': 'Stock faible',
+    'OUT_OF_STOCK': 'Rupture',
+    'ASSIGNED': 'Assigné'
+  };
+  return names[status] || status;
 }

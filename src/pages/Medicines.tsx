@@ -43,7 +43,7 @@ const Medicines = () => {
   const fetchMedicines = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://196.12.203.182/api/consultations/medicaments');
+      const response = await fetch('https://hc.aui.ma/api/consultations/medicaments');
       if (!response.ok) throw new Error('Failed to fetch medicines');
       const data = await response.json();
       setMedicines(data);
@@ -111,8 +111,8 @@ const Medicines = () => {
   const handleSubmit = async () => {
     try {
       const url = editingMedicine 
-        ? `https://196.12.203.182/api/consultations/medicaments/${editingMedicine.id}`
-        : 'https://196.12.203.182/api/consultations/medicaments';
+        ? `https://hc.aui.ma/api/consultations/medicaments/${editingMedicine.id}`
+        : 'https://hc.aui.ma/api/consultations/medicaments';
       
       const response = await fetch(url, {
         method: editingMedicine ? 'PUT' : 'POST',
@@ -133,7 +133,7 @@ const Medicines = () => {
   const handleDeleteMedicine = async (id: number) => {
     if (!confirm('Supprimer ce médicament ?')) return;
     try {
-      const response = await fetch(`https://196.12.203.182/api/consultations/medicaments/${id}`, {
+      const response = await fetch(`https://hc.aui.ma/api/consultations/medicaments/${id}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete');
@@ -173,7 +173,7 @@ const Medicines = () => {
       }
 
       for (const med of medicamentsToImport) {
-        await fetch('https://196.12.203.182/api/consultations/medicaments', {
+        await fetch('https://hc.aui.ma/api/consultations/medicaments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(med)
