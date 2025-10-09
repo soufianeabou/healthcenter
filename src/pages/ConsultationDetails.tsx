@@ -57,13 +57,27 @@ const ConsultationDetails: React.FC = () => {
   const handleAssignMaterial = async () => {
     if (!selectedMaterialId || !consultation?.patient?.idNum) return;
     
+    // Get the selected material to get its quantity
+    const selectedMaterial = availableMaterials.find(m => m.id === selectedMaterialId);
+    if (!selectedMaterial) return;
+    
+    // For now, assign quantity of 1. You can add a quantity input if needed
+    const quantityToAssign = 1;
+    
     try {
+      console.log('📤 Assigning material from details page:', {
+        id: selectedMaterialId,
+        patientId: consultation.patient.idNum,
+        quantity: quantityToAssign
+      });
+      
       const res = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          materialId: selectedMaterialId,
-          patientId: consultation.patient.idNum
+          id: selectedMaterialId,  // Use 'id' not 'materialId'
+          patientId: consultation.patient.idNum,
+          quantity: quantityToAssign
         })
       });
       
@@ -71,6 +85,8 @@ const ConsultationDetails: React.FC = () => {
         const txt = await res.text();
         throw new Error(`Assignment failed: ${res.status} ${txt}`);
       }
+      
+      console.log('✅ Material assigned successfully');
       
       // Refresh data
       await loadData();
@@ -82,17 +98,24 @@ const ConsultationDetails: React.FC = () => {
     }
   };
   
-  const handleUnassignMaterial = async (materialId: number) => {
+  const handleUnassignMaterial = async (materialId: number, quantity: number = 1) => {
     if (!consultation?.patient?.idNum) return;
     if (!confirm('Retourner ce matériel au stock ?')) return;
     
     try {
+      console.log('📤 Unassigning material:', {
+        id: materialId,
+        patientId: consultation.patient.idNum,
+        quantity: quantity
+      });
+      
       const res = await fetch('https://hc.aui.ma/api/consultations/materials/unassign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          materialId: materialId,
-          patientId: consultation.patient.idNum
+          id: materialId,  // Use 'id' not 'materialId'
+          patientId: consultation.patient.idNum,
+          quantity: quantity
         })
       });
       
@@ -100,6 +123,8 @@ const ConsultationDetails: React.FC = () => {
         const txt = await res.text();
         throw new Error(`Unassignment failed: ${res.status} ${txt}`);
       }
+      
+      console.log('✅ Material unassigned successfully');
       
       // Refresh data
       await loadData();
@@ -157,6 +182,7 @@ const ConsultationDetails: React.FC = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Matériel</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantité</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -166,10 +192,11 @@ const ConsultationDetails: React.FC = () => {
                   <tr key={material.id}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{material.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{material.category}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{material.quantity || 1}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{material.description}</td>
                     <td className="px-6 py-4 text-right">
                       <button
-                        onClick={() => material.id && handleUnassignMaterial(material.id)}
+                        onClick={() => material.id && handleUnassignMaterial(material.id, material.quantity || 1)}
                         className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700"
                       >
                         <X className="w-3 h-3 mr-1" />

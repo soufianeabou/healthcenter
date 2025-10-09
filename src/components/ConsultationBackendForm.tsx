@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Plus, Trash2 } from 'lucide-react';
+import { Search, Plus, Trash2, Package } from 'lucide-react';
 import { ConsultationDTO } from '../types/consultation';
 import { Patient } from '../types/patient';
 import { useAuth } from '../context/AuthContext';
@@ -172,11 +172,12 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       }
     }
     
-    const dateTimeLocal = `${date}T${time}:00`;
+    // Always use current date/time when saving
+    const currentDateTime = new Date().toISOString();
     const consultationPayload = {
       patient: { id: selectedPatientId as number },
       personnel: { id: personnelId },
-      dateConsultation: dateTimeLocal,
+      dateConsultation: currentDateTime,
       motif,
       diagnostic: finalDiagnostic,
       traitement
@@ -251,172 +252,203 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Patient *</label>
+    <form onSubmit={handleSubmit} className="space-y-6 p-6">
+      {/* Patient Selection */}
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
+        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
+          <Search className="w-4 h-4 mr-2 text-green-600" />
+          Patient *
+        </label>
         <div className="relative">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={patientSearch}
             onChange={(e) => setPatientSearch(e.target.value)}
             placeholder="Saisir l'ID (idNum) du patient"
-            className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+            className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
             disabled={!!initial}
           />
         </div>
-        <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md">
-          {loadingPatients ? (
-            <div className="p-3 text-sm text-gray-500">Chargement...</div>
-          ) : filteredPatients.length === 0 ? (
-            <div className="p-3 text-sm text-gray-500">Aucun patient</div>
-          ) : (
-            filteredPatients.map(p => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => { setSelectedPatientId(p.id!); setPatientSearch(`${p.prenom} ${p.nom}`); }}
-                className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${selectedPatientId === p.id ? 'bg-green-50' : ''}`}
-              >
-                <div className="text-sm font-medium text-gray-800">{p.prenom} {p.nom}</div>
-                <div className="text-xs text-gray-500">{p.cne} • {p.email}</div>
-              </button>
-            ))
-          )}
-        </div>
-        {errors.patient && <p className="text-red-600 text-sm mt-1">{errors.patient}</p>}
+        {!initial && (
+          <div className="mt-2 max-h-40 overflow-y-auto border-2 border-gray-200 rounded-lg shadow-sm bg-white">
+            {loadingPatients ? (
+              <div className="p-3 text-sm text-gray-500 text-center">Chargement...</div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="p-3 text-sm text-gray-500 text-center">Aucun patient</div>
+            ) : (
+              filteredPatients.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => { setSelectedPatientId(p.id!); setPatientSearch(`${p.prenom} ${p.nom}`); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-green-50 transition-colors border-b border-gray-100 last:border-0 ${
+                    selectedPatientId === p.id ? 'bg-green-100 border-l-4 border-l-green-600' : ''
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-gray-900">{p.prenom} {p.nom}</div>
+                  <div className="text-xs text-gray-600 mt-1">{p.cne} • {p.email}</div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+        {errors.patient && <p className="text-red-600 text-sm mt-2 font-medium">{errors.patient}</p>}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border rounded-md" disabled={!!initial} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label>
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-3 py-2 border rounded-md" disabled={!!initial} />
-        </div>
+      {/* Date and Time - Hidden but kept for compatibility */}
+      <div className="hidden">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Motif *</label>
-        <input type="text" value={motif} onChange={(e) => setMotif(e.target.value)} className="w-full px-3 py-2 border rounded-md" disabled={!!initial} />
-        {errors.motif && <p className="text-red-600 text-sm mt-1">{errors.motif}</p>}
+      {/* Motif */}
+      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">Motif de consultation *</label>
+        <input 
+          type="text" 
+          value={motif} 
+          onChange={(e) => setMotif(e.target.value)} 
+          placeholder="Ex: Fièvre, Douleur abdominale..."
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-100" 
+          disabled={!!initial}
+        />
+        {errors.motif && <p className="text-red-600 text-sm mt-2 font-medium">{errors.motif}</p>}
       </div>
 
       {/* Constantes section for nurses */}
       {isNurse && (
-        <div className="border border-gray-200 rounded-md p-3 bg-gray-50">
-          <h3 className="text-xs font-semibold text-gray-700 mb-2">Constantes vitales</h3>
-          <div className="grid grid-cols-3 gap-2">
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border-2 border-purple-200 shadow-sm">
+          <h3 className="text-sm font-bold text-purple-900 mb-3 flex items-center">
+            <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">❤</span>
+            Constantes vitales
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Temp (°C)</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Temp (°C)</label>
               <input 
                 type="number" 
                 step="0.1" 
                 value={temperature} 
                 onChange={(e) => setTemperature(e.target.value)} 
                 placeholder="37.0"
-                className="w-full px-2 py-1 text-xs border rounded" 
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Tension</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Tension</label>
               <input 
                 type="text" 
                 value={tension} 
                 onChange={(e) => setTension(e.target.value)} 
                 placeholder="120/80"
-                className="w-full px-2 py-1 text-xs border rounded" 
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Pouls</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Pouls</label>
               <input 
                 type="number" 
                 value={pouls} 
                 onChange={(e) => setPouls(e.target.value)} 
                 placeholder="70"
-                className="w-full px-2 py-1 text-xs border rounded" 
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">FR</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">FR (/min)</label>
               <input 
                 type="number" 
                 value={frequenceRespiratoire} 
                 onChange={(e) => setFrequenceRespiratoire(e.target.value)} 
                 placeholder="16"
-                className="w-full px-2 py-1 text-xs border rounded" 
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Poids (kg)</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Poids (kg)</label>
               <input 
                 type="number" 
                 step="0.1" 
                 value={poids} 
                 onChange={(e) => setPoids(e.target.value)} 
                 placeholder="70"
-                className="w-full px-2 py-1 text-xs border rounded" 
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">Taille (cm)</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Taille (cm)</label>
               <input 
                 type="number" 
                 value={taille} 
                 onChange={(e) => setTaille(e.target.value)} 
                 placeholder="170"
-                className="w-full px-2 py-1 text-xs border rounded" 
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
               />
             </div>
           </div>
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+      {/* Diagnostic/Notes */}
+      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">
           {isNurse ? 'Notes / Observations' : 'Diagnostic *'}
         </label>
-        <textarea value={diagnostic} onChange={(e) => setDiagnostic(e.target.value)} rows={3} className="w-full px-3 py-2 border rounded-md" />
-        {errors.diagnostic && <p className="text-red-600 text-sm mt-1">{errors.diagnostic}</p>}
+        <textarea 
+          value={diagnostic} 
+          onChange={(e) => setDiagnostic(e.target.value)} 
+          rows={4} 
+          placeholder={isNurse ? "Observations médicales..." : "Diagnostic médical..."}
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none" 
+        />
+        {errors.diagnostic && <p className="text-red-600 text-sm mt-2 font-medium">{errors.diagnostic}</p>}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Traitement *</label>
-        <textarea value={traitement} onChange={(e) => setTraitement(e.target.value)} rows={3} className="w-full px-3 py-2 border rounded-md" />
-        {errors.traitement && <p className="text-red-600 text-sm mt-1">{errors.traitement}</p>}
+      {/* Traitement */}
+      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">Traitement *</label>
+        <textarea 
+          value={traitement} 
+          onChange={(e) => setTraitement(e.target.value)} 
+          rows={4} 
+          placeholder="Prescription et traitement recommandé..."
+          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none" 
+        />
+        {errors.traitement && <p className="text-red-600 text-sm mt-2 font-medium">{errors.traitement}</p>}
       </div>
 
       {/* Material assignment section */}
-      <div className="border border-blue-200 rounded-md p-2 bg-blue-50">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-xs font-semibold text-gray-700">Matériels</h3>
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200 shadow-sm">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-sm font-bold text-blue-900 flex items-center">
+            <Package className="w-4 h-4 mr-2" />
+            Matériels
+          </h3>
           <button
             type="button"
             onClick={() => setShowMaterialSection(!showMaterialSection)}
-            className="text-[10px] px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="text-sm px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-sm font-medium"
           >
-            {showMaterialSection ? 'Masquer' : 'Ajouter matériel'}
+            {showMaterialSection ? 'Masquer' : '+ Ajouter matériel'}
           </button>
         </div>
         
         {showMaterialSection && (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
             {materialLines.map((line) => {
               const selectedMateriel = materiels.find(m => m.id === line.materielId);
               return (
-                <div key={line.id} className="flex gap-1.5 items-center bg-white p-1.5 rounded">
+                <div key={line.id} className="flex gap-3 items-center bg-white p-3 rounded-lg border-2 border-gray-200 shadow-sm">
                   <select
                     value={line.materielId}
                     onChange={(e) => updateMaterialLine(line.id, 'materielId', e.target.value ? Number(e.target.value) : '')}
-                    className="flex-1 px-1.5 py-1 text-xs border rounded"
+                    className="flex-1 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">Sélectionner</option>
+                    <option value="">Sélectionner un matériel</option>
                     {materiels.map(m => (
                       <option key={m.id} value={m.id}>
-                        {m.name} ({m.quantity})
+                        {m.name} (Stock: {m.quantity})
                       </option>
                     ))}
                   </select>
@@ -426,15 +458,15 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
                     max={selectedMateriel?.quantity || 999}
                     value={line.quantite}
                     onChange={(e) => updateMaterialLine(line.id, 'quantite', Number(e.target.value))}
-                    className="w-16 px-1.5 py-1 text-xs border rounded"
+                    className="w-24 px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Qté"
                   />
                   <button
                     type="button"
                     onClick={() => removeMaterialLine(line.id)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded"
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               );
@@ -442,18 +474,30 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             <button
               type="button"
               onClick={addMaterialLine}
-              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-2 hover:bg-blue-50 rounded-lg transition-all"
             >
-              <Plus className="w-3 h-3" />
-              Ajouter
+              <Plus className="w-4 h-4" />
+              Ajouter une ligne
             </button>
           </div>
         )}
       </div>
 
-      <div className="flex justify-end space-x-2 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 border rounded-md">Annuler</button>
-        <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">{initial ? 'Mettre à jour' : 'Enregistrer'}</button>
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3 pt-4 border-t-2 border-gray-200">
+        <button 
+          type="button" 
+          onClick={onCancel} 
+          className="px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-all font-medium text-gray-700 shadow-sm"
+        >
+          Annuler
+        </button>
+        <button 
+          type="submit" 
+          className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+        >
+          {initial ? '✓ Mettre à jour' : '✓ Enregistrer la consultation'}
+        </button>
       </div>
     </form>
   );
