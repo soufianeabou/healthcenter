@@ -30,7 +30,19 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
-  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(initial?.patient?.id || null);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(initial?.patient?.id || initial?.patient?.idNum || null);
+  const [selectedPatientName, setSelectedPatientName] = useState<string>('');
+  
+  // When editing, set patient name from initial data
+  useEffect(() => {
+    if (initial?.patient) {
+      const name = `${initial.patient.prenom || ''} ${initial.patient.nom || ''}`.trim();
+      if (name) {
+        setSelectedPatientName(name);
+        setPatientSearch(name);
+      }
+    }
+  }, [initial]);
 
   const [date, setDate] = useState<string>(() => initial?.dateConsultation?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState<string>(() => initial?.dateConsultation ? new Date(initial.dateConsultation).toTimeString().slice(0, 5) : new Date().toTimeString().slice(0, 5));
@@ -171,14 +183,20 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       for (const line of validLines) {
         try {
           // Assign material to patient (stock is automatically reduced by backend)
-          await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
+          // Use the patient's idNum (which is stored in selectedPatientId)
+          const response = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              materialId: line.materielId,
-              patientId: selectedPatientId
+              materialId: Number(line.materielId),
+              patientId: Number(selectedPatientId)
             })
           });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Material assignment failed:', errorText);
+          }
         } catch (e) {
           console.error('Error assigning material:', e);
         }
@@ -198,6 +216,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             onChange={(e) => setPatientSearch(e.target.value)}
             placeholder="Saisir l'ID (idNum) du patient"
             className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500"
+            disabled={!!initial}
           />
         </div>
         <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md">
@@ -225,17 +244,17 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border rounded-md" />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full px-3 py-2 border rounded-md" disabled={!!initial} />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Heure *</label>
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-3 py-2 border rounded-md" />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full px-3 py-2 border rounded-md" disabled={!!initial} />
         </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Motif *</label>
-        <input type="text" value={motif} onChange={(e) => setMotif(e.target.value)} className="w-full px-3 py-2 border rounded-md" />
+        <input type="text" value={motif} onChange={(e) => setMotif(e.target.value)} className="w-full px-3 py-2 border rounded-md" disabled={!!initial} />
         {errors.motif && <p className="text-red-600 text-sm mt-1">{errors.motif}</p>}
       </div>
 

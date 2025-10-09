@@ -142,9 +142,39 @@ const Consultations = () => {
     }
   };
 
-  const openEditModal = (consultation: ConsultationRow) => {
-    setEditingConsultation(consultation);
-    setIsModalOpen(true);
+  const openEditModal = async (consultation: ConsultationRow) => {
+    try {
+      // Fetch full consultation data with all fields
+      const res = await fetch(`https://hc.aui.ma/api/consultations/${consultation.id}`);
+      if (!res.ok) throw new Error('Failed to fetch consultation details');
+      const fullData = await res.json();
+      
+      // Map to ConsultationRow with full data
+      const fullConsultation: ConsultationRow = {
+        ...consultation,
+        id: fullData.id,
+        patientId: fullData.patient?.idNum || fullData.patientId,
+        patientName: fullData.patient ? 
+          `${fullData.patient.prenom || ''} ${fullData.patient.nom || ''} #${fullData.patient.idNum}`.trim() : 
+          consultation.patientName,
+        consultationDate: fullData.dateConsultation,
+        notes: fullData.motif || '', // Store motif separately
+        status: consultation.status,
+        prescriptionItems: []
+      };
+      
+      // Store full data for form
+      (fullConsultation as any).motif = fullData.motif;
+      (fullConsultation as any).diagnostic = fullData.diagnostic;
+      (fullConsultation as any).traitement = fullData.traitement;
+      (fullConsultation as any).patient = fullData.patient;
+      
+      setEditingConsultation(fullConsultation);
+      setIsModalOpen(true);
+    } catch (e) {
+      console.error('Error fetching consultation:', e);
+      setError('Erreur lors du chargement des détails de la consultation');
+    }
   };
 
   const openViewModal = (consultation: ConsultationRow) => {
@@ -440,12 +470,12 @@ const Consultations = () => {
           personnelId={user?.id as number}
           initial={editingConsultation ? {
             id: editingConsultation.id,
-            patient: { id: editingConsultation.patientId },
+            patient: (editingConsultation as any).patient || { id: editingConsultation.patientId, idNum: editingConsultation.patientId },
             personnel: { id: user?.id as number },
             dateConsultation: editingConsultation.consultationDate,
-            motif: editingConsultation.notes,
-            diagnostic: '',
-            traitement: ''
+            motif: (editingConsultation as any).motif || editingConsultation.notes,
+            diagnostic: (editingConsultation as any).diagnostic || '',
+            traitement: (editingConsultation as any).traitement || ''
           } : null}
           onSubmit={editingConsultation ? handleEditConsultation : handleAddConsultation}
           onCancel={closeModal}
