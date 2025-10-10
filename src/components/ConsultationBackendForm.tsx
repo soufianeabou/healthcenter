@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Plus, Trash2, Package } from 'lucide-react';
+import { Search, Plus, Trash2, Package, X } from 'lucide-react';
 import { ConsultationDTO } from '../types/consultation';
 import { Patient } from '../types/patient';
 import { useAuth } from '../context/AuthContext';
@@ -67,6 +67,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [materiels, setMateriels] = useState<Materiel[]>([]);
   const [materialLines, setMaterialLines] = useState<MaterialLine[]>([]);
   const [showMaterialSection, setShowMaterialSection] = useState(false);
+  const [assignedMaterials, setAssignedMaterials] = useState<any[]>([]);
 
   // Fetch materials on mount
   useEffect(() => {
@@ -83,6 +84,25 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     };
     fetchMateriels();
   }, []);
+
+  // Fetch assigned materials when editing (using patient idNum)
+  useEffect(() => {
+    const fetchAssignedMaterials = async () => {
+      if (initial?.patient?.idNum) {
+        try {
+          const res = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${initial.patient.idNum}`);
+          if (res.ok) {
+            const data = await res.json();
+            console.log('Assigned materials for patient:', data);
+            setAssignedMaterials(data);
+          }
+        } catch (err) {
+          console.error('Failed to fetch assigned materials:', err);
+        }
+      }
+    };
+    fetchAssignedMaterials();
+  }, [initial?.patient?.idNum]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -135,6 +155,40 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     setMaterialLines(materialLines.map(line => 
       line.id === id ? { ...line, [field]: value } : line
     ));
+  };
+
+  const handleUnassignMaterial = async (materialId: number, quantity: number) => {
+    if (!selectedPatientId) return;
+    
+    try {
+      const unassignPayload = {
+        id: materialId,
+        patientId: selectedPatientId,
+        quantity: quantity
+      };
+      
+      console.log('Unassigning material:', unassignPayload);
+      
+      const res = await fetch('https://hc.aui.ma/api/consultations/materials/unassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(unassignPayload)
+      });
+      
+      if (res.ok) {
+        console.log('Material unassigned successfully');
+        // Refresh assigned materials
+        const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${selectedPatientId}`);
+        if (refreshRes.ok) {
+          const data = await refreshRes.json();
+          setAssignedMaterials(data);
+        }
+      } else {
+        console.error('Failed to unassign material:', await res.text());
+      }
+    } catch (err) {
+      console.error('Error unassigning material:', err);
+    }
   };
 
   const validate = () => {
@@ -242,6 +296,12 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             console.error('❌ Material assignment failed:', errorText);
           } else {
             console.log('✅ Material assigned successfully (stock automatically reduced by backend)');
+            // Refresh assigned materials after successful assignment
+            const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientId}`);
+            if (refreshRes.ok) {
+              const data = await refreshRes.json();
+              setAssignedMaterials(data);
+            }
           }
           
         } catch (e) {
@@ -424,6 +484,11 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           <h3 className="text-sm font-bold text-blue-900 flex items-center">
             <Package className="w-4 h-4 mr-2" />
             Matériels
+            {assignedMaterials.length > 0 && (
+              <span className="ml-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                {assignedMaterials.length}
+              </span>
+            )}
           </h3>
           <button
             type="button"
@@ -433,6 +498,31 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             {showMaterialSection ? 'Masquer' : '+ Ajouter matériel'}
           </button>
         </div>
+
+        {/* Display assigned materials */}
+        {assignedMaterials.length > 0 && (
+          <div className="mb-3 space-y-2">
+            <h4 className="text-xs font-semibold text-gray-700">Matériels assignés:</h4>
+            <div className="space-y-2">
+              {assignedMaterials.map((material: any) => (
+                <div key={material.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-green-200 shadow-sm">
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-gray-900">{material.name}</div>
+                    <div className="text-xs text-gray-600">Quantité: {material.quantity}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleUnassignMaterial(material.id, material.quantity)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-medium"
+                  >
+                    <X className="w-3 h-3" />
+                    Retourner
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {showMaterialSection && (
           <div className="space-y-3">
