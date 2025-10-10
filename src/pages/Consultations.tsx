@@ -108,20 +108,42 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
-      const currentDateTime = new Date().toISOString();
+      // Format date for backend LocalDateTime: "2025-10-10T17:30:45"
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+      
+      const requestBody = { 
+        patientId: payload.patient.id, 
+        personnelId: payload.personnel.id, 
+        dateConsultation: currentDateTime, 
+        motif: payload.motif, 
+        diagnostic: payload.diagnostic, 
+        traitement: payload.traitement 
+      };
+      
+      console.log('📅 Sending consultation request:', JSON.stringify(requestBody, null, 2));
+      
       const res = await fetch('https://hc.aui.ma/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          patientId: payload.patient.id, 
-          personnelId: payload.personnel.id, 
-          dateConsultation: currentDateTime, 
-          motif: payload.motif, 
-          diagnostic: payload.diagnostic, 
-          traitement: payload.traitement 
-        })
+        body: JSON.stringify(requestBody)
       });
-      if (!res.ok) throw new Error(`Create failed (${res.status}): ${await readErrorText(res)}`);
+      
+      if (!res.ok) {
+        const errorText = await readErrorText(res);
+        console.error('❌ Backend error:', errorText);
+        throw new Error(`Create failed (${res.status}): ${errorText}`);
+      }
+      
+      const responseData = await res.json();
+      console.log('✅ Backend response:', responseData);
+      
       setIsModalOpen(false);
       await fetchConsultations();
     } catch (e) {
