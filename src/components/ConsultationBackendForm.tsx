@@ -90,15 +90,24 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     const fetchAssignedMaterials = async () => {
       if (initial?.patient?.idNum) {
         try {
+          console.log('🔍 Fetching assigned materials for patient idNum:', initial.patient.idNum);
           const res = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${initial.patient.idNum}`);
+          console.log('📥 Response status:', res.status);
+          
           if (res.ok) {
             const data = await res.json();
-            console.log('Assigned materials for patient:', data);
+            console.log('✅ Assigned materials received:', data);
+            console.log('📊 Number of materials:', data.length);
+            console.log('📋 Material details:', JSON.stringify(data, null, 2));
             setAssignedMaterials(data);
+          } else {
+            console.error('❌ Failed to fetch assigned materials:', res.status, res.statusText);
           }
         } catch (err) {
-          console.error('Failed to fetch assigned materials:', err);
+          console.error('❌ Error fetching assigned materials:', err);
         }
+      } else {
+        console.log('⚠️ No patient idNum available for fetching materials');
       }
     };
     fetchAssignedMaterials();
@@ -499,28 +508,47 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           </button>
         </div>
 
+        {/* Debug: Show state */}
+        <div className="mb-2 text-xs text-gray-600">
+          Debug: assignedMaterials.length = {assignedMaterials.length}, 
+          initial?.patient?.idNum = {initial?.patient?.idNum || 'N/A'}
+        </div>
+
         {/* Display assigned materials */}
-        {assignedMaterials.length > 0 && (
+        {assignedMaterials.length > 0 ? (
           <div className="mb-3 space-y-2">
-            <h4 className="text-xs font-semibold text-gray-700">Matériels assignés:</h4>
+            <h4 className="text-xs font-semibold text-gray-700 bg-green-100 p-2 rounded">
+              Matériels assignés à ce patient:
+            </h4>
             <div className="space-y-2">
-              {assignedMaterials.map((material: any) => (
-                <div key={material.id} className="flex justify-between items-center bg-white p-3 rounded-lg border border-green-200 shadow-sm">
+              {assignedMaterials.map((material: any, index: number) => (
+                <div key={material.id || index} className="flex justify-between items-center bg-white p-3 rounded-lg border-2 border-green-300 shadow-sm">
                   <div className="flex-1">
-                    <div className="text-sm font-semibold text-gray-900">{material.name}</div>
-                    <div className="text-xs text-gray-600">Quantité: {material.quantity}</div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      {material.name || material.nomMedicament || 'Nom inconnu'}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Quantité: {material.quantity || material.qteStock || 'N/A'}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      ID: {material.id || 'N/A'}
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleUnassignMaterial(material.id, material.quantity)}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-xs font-medium"
+                    onClick={() => handleUnassignMaterial(material.id, material.quantity || 1)}
+                    className="flex items-center gap-1 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium border border-red-200"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-4 h-4" />
                     Retourner
                   </button>
                 </div>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="mb-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+            Aucun matériel assigné pour le moment
           </div>
         )}
         
