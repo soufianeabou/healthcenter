@@ -95,6 +95,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: 'a.guennoun@aui.ma',
           status: 'ACTIF' as UserStatus
         },
+        'h.harroud@aui.ma': {
+          id: 1,
+          nom: 'Harroud',
+          prenom: 'Dr.Hamid',
+          username: 'a.guennoun@aui.ma',
+          passwd: null,
+          role: 'ADMIN' as UserRole,
+          specialite: 'Administration',
+          telephone: '0000000000',
+          email: 'a.guennoun@aui.ma',
+          status: 'ACTIF' as UserStatus
+        },
+        'a.bettahi@aui.ma': {
+          id: 1,
+          nom: 'Bettahi',
+          prenom: 'Abdelkarim',
+          username: 'a.guennoun@aui.ma',
+          passwd: null,
+          role: 'ADMIN' as UserRole,
+          specialite: 'Administration',
+          telephone: '0000000000',
+          email: 'a.guennoun@aui.ma',
+          status: 'ACTIF' as UserStatus
+        },
         'o.ghazal@aui.ma': {
           id: 5,
           nom: 'GHazal',

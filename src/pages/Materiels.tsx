@@ -160,7 +160,7 @@ const Materiels = () => {
   const getSupplierName = (supplierId?: number) => {
     if (!supplierId) return 'N/A';
     const supplier = suppliers.find(s => s.id === supplierId);
-    return supplier?.name || 'N/A';
+    return supplier?.nomFournisseur || 'N/A';
   };
 
   return (
