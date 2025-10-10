@@ -96,10 +96,15 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           
           if (res.ok) {
             const data = await res.json();
-            console.log('✅ Assigned materials received:', data);
-            console.log('📊 Number of materials:', data.length);
-            console.log('📋 Material details:', JSON.stringify(data, null, 2));
-            setAssignedMaterials(data);
+            console.log('✅ Full API response:', data);
+            
+            // Extract materials array from the response
+            // The API returns an object with a "materials" array
+            const materialsArray = data.materials || [];
+            console.log('📊 Extracted materials array:', materialsArray);
+            console.log('📊 Number of materials:', materialsArray.length);
+            
+            setAssignedMaterials(materialsArray);
           } else {
             console.error('❌ Failed to fetch assigned materials:', res.status, res.statusText);
           }
@@ -176,7 +181,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         quantity: quantity
       };
       
-      console.log('Unassigning material:', unassignPayload);
+      console.log('🔄 Unassigning material:', unassignPayload);
       
       const res = await fetch('https://hc.aui.ma/api/consultations/materials/unassign', {
         method: 'POST',
@@ -185,18 +190,20 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       });
       
       if (res.ok) {
-        console.log('Material unassigned successfully');
+        console.log('✅ Material unassigned successfully');
         // Refresh assigned materials
         const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${selectedPatientId}`);
         if (refreshRes.ok) {
-          const data = await refreshRes.json();
-          setAssignedMaterials(data);
+          const refreshData = await refreshRes.json();
+          const materialsArray = refreshData.materials || [];
+          console.log('🔄 Refreshed materials:', materialsArray);
+          setAssignedMaterials(materialsArray);
         }
       } else {
-        console.error('Failed to unassign material:', await res.text());
+        console.error('❌ Failed to unassign material:', await res.text());
       }
     } catch (err) {
-      console.error('Error unassigning material:', err);
+      console.error('❌ Error unassigning material:', err);
     }
   };
 
@@ -308,8 +315,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             // Refresh assigned materials after successful assignment
             const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientId}`);
             if (refreshRes.ok) {
-              const data = await refreshRes.json();
-              setAssignedMaterials(data);
+              const refreshData = await refreshRes.json();
+              const materialsArray = refreshData.materials || [];
+              console.log('🔄 Refreshed materials after assignment:', materialsArray);
+              setAssignedMaterials(materialsArray);
             }
           }
           
