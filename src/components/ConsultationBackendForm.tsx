@@ -90,14 +90,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     const fetchAssignedMaterials = async () => {
       if (initial?.patient?.idNum) {
         try {
-          console.log('🔍 Fetching assigned materials for patient idNum:', initial.patient.idNum);
           const res = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${initial.patient.idNum}`);
-          console.log('📥 Response status:', res.status);
           
           if (res.ok) {
             const data = await res.json();
-            console.log('✅ Full API response:', data);
-            console.log('✅ Response type:', Array.isArray(data) ? 'Array' : 'Object');
             
             // The API can return either:
             // 1. A single object (one material assigned)
@@ -116,18 +112,11 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
               }
             }
             
-            console.log('📊 Extracted materials array:', materialsArray);
-            console.log('📊 Number of materials:', materialsArray.length);
-            
             setAssignedMaterials(materialsArray);
-          } else {
-            console.error('❌ Failed to fetch assigned materials:', res.status, res.statusText);
           }
         } catch (err) {
-          console.error('❌ Error fetching assigned materials:', err);
+          console.error('Error fetching assigned materials:', err);
         }
-      } else {
-        console.log('⚠️ No patient idNum available for fetching materials');
       }
     };
     fetchAssignedMaterials();
@@ -196,8 +185,6 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         quantity: quantity
       };
       
-      console.log('🔄 Unassigning material:', unassignPayload);
-      
       const res = await fetch('https://hc.aui.ma/api/consultations/materials/unassign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,7 +192,6 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       });
       
       if (res.ok) {
-        console.log('✅ Material unassigned successfully');
         // Refresh assigned materials
         const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${selectedPatientId}`);
         if (refreshRes.ok) {
@@ -222,14 +208,13 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             }
           }
           
-          console.log('🔄 Refreshed materials:', materialsArray);
           setAssignedMaterials(materialsArray);
         }
       } else {
-        console.error('❌ Failed to unassign material:', await res.text());
+        console.error('Failed to unassign material:', await res.text());
       }
     } catch (err) {
-      console.error('❌ Error unassigning material:', err);
+      console.error('Error unassigning material:', err);
     }
   };
 
@@ -279,40 +264,20 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       traitement
     };
     
-    console.log('Consultation Payload:', consultationPayload);
-    
     // Submit consultation
     onSubmit(consultationPayload);
     
     // If there are materials to assign, use the new assign API
     if (materialLines.length > 0 && selectedPatientId) {
-      console.log('=== MATERIAL ASSIGNMENT ===');
-      console.log('Material Lines:', materialLines);
-      console.log('Selected Patient ID for materials:', selectedPatientId);
-      
       const validLines = materialLines.filter(line => line.materielId && line.quantite > 0);
-      console.log('Valid Material Lines:', validLines);
       
       for (const line of validLines) {
         try {
           const materialId = Number(line.materielId);
           const patientId = Number(selectedPatientId);
           
-          console.log('Processing line:', { 
-            rawMaterielId: line.materielId, 
-            rawPatientId: selectedPatientId,
-            convertedMaterialId: materialId,
-            convertedPatientId: patientId,
-            quantity: line.quantite
-          });
-          
           // Validate IDs are not null/NaN
-          if (!materialId || isNaN(materialId)) {
-            console.error('❌ Invalid materialId:', line.materielId);
-            continue;
-          }
-          if (!patientId || isNaN(patientId)) {
-            console.error('❌ Invalid patientId:', selectedPatientId);
+          if (!materialId || isNaN(materialId) || !patientId || isNaN(patientId)) {
             continue;
           }
           
@@ -323,21 +288,13 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             quantity: line.quantite
           };
           
-          console.log('📤 Assigning material to patient:', assignPayload);
-          
           const assignResponse = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(assignPayload)
           });
           
-          console.log('📥 Assignment response:', assignResponse.status, assignResponse.statusText);
-          
-          if (!assignResponse.ok) {
-            const errorText = await assignResponse.text();
-            console.error('❌ Material assignment failed:', errorText);
-          } else {
-            console.log('✅ Material assigned successfully (stock automatically reduced by backend)');
+          if (assignResponse.ok) {
             // Refresh assigned materials after successful assignment
             const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientId}`);
             if (refreshRes.ok) {
@@ -354,13 +311,12 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
                 }
               }
               
-              console.log('🔄 Refreshed materials after assignment:', materialsArray);
               setAssignedMaterials(materialsArray);
             }
           }
           
         } catch (e) {
-          console.error('❌ Error processing material:', e);
+          console.error('Error processing material:', e);
         }
       }
     }
@@ -552,12 +508,6 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           >
             {showMaterialSection ? 'Masquer' : '+ Ajouter matériel'}
           </button>
-        </div>
-
-        {/* Debug: Show state */}
-        <div className="mb-2 text-xs text-gray-600">
-          Debug: assignedMaterials.length = {assignedMaterials.length}, 
-          initial?.patient?.idNum = {initial?.patient?.idNum || 'N/A'}
         </div>
 
         {/* Display assigned materials */}

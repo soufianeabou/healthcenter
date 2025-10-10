@@ -23,10 +23,9 @@ const Sidebar = () => {
 
   const adminNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Stethoscope, label: 'Consultations', path: '/consultations' },
     { icon: Users, label: 'Patients', path: '/patients' },
-    { icon: Package, label: 'Matériels', path: '/materiels' },
-    { icon: PackagePlus, label: 'Entrées de Stock', path: '/entry-stock' },
-    { icon: PackageMinus, label: 'Sorties de Stock', path: '/exit-stock' },
+    { icon: Package, label: 'Liste des Matériels', path: '/materiels' },
     { icon: UserCog, label: 'Personnel', path: '/personnel' },
     { icon: Truck, label: 'Suppliers', path: '/suppliers' },
     { icon: BarChart3, label: 'Reports', path: '/reports' },

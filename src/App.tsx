@@ -30,7 +30,7 @@ function AppContent() {
   }
 
   const isAdmin = user?.role === UserRole.ADMIN;
-  const isMedecin = user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER;
+  const isMedecinOrNurse = user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -43,28 +43,20 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
             
-            {/* Admin Routes */}
+            {/* Shared Routes - Consultations, Patients, Materials List */}
+            <Route path="/consultations" element={<Consultations />} />
+            <Route path="/consultations/:id" element={<ConsultationDetails />} />
+            <Route path="/patients" element={<Patients />} />
+            <Route path="/materiels-list" element={<MaterielsList />} />
+            <Route path="/materiels/:id" element={<MaterielDetails />} />
+            
+            {/* Admin Only Routes */}
             {isAdmin && (
               <>
                 <Route path="/materiels" element={<Materiels />} />
-                <Route path="/materiels/:id" element={<MaterielDetails />} />
-
-                <Route path="/entry-stock" element={<EntryStock />} />
-                <Route path="/exit-stock" element={<ExitStock />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/personnel" element={<Personnel />} />
-              </>
-            )}
-            
-            {/* Doctor/Nurse Routes */}
-            {isMedecin && (
-              <>
-                <Route path="/consultations" element={<Consultations />} />
-                <Route path="/consultations/:id" element={<ConsultationDetails />} />
-                <Route path="/patients" element={<Patients />} />
-                <Route path="/materiels-list" element={<MaterielsList />} />
-                <Route path="/materiels/:id" element={<MaterielDetails />} />
               </>
             )}
             
