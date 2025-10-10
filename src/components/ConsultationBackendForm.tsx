@@ -97,10 +97,25 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           if (res.ok) {
             const data = await res.json();
             console.log('✅ Full API response:', data);
+            console.log('✅ Response type:', Array.isArray(data) ? 'Array' : 'Object');
             
-            // Extract materials array from the response
-            // The API returns an object with a "materials" array
-            const materialsArray = data.materials || [];
+            // The API can return either:
+            // 1. A single object (one material assigned)
+            // 2. An array of objects (multiple materials)
+            // 3. An object with a "materials" array
+            let materialsArray = [];
+            
+            if (Array.isArray(data)) {
+              materialsArray = data;
+            } else if (data && typeof data === 'object') {
+              // If it's a single object with an id, treat it as a single material
+              if (data.id) {
+                materialsArray = [data];
+              } else if (data.materials && Array.isArray(data.materials)) {
+                materialsArray = data.materials;
+              }
+            }
+            
             console.log('📊 Extracted materials array:', materialsArray);
             console.log('📊 Number of materials:', materialsArray.length);
             
@@ -195,7 +210,18 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${selectedPatientId}`);
         if (refreshRes.ok) {
           const refreshData = await refreshRes.json();
-          const materialsArray = refreshData.materials || [];
+          let materialsArray = [];
+          
+          if (Array.isArray(refreshData)) {
+            materialsArray = refreshData;
+          } else if (refreshData && typeof refreshData === 'object') {
+            if (refreshData.id) {
+              materialsArray = [refreshData];
+            } else if (refreshData.materials && Array.isArray(refreshData.materials)) {
+              materialsArray = refreshData.materials;
+            }
+          }
+          
           console.log('🔄 Refreshed materials:', materialsArray);
           setAssignedMaterials(materialsArray);
         }
@@ -316,7 +342,18 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientId}`);
             if (refreshRes.ok) {
               const refreshData = await refreshRes.json();
-              const materialsArray = refreshData.materials || [];
+              let materialsArray = [];
+              
+              if (Array.isArray(refreshData)) {
+                materialsArray = refreshData;
+              } else if (refreshData && typeof refreshData === 'object') {
+                if (refreshData.id) {
+                  materialsArray = [refreshData];
+                } else if (refreshData.materials && Array.isArray(refreshData.materials)) {
+                  materialsArray = refreshData.materials;
+                }
+              }
+              
               console.log('🔄 Refreshed materials after assignment:', materialsArray);
               setAssignedMaterials(materialsArray);
             }
