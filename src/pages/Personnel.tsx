@@ -34,7 +34,7 @@ const Personnel = () => {
       
       console.log('Fetching personnel from:', 'https://hc.aui.ma/personnels');
       
-      const response = await fetch('https://hc.aui.ma/personnels', {
+      const response = await fetch('https://hc.aui.ma/api/consultations/personnels', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -82,7 +82,7 @@ const Personnel = () => {
 
   const handleAddPersonnel = async (personnelData: Omit<Personnel, 'id'>) => {
     try {
-      const response = await fetch('https://hc.aui.ma/personnels', {
+      const response = await fetch('https://hc.aui.ma/api/consultations/personnels', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ const Personnel = () => {
   const handleEditPersonnel = async (personnelData: Omit<Personnel, 'id'>) => {
     if (editingPersonnel) {
       try {
-        const response = await fetch(`https://hc.aui.ma/personnels/${editingPersonnel.id}`, {
+        const response = await fetch(`https://hc.aui.ma/api/consultations/personnels/${editingPersonnel.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ const Personnel = () => {
   const handleDeletePersonnel = async (id: number) => {
     if (confirm('Are you sure you want to delete this personnel record?')) {
       try {
-        const response = await fetch(`https://hc.aui.ma/personnels/${id}`, {
+        const response = await fetch(`https://hc.aui.ma/api/consultations/personnels/${id}`, {
           method: 'DELETE',
         });
 
@@ -161,6 +161,8 @@ const Personnel = () => {
 
   const getStatusBadge = (status: string) => {
     const colors = {
+      'ACTIF': 'bg-green-100 text-green-800',
+      'INACTIF': 'bg-red-100 text-red-800',
       'ACTIVE': 'bg-green-100 text-green-800',
       'INACTIVE': 'bg-red-100 text-red-800',
       'PENDING': 'bg-yellow-100 text-yellow-800',
@@ -238,7 +240,7 @@ const Personnel = () => {
             onClick={async () => {
               try {
                 console.log('Testing API connection...');
-                const response = await fetch('https://hc.aui.ma/personnels', {
+                const response = await fetch('https://hc.aui.ma/api/consultations/personnels', {
                   method: 'GET',
                   headers: { 'Accept': 'application/json' },
                   mode: 'cors'
@@ -286,7 +288,7 @@ const Personnel = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Active Staff</p>
               <p className="text-2xl font-bold text-green-600 mt-2">
-                {personnel.filter(p => p.status === 'ACTIVE').length}
+                {personnel.filter(p => p.status === 'ACTIF' || p.status === 'ACTIVE').length}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
