@@ -108,29 +108,26 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
-      // Try multiple date formats for backend compatibility
+      // Format current date/time for backend LocalDateTime (ISO-8601 format)
       const now = new Date();
-      
-      // Format 1: Array format [year, month, day, hour, minute, second]
-      const dateArray = [
-        now.getFullYear(),
-        now.getMonth() + 1,
-        now.getDate(),
-        now.getHours(),
-        now.getMinutes(),
-        now.getSeconds()
-      ];
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
       
       const requestBody = { 
         patientId: payload.patient.id, 
         personnelId: payload.personnel.id, 
-        dateConsultation: dateArray, 
+        dateConsultation: dateString, 
         motif: payload.motif, 
         diagnostic: payload.diagnostic, 
         traitement: payload.traitement 
       };
       
-      console.log('📅 Sending consultation request with date array:', JSON.stringify(requestBody, null, 2));
+      console.log('📅 Sending consultation request:', JSON.stringify(requestBody, null, 2));
       
       const res = await fetch('https://hc.aui.ma/api/consultations', {
         method: 'POST',
