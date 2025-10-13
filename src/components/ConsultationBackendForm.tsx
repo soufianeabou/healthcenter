@@ -254,20 +254,21 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     }
     
     // Always use current date/time when saving
-    // Format date for backend: "2025-10-10T17:30:00"
+    // Format date as array for backend: [year, month, day, hour, minute, second]
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    const dateArray = [
+      now.getFullYear(),
+      now.getMonth() + 1,
+      now.getDate(),
+      now.getHours(),
+      now.getMinutes(),
+      now.getSeconds()
+    ];
     
     const consultationPayload = {
       patient: { id: selectedPatientId as number },
       personnel: { id: personnelId },
-      dateConsultation: currentDateTime,
+      dateConsultation: dateArray,
       motif,
       diagnostic: finalDiagnostic,
       traitement
