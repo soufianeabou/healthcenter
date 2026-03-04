@@ -14,10 +14,196 @@ interface User {
   status: UserStatus;
 }
 
+const AUTH_BASE_URL =
+  (import.meta as any).env?.VITE_AUTH_BASE_URL || window.location.origin;
+
+const normalizeEmail = (value: string | null | undefined) =>
+  (value || '').trim().toLowerCase();
+
+const EMAIL_DIRECTORY: Record<string, User> = {
+  // SUPER ADMIN (frontend-only elevated role)
+  's.aboulhamam@gmail.com': {
+    id: 99,
+    nom: 'Aboulhamam',
+    prenom: 'Soufiane',
+    username: 's.aboulhamam@gmail.com',
+    passwd: null,
+    role: UserRole.SUPER_ADMIN,
+    specialite: 'Supervision',
+    telephone: '0000000000',
+    email: 's.aboulhamam@gmail.com',
+    status: UserStatus.ACTIVE
+  },
+  // MEDECIN
+  'm.aslaf@aui.ma': {
+    id: 3,
+    nom: 'Aslaf',
+    prenom: 'Dr.Mounia',
+    username: 'm.aslaf@aui.ma',
+    passwd: null,
+    role: UserRole.MEDECIN,
+    specialite: 'Médecine Générale',
+    telephone: '0000000000',
+    email: 'm.aslaf@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'health.center.doctor@aui.ma': {
+    id: 4,
+    nom: 'Physician',
+    prenom: 'Intern',
+    username: 'Health.Center.Doctor@aui.ma',
+    passwd: null,
+    role: UserRole.MEDECIN,
+    specialite: 'Interne',
+    telephone: '0000000000',
+    email: 'Health.Center.Doctor@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  // ADMIN
+  'a.guennoun@aui.ma': {
+    id: 1,
+    nom: 'Guennoun',
+    prenom: 'Dr.Adnane',
+    username: 'a.guennoun@aui.ma',
+    passwd: null,
+    role: UserRole.ADMIN,
+    specialite: 'Administration',
+    telephone: '0000000000',
+    email: 'a.guennoun@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'h.harroud@aui.ma': {
+    id: 10,
+    nom: 'Harroud',
+    prenom: 'Dr.Hamid',
+    username: 'h.harroud@aui.ma',
+    passwd: null,
+    role: UserRole.ADMIN,
+    specialite: 'Administration',
+    telephone: '0000000000',
+    email: 'h.harroud@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'a.bettahi@aui.ma': {
+    id: 11,
+    nom: 'Bettahi',
+    prenom: 'Abdelkarim',
+    username: 'a.bettahi@aui.ma',
+    passwd: null,
+    role: UserRole.ADMIN,
+    specialite: 'Administration',
+    telephone: '0000000000',
+    email: 'a.bettahi@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'o.ghazal@aui.ma': {
+    id: 5,
+    nom: 'Ghazal',
+    prenom: 'Oumaima',
+    username: 'o.ghazal@aui.ma',
+    passwd: null,
+    role: UserRole.ADMIN,
+    specialite: 'Administration',
+    telephone: '0000000000',
+    email: 'o.ghazal@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  // INFIRMIER
+  'm.ouakki@aui.ma': {
+    id: 6,
+    nom: 'Ouakki',
+    prenom: 'Meriem',
+    username: 'm.ouakki@aui.ma',
+    passwd: null,
+    role: UserRole.INFIRMIER,
+    specialite: 'Soins Infirmiers',
+    telephone: '0000000000',
+    email: 'm.ouakki@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'f.elmajdoubi@aui.ma': {
+    id: 2,
+    nom: 'Elmajdoubi',
+    prenom: 'Fatima',
+    username: 'f.elmajdoubi@aui.ma',
+    passwd: null,
+    role: UserRole.INFIRMIER,
+    specialite: 'Soins Infirmiers',
+    telephone: '0000000000',
+    email: 'f.elmajdoubi@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  's.ghazal@aui.ma': {
+    id: 7,
+    nom: 'Ghazal',
+    prenom: 'Siham',
+    username: 's.ghazal@aui.ma',
+    passwd: null,
+    role: UserRole.INFIRMIER,
+    specialite: 'Soins Infirmiers',
+    telephone: '0000000000',
+    email: 's.ghazal@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'g.makhsou@aui.ma': {
+    id: 8,
+    nom: 'Makhsou',
+    prenom: 'Ghizlane',
+    username: 'g.makhsou@aui.ma',
+    passwd: null,
+    role: UserRole.INFIRMIER,
+    specialite: 'Soins Infirmiers',
+    telephone: '0000000000',
+    email: 'g.makhsou@aui.ma',
+    status: UserStatus.ACTIVE
+  },
+  'health.center.nurse@aui.ma': {
+    id: 9,
+    nom: 'Nurses',
+    prenom: 'Intern',
+    username: 'Health.Center.Nurse@aui.ma',
+    passwd: null,
+    role: UserRole.INFIRMIER,
+    specialite: 'Interne',
+    telephone: '0000000000',
+    email: 'Health.Center.Nurse@aui.ma',
+    status: UserStatus.ACTIVE
+  }
+};
+
+const resolveUserFromEmail = (email: string | null | undefined): User | null => {
+  const key = normalizeEmail(email);
+  if (!key) return null;
+  return EMAIL_DIRECTORY[key] || null;
+};
+
+const extractEmailFromPrincipal = (principal: any): string | null => {
+  if (!principal) return null;
+
+  const root = principal as any;
+  const nested = (root.principal as any) || root;
+  const attrs = (nested.attributes as any) || nested;
+
+  const candidates = [
+    attrs.email,
+    attrs.preferred_username,
+    attrs.upn,
+    attrs.userPrincipalName,
+    root.name
+  ];
+
+  const emailCandidate = candidates
+    .map((v) => (typeof v === 'string' ? v : ''))
+    .find((v) => v.includes('@'));
+
+  return emailCandidate || null;
+};
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithOutlook: () => void;
   logout: () => void;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
   hasRole: (role: UserRole) => boolean;
@@ -46,157 +232,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
+      return;
     }
+
+    const tryHydrateFromSso = async () => {
+      try {
+        const base = AUTH_BASE_URL.replace(/\/$/, '');
+        const response = await fetch(`${base}/auth/user`, {
+          credentials: 'include'
+        });
+        if (!response.ok) {
+          return;
+        }
+        const principal = await response.json();
+        const email = extractEmailFromPrincipal(principal);
+        const mappedUser = resolveUserFromEmail(email);
+        if (mappedUser) {
+          setUser(mappedUser);
+          setIsAuthenticated(true);
+          localStorage.setItem('user', JSON.stringify(mappedUser));
+        }
+      } catch (error) {
+        console.error('Failed to hydrate user from SSO:', error);
+      }
+    };
+
+    void tryHydrateFromSso();
   }, []);
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Minimal mock auth: support provided emails with shared password, keep existing mocks
+      // Minimal mock auth for non-SSO environments: support provided emails with shared password,
+      // and keep existing demo users for local testing.
       const PASS = '@@Passw0rd@@';
       const uname = (username || '').trim();
-      const ukey = uname.toLowerCase();
+      const ukey = normalizeEmail(uname);
 
-      const emailDirectory: Record<string, User> = {
-        // MEDECIN
-        'm.aslaf@aui.ma': {
-          id: 3,
-          nom: 'Aslaf',
-          prenom: 'Dr.Mounia',
-          username: 'm.aslaf@aui.ma',
-          passwd: null,
-          role: 'MEDECIN' as UserRole,
-          specialite: 'Médecine Générale',
-          telephone: '0000000000',
-          email: 'm.aslaf@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'health.center.doctor@aui.ma': {
-          id: 4,
-          nom: 'Physician',
-          prenom: 'Intern',
-          username: 'Health.Center.Doctor@aui.ma',
-          passwd: null,
-          role: 'MEDECIN' as UserRole,
-          specialite: 'Interne',
-          telephone: '0000000000',
-          email: 'Health.Center.Doctor@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        // ADMIN
-        'a.guennoun@aui.ma': {
-          id: 1,
-          nom: 'Guennoun',
-          prenom: 'Dr.Adnane',
-          username: 'a.guennoun@aui.ma',
-          passwd: null,
-          role: 'ADMIN' as UserRole,
-          specialite: 'Administration',
-          telephone: '0000000000',
-          email: 'a.guennoun@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'h.harroud@aui.ma': {
-          id: 1,
-          nom: 'Harroud',
-          prenom: 'Dr.Hamid',
-          username: 'a.guennoun@aui.ma',
-          passwd: null,
-          role: 'ADMIN' as UserRole,
-          specialite: 'Administration',
-          telephone: '0000000000',
-          email: 'a.guennoun@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'a.bettahi@aui.ma': {
-          id: 1,
-          nom: 'Bettahi',
-          prenom: 'Abdelkarim',
-          username: 'a.guennoun@aui.ma',
-          passwd: null,
-          role: 'ADMIN' as UserRole,
-          specialite: 'Administration',
-          telephone: '0000000000',
-          email: 'a.guennoun@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'o.ghazal@aui.ma': {
-          id: 5,
-          nom: 'GHazal',
-          prenom: 'Oumaima',
-          username: 'o.ghazal@aui.ma',
-          passwd: null,
-          role: 'ADMIN' as UserRole,
-          specialite: 'Administration',
-          telephone: '0000000000',
-          email: 'o.ghazal@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        // INFIRMIER
-        'm.ouakki@ai.ma': {
-          id: 6,
-          nom: 'Ouakki',
-          prenom: 'Meriem',
-          username: 'm.ouakki@ai.ma',
-          passwd: null,
-          role: 'INFIRMIER' as UserRole,
-          specialite: 'Soins Infirmiers',
-          telephone: '0000000000',
-          email: 'm.ouakki@ai.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'f.elmajdoubi@aui.ma': {
-          id: 2,
-          nom: 'Elmajdoub',
-          prenom: 'Fatima',
-          username: 'f.elmajdoubi@aui.ma',
-          passwd: null,
-          role: 'INFIRMIER' as UserRole,
-          specialite: 'Soins Infirmiers',
-          telephone: '0000000000',
-          email: 'f.elmajdoubi@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        's.ghazal@aui.ma': {
-          id: 7,
-          nom: 'GHazal',
-          prenom: 'Siham',
-          username: 's.ghazal@aui.ma',
-          passwd: null,
-          role: 'INFIRMIER' as UserRole,
-          specialite: 'Soins Infirmiers',
-          telephone: '0000000000',
-          email: 's.ghazal@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'g.makhsou@aui.ma': {
-          id: 8,
-          nom: 'Makhsou',
-          prenom: 'Ghizlane',
-          username: 'g.makhsou@aui.ma',
-          passwd: null,
-          role: 'INFIRMIER' as UserRole,
-          specialite: 'Soins Infirmiers',
-          telephone: '0000000000',
-          email: 'g.makhsou@aui.ma',
-          status: 'ACTIF' as UserStatus
-        },
-        'health.center.nurse@aui.ma': {
-          id: 9,
-          nom: 'Nurses',
-          prenom: 'Intern',
-          username: 'Health.Center.Nurse@aui.ma',
-          passwd: null,
-          role: 'INFIRMIER' as UserRole,
-          specialite: 'Interne',
-          telephone: '0000000000',
-          email: 'Health.Center.Nurse@aui.ma',
-          status: 'ACTIF' as UserStatus
-        }
-      };
-
-      // If an allowed email and correct shared password
-      if (emailDirectory[ukey] && password === PASS) {
-        const u = emailDirectory[ukey];
+      const emailUser = resolveUserFromEmail(ukey);
+      if (emailUser && password === PASS) {
+        const u = emailUser;
         setUser(u);
         setIsAuthenticated(true);
         localStorage.setItem('user', JSON.stringify(u));
@@ -268,6 +342,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithOutlook = () => {
+    const base = AUTH_BASE_URL.replace(/\/$/, '');
+    window.location.href = `${base}/oauth2/authorization/azure-dev`;
+  };
+
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
@@ -281,7 +360,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!userData.passwd || userData.passwd.toString().trim() === '') {
         delete payload.passwd;
       }
-      const response = await fetch(`https://hc.aui.ma/personnels/${user.id}`, {
+      const response = await fetch(`https://hc.aui.ma/api/consultations/personnels/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -309,7 +388,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const isAdmin = () => {
-    return hasRole(UserRole.ADMIN);
+    return hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]);
   };
 
   const isMedecin = () => {
@@ -321,7 +400,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, updateProfile, hasRole, hasAnyRole, isAdmin, isMedecin, isInfirmier }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        login,
+        loginWithOutlook,
+        logout,
+        updateProfile,
+        hasRole,
+        hasAnyRole,
+        isAdmin,
+        isMedecin,
+        isInfirmier
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

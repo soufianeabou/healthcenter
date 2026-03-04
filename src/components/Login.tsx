@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface LoginProps {
   onLogin: (user: any) => void;
@@ -13,6 +14,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,24 +22,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        onLogin(data.user);
+      const result = await login(formData.username, formData.password);
+      if (result.success) {
+        const storedUser = localStorage.getItem('user');
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+        onLogin(parsedUser);
       } else {
-        setError(data.message || 'Erreur de connexion');
+        setError(result.error || 'Erreur de connexion');
       }
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError('Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -48,15 +42,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       ...formData,
       [e.target.name]: e.target.value
     });
-  };
-
-  const getRoleDisplay = (role: string) => {
-    switch (role) {
-      case 'ADMIN': return 'Administrateur';
-      case 'MEDECIN': return 'Médecin';
-      case 'INFIRMIERE': return 'Infirmière';
-      default: return role;
-    }
   };
 
   return (
@@ -161,8 +146,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <h3 className="text-sm font-medium text-gray-700 mb-2">Comptes de démonstration :</h3>
             <div className="space-y-1 text-xs text-gray-600">
               <div><strong>Admin:</strong> admin / admin</div>
-              <div><strong>Médecin:</strong> dr.smith / med123</div>
-              <div><strong>Infirmière:</strong> nurse.jane / inf123</div>
+              <div><strong>Médecin:</strong> med / med</div>
+              <div><strong>Infirmier:</strong> inf / inf</div>
             </div>
           </div>
         </div>

@@ -40,6 +40,24 @@ ChartJS.register(
   Filler
 );
 
+const TIME_SLOTS = [
+  { id: 'matin', label: '08:30 – 13:30', min: 8 * 60 + 30, max: 13 * 60 + 30 },
+  { id: 'apres-midi', label: '13:30 – 18:00', min: 13 * 60 + 30, max: 18 * 60 },
+  { id: 'soir', label: '18:00 – 23:00', min: 18 * 60, max: 23 * 60 },
+  { id: 'nuit', label: '23:00 – 08:30', min: 23 * 60, max: 24 * 60 + (8 * 60 + 30) }
+] as const;
+
+function getTimeSlot(dateConsultation: string): string {
+  const d = new Date(dateConsultation);
+  const totalMinutes = d.getHours() * 60 + d.getMinutes();
+  for (const slot of TIME_SLOTS) {
+    if (slot.id === 'nuit') {
+      if (totalMinutes >= 23 * 60 || totalMinutes < 8 * 60 + 30) return slot.id;
+    } else if (totalMinutes >= slot.min && totalMinutes < slot.max) return slot.id;
+  }
+  return 'nuit';
+}
+
 interface ReportStats {
   totalPatients: number;
   totalConsultations: number;
@@ -50,6 +68,9 @@ interface ReportStats {
   materialsAssigned: number;
   topMaterials: Array<{ name: string; count: number; category: string }>;
   consultationsByDay: Array<{ date: string; count: number }>;
+  consultationsByMonth: Array<{ month: string; count: number }>;
+  consultationsByDiagnostic: Array<{ diagnostic: string; count: number }>;
+  consultationsByTimeSlot: Array<{ slotId: string; label: string; count: number }>;
   materialsByCategory: Array<{ category: string; count: number }>;
   recentConsultations: Array<any>;
 }
@@ -67,6 +88,9 @@ const Reports = () => {
     materialsAssigned: 0,
     topMaterials: [],
     consultationsByDay: [],
+    consultationsByMonth: [],
+    consultationsByDiagnostic: [],
+    consultationsByTimeSlot: [],
     materialsByCategory: [],
     recentConsultations: []
   });
@@ -142,6 +166,41 @@ const Reports = () => {
       // Group consultations by day for chart
       const consultationsByDay = getConsultationsByDay(filteredConsultations, selectedPeriod);
 
+      // By month (for filtered set)
+      const monthCount: { [key: string]: number } = {};
+      filteredConsultations.forEach((c: any) => {
+        const d = new Date(c.dateConsultation);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        monthCount[key] = (monthCount[key] || 0) + 1;
+      });
+      const consultationsByMonth = Object.entries(monthCount)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, count]) => ({ month, count }));
+
+      // By diagnostic (normalize: first line or first 60 chars for grouping)
+      const diagnosticCount: { [key: string]: number } = {};
+      filteredConsultations.forEach((c: any) => {
+        const raw = (c.diagnostic || c.motif || 'Non renseigné').trim();
+        const key = raw.split('\n')[0].slice(0, 80) || 'Non renseigné';
+        diagnosticCount[key] = (diagnosticCount[key] || 0) + 1;
+      });
+      const consultationsByDiagnostic = Object.entries(diagnosticCount)
+        .map(([diagnostic, count]) => ({ diagnostic, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15);
+
+      // By time slot
+      const slotCount: { [key: string]: number } = { matin: 0, 'apres-midi': 0, soir: 0, nuit: 0 };
+      filteredConsultations.forEach((c: any) => {
+        const slot = getTimeSlot(c.dateConsultation);
+        slotCount[slot] = (slotCount[slot] || 0) + 1;
+      });
+      const consultationsByTimeSlot = TIME_SLOTS.map(s => ({
+        slotId: s.id,
+        label: s.label,
+        count: slotCount[s.id] || 0
+      }));
+
       // Group materials by category
       const categoryCount: { [key: string]: number } = {};
       materials.forEach((m: any) => {
@@ -177,6 +236,9 @@ const Reports = () => {
         ),
         topMaterials,
         consultationsByDay,
+        consultationsByMonth,
+        consultationsByDiagnostic,
+        consultationsByTimeSlot,
         materialsByCategory,
         recentConsultations: filteredConsultations.slice(0, 5)
       });
@@ -243,7 +305,15 @@ const Reports = () => {
       [''],
       ['=== MATÉRIELS PAR CATÉGORIE ==='],
       ['Catégorie', 'Nombre'],
-      ...stats.materialsByCategory.map(c => [c.category, c.count])
+      ...stats.materialsByCategory.map(c => [c.category, c.count]),
+      [''],
+      ['=== CONSULTATIONS PAR CRÉNEAU HORAIRE ==='],
+      ['Créneau', 'Nombre'],
+      ...stats.consultationsByTimeSlot.map(s => [s.label, s.count]),
+      [''],
+      ['=== TOP DIAGNOSTICS ==='],
+      ['Diagnostic', 'Nombre'],
+      ...stats.consultationsByDiagnostic.map(d => [d.diagnostic.replace(/,/g, ';'), d.count])
     ].map(row => row.join(',')).join('\n');
 
     // Create download link
@@ -304,6 +374,32 @@ const Reports = () => {
         label: 'Utilisation',
         data: stats.topMaterials.map(m => m.count),
         backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        borderColor: 'rgb(34, 197, 94)',
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const timeSlotChartData = {
+    labels: stats.consultationsByTimeSlot.map(s => s.label),
+    datasets: [
+      {
+        label: 'Consultations',
+        data: stats.consultationsByTimeSlot.map(s => s.count),
+        backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(34, 197, 94, 0.8)', 'rgba(251, 146, 60, 0.8)', 'rgba(168, 85, 247, 0.8)'],
+        borderColor: ['rgb(59, 130, 246)', 'rgb(34, 197, 94)', 'rgb(251, 146, 60)', 'rgb(168, 85, 247)'],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  const diagnosticChartData = {
+    labels: stats.consultationsByDiagnostic.slice(0, 8).map(d => d.diagnostic.length > 40 ? d.diagnostic.slice(0, 40) + '…' : d.diagnostic),
+    datasets: [
+      {
+        label: 'Nombre',
+        data: stats.consultationsByDiagnostic.slice(0, 8).map(d => d.count),
+        backgroundColor: 'rgba(34, 197, 94, 0.7)',
         borderColor: 'rgb(34, 197, 94)',
         borderWidth: 1
       }
@@ -494,6 +590,50 @@ const Reports = () => {
           />
         </div>
       </div>
+
+      {/* By time slot & By diagnostic */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+            Consultations par créneau horaire
+          </h3>
+          <div className="h-64">
+            <Bar data={timeSlotChartData} options={chartOptions} />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <FileText className="w-5 h-5 mr-2 text-green-600" />
+            Top diagnostics
+          </h3>
+          <div className="h-64">
+            <Bar 
+              data={diagnosticChartData} 
+              options={{ ...chartOptions, indexAxis: 'y' as const }} 
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* By month (when multiple months in range) */}
+      {stats.consultationsByMonth.length > 1 && (
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+            <Activity className="w-5 h-5 mr-2 text-purple-600" />
+            Consultations par mois
+          </h3>
+          <div className="h-64">
+            <Bar 
+              data={{
+                labels: stats.consultationsByMonth.map(m => m.month),
+                datasets: [{ label: 'Consultations', data: stats.consultationsByMonth.map(m => m.count), backgroundColor: 'rgba(168, 85, 247, 0.7)', borderColor: 'rgb(168, 85, 247)', borderWidth: 1 }]
+              }} 
+              options={chartOptions} 
+            />
+          </div>
+        </div>
+      )}
 
       {/* Recent Consultations Table */}
       <div className="bg-white rounded-xl shadow-md p-6">

@@ -102,7 +102,7 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
 
         console.log('Envoi du payload:', payload);
 
-        const response = await fetch('https://hc.aui.ma/sortie-stock', {
+        const response = await fetch('https://hc.aui.ma/api/consultations/sortiestocks', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

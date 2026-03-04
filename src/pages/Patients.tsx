@@ -12,6 +12,7 @@ interface Patient {
   idNum: number;
   telephone: string;
   email: string;
+  category?: string;
 }
 
 const Patients: React.FC = () => {
@@ -21,6 +22,9 @@ const Patients: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [medicalRecordVisible, setMedicalRecordVisible] = useState(false);
   const [searchId, setSearchId] = useState('');
+  const [nameSearch, setNameSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [patientCategories, setPatientCategories] = useState<Record<number, string>>({});
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [uploadResults, setUploadResults] = useState<{success: number; failed: number; errors: string[]}>({
     success: 0,
@@ -29,8 +33,26 @@ const Patients: React.FC = () => {
   });
 
   useEffect(() => {
+    const storedCategories = localStorage.getItem('patientCategories');
+    if (storedCategories) {
+      try {
+        setPatientCategories(JSON.parse(storedCategories));
+      } catch {
+        setPatientCategories({});
+      }
+    }
     fetchPatients();
   }, []);
+
+  const mapPatient = (r: any): Patient => ({
+    id: r.id,
+    nom: r.nom || '',
+    prenom: r.prenom || '',
+    idNum: r.idNum,
+    telephone: r.telephone || '',
+    email: r.email || '',
+    category: patientCategories[r.idNum] || ''
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -46,14 +68,7 @@ const Patients: React.FC = () => {
           return;
         }
         const r = await res.json();
-        const mapped: Patient = {
-          id: r.id,
-          nom: r.nom || '',
-          prenom: r.prenom || '',
-          idNum: r.idNum,
-          telephone: r.telephone || '',
-          email: r.email || ''
-        };
+        const mapped = mapPatient(r);
         setPatients([mapped]);
       } catch (e) {
         setPatients([]);
@@ -70,7 +85,8 @@ const Patients: React.FC = () => {
       const response = await fetch('https://hc.aui.ma/api/patients');
       if (response.ok) {
         const data = await response.json();
-        setPatients(data);
+        const mapped: Patient[] = data.map((p: any) => mapPatient(p));
+        setPatients(mapped);
       } else {
         message.error('Erreur lors du chargement des patients');
       }
@@ -257,6 +273,21 @@ const Patients: React.FC = () => {
     }
   };
 
+  const handleCategoryChange = (patient: Patient, value: string) => {
+    const idNum = patient.idNum;
+    const nextCategories = { ...patientCategories, [idNum]: value };
+    setPatientCategories(nextCategories);
+    localStorage.setItem('patientCategories', JSON.stringify(nextCategories));
+
+    setPatients(prev =>
+      prev.map(p =>
+        p.idNum === idNum
+          ? { ...p, category: value }
+          : p
+      )
+    );
+  };
+
   const columns = [
     {
       title: 'ID',
@@ -268,7 +299,7 @@ const Patients: React.FC = () => {
       title: 'Nom',
       dataIndex: 'nom',
       key: 'nom',
-      render: (text: string, record: Patient) => `${record.prenom} ${record.nom}`,
+      render: (_: string, record: Patient) => `${record.prenom} ${record.nom}`,
     },
     {
       title: 'ID Number',
@@ -288,10 +319,29 @@ const Patients: React.FC = () => {
       key: 'email',
     },
     {
+      title: 'Catégorie',
+      dataIndex: 'category',
+      key: 'category',
+      width: 160,
+      render: (_: string, record: Patient) => (
+        <select
+          value={record.category || ''}
+          onChange={(e) => handleCategoryChange(record, e.target.value)}
+          style={{ padding: 4, borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12 }}
+        >
+          <option value="">Non défini</option>
+          <option value="Student">Student</option>
+          <option value="Faculty">Faculty</option>
+          <option value="Staff">Staff</option>
+          <option value="Guest">Guest</option>
+        </select>
+      ),
+    },
+    {
       title: 'Actions',
       key: 'actions',
       width: 300,
-      render: (text: string, record: Patient) => (
+      render: (_: string, record: Patient) => (
         <Space size="small">
           <Button
             type="primary"
@@ -315,6 +365,14 @@ const Patients: React.FC = () => {
     },
   ];
 
+  const filteredPatients = patients.filter((p) => {
+    const matchesName = nameSearch
+      ? (`${p.prenom} ${p.nom}`.toLowerCase().includes(nameSearch.toLowerCase()))
+      : true;
+    const matchesCategory = categoryFilter === 'ALL' || (p.category || '') === categoryFilter;
+    return matchesName && matchesCategory;
+  });
+
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -326,6 +384,23 @@ const Patients: React.FC = () => {
             placeholder="Recherche par ID (idNum)"
             style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
           />
+          <input
+            value={nameSearch}
+            onChange={(e) => setNameSearch(e.target.value)}
+            placeholder="Recherche par nom"
+            style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
+          >
+            <option value="ALL">Toutes catégories</option>
+            <option value="Student">Student</option>
+            <option value="Faculty">Faculty</option>
+            <option value="Staff">Staff</option>
+            <option value="Guest">Guest</option>
+          </select>
           <Upload
             accept=".xlsx,.xls,.csv"
             showUploadList={false}
@@ -343,7 +418,7 @@ const Patients: React.FC = () => {
 
       <Table
         columns={columns}
-        dataSource={patients}
+        dataSource={filteredPatients}
         loading={loading}
         rowKey="id"
         pagination={{ pageSize: 10 }}

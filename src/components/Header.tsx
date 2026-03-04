@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings, ChevronDown, AlertTriangle, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Medicine } from '../types/medicine';
+import { getOverdueAssignments } from '../utils/materialAssignments';
 
-const Header = () => {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -30,6 +35,9 @@ const Header = () => {
     setShowNotifications(!showNotifications);
   };
 
+  const overdueMaterials = showNotifications ? getOverdueAssignments() : [];
+  const notificationCount = lowStockMedicines.length + overdueMaterials.length;
+
   // Fetch low stock medicines
   useEffect(() => {
     const fetchLowStockMedicines = async () => {
@@ -37,7 +45,7 @@ const Header = () => {
       
       try {
         setIsLoadingNotifications(true);
-        const response = await fetch('https://hc.aui.ma/medicaments');
+        const response = await fetch('https://hc.aui.ma/api/consultations/medicaments');
         if (response.ok) {
           const medicines: Medicine[] = await response.json();
           // Filter medicines with low stock (qteStock <= qteMinimum)
@@ -58,30 +66,40 @@ const Header = () => {
   }, [user]);
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="relative">
+    <header className="bg-white shadow-sm border-b border-gray-200 px-3 md:px-6 py-3 md:py-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {onMenuClick && (
+            <button
+              type="button"
+              onClick={onMenuClick}
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          )}
+          <div className="relative flex-1 max-w-full md:max-w-none">
             <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search medicines, patients, or suppliers..."
-              className="pl-10 pr-4 py-2 w-96 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Search..."
+              className="pl-10 pr-4 py-2 w-full md:w-96 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
         </div>
-        
-        <div className="flex items-center space-x-4">
+
+        <div className="flex items-center space-x-1 md:space-x-4 flex-shrink-0">
           <div className="relative">
             <button 
               onClick={toggleNotifications}
               className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               <Bell className="w-6 h-6" />
-              {lowStockMedicines.length > 0 && (
+              {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-xs text-white font-medium">
-                    {lowStockMedicines.length > 9 ? '9+' : lowStockMedicines.length}
+                    {notificationCount > 9 ? '9+' : notificationCount}
                   </span>
                 </span>
               )}
@@ -95,8 +113,8 @@ const Header = () => {
                     <div>
                       <h3 className="text-sm font-medium text-gray-900">Notifications</h3>
                       <p className="text-xs text-gray-500">
-                        {lowStockMedicines.length > 0 
-                          ? `${lowStockMedicines.length} médicament(s) en stock faible`
+                        {notificationCount > 0
+                          ? `${lowStockMedicines.length} stock faible, ${overdueMaterials.length} non retourné(s) (> 3 sem.)`
                           : 'Aucune notification'
                         }
                       </p>
@@ -106,7 +124,7 @@ const Header = () => {
                         const fetchLowStockMedicines = async () => {
                           try {
                             setIsLoadingNotifications(true);
-                            const response = await fetch('https://hc.aui.ma/medicaments');
+                            const response = await fetch('https://hc.aui.ma/api/consultations/medicaments');
                             if (response.ok) {
                               const medicines: Medicine[] = await response.json();
                               const lowStock = medicines.filter(med => med.qteStock <= med.qteMinimum);
@@ -155,23 +173,49 @@ const Header = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : null}
+
+                {overdueMaterials.length > 0 && (
+                  <div className="px-4 py-2 border-t border-gray-200">
+                    <p className="text-xs font-medium text-gray-700 mb-2">Matériels non retournés (&gt; 3 sem.)</p>
+                    <div className="space-y-1">
+                      {overdueMaterials.slice(0, 5).map((a) => (
+                        <div key={a.key} className="px-2 py-1.5 rounded bg-red-50 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                          <span className="text-sm text-gray-900 truncate">{a.materialName || 'Matériel'}</span>
+                        </div>
+                      ))}
+                      {overdueMaterials.length > 5 && (
+                        <p className="text-xs text-gray-500">+{overdueMaterials.length - 5} autre(s)</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {lowStockMedicines.length === 0 && overdueMaterials.length === 0 && (
                   <div className="px-4 py-3 text-center text-sm text-gray-500">
-                    Aucun médicament en stock faible
+                    Aucune notification
                   </div>
                 )}
                 
-                {lowStockMedicines.length > 0 && (
-                  <div className="px-4 py-2 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        navigate('/medicines');
-                        setShowNotifications(false);
-                      }}
-                      className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Voir tous les médicaments
-                    </button>
+                {(lowStockMedicines.length > 0 || overdueMaterials.length > 0) && (
+                  <div className="px-4 py-2 border-t border-gray-200 flex gap-2">
+                    {lowStockMedicines.length > 0 && (
+                      <button
+                        onClick={() => { navigate('/medicines'); setShowNotifications(false); }}
+                        className="flex-1 text-center text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Médicaments
+                      </button>
+                    )}
+                    {overdueMaterials.length > 0 && (
+                      <button
+                        onClick={() => { navigate('/consultations'); setShowNotifications(false); }}
+                        className="flex-1 text-center text-sm text-red-600 hover:text-red-800 font-medium"
+                      >
+                        Consultations
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -181,16 +225,16 @@ const Header = () => {
           <div className="relative">
             <button 
               onClick={toggleProfileMenu}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center space-x-2 md:space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <User className="w-5 h-5 text-white" />
               </div>
-              <div className="text-sm text-left">
-                <p className="font-medium text-gray-700">{user ? `${user.prenom} ${user.nom}` : 'User'}</p>
-                <p className="text-gray-500 capitalize">{user?.role || 'Unknown'}</p>
+              <div className="text-sm text-left hidden sm:block min-w-0">
+                <p className="font-medium text-gray-700 truncate">{user ? `${user.prenom} ${user.nom}` : 'User'}</p>
+                <p className="text-gray-500 capitalize truncate">{user?.role || 'Unknown'}</p>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
             </button>
             
             {/* Profile Dropdown Menu */}

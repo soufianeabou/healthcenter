@@ -4,6 +4,7 @@ import { ConsultationDTO } from '../types/consultation';
 import { Patient } from '../types/patient';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
+import { saveAssignment, removeAssignment } from '../utils/materialAssignments';
 
 interface Props {
   personnelId: number;
@@ -27,25 +28,13 @@ interface MaterialLine {
 const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel }) => {
   const { user } = useAuth();
   const isNurse = user?.role === UserRole.INFIRMIER;
-  
+
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
   // Use idNum (the patient's ID number), not the internal database id
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(
-    initial?.patient?.idNum || initial?.patient?.id || null
+    (initial as any)?.patient?.idNum || (initial as any)?.patient?.id || null
   );
-  const [selectedPatientName, setSelectedPatientName] = useState<string>('');
-  
-  // When editing, set patient name from initial data
-  useEffect(() => {
-    if (initial?.patient) {
-      const name = `${initial.patient.prenom || ''} ${initial.patient.nom || ''}`.trim();
-      if (name) {
-        setSelectedPatientName(name);
-        setPatientSearch(name);
-      }
-    }
-  }, [initial]);
 
   const [date, setDate] = useState<string>(() => initial?.dateConsultation?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState<string>(() => initial?.dateConsultation ? new Date(initial.dateConsultation).toTimeString().slice(0, 5) : new Date().toTimeString().slice(0, 5));
@@ -54,11 +43,19 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [traitement, setTraitement] = useState<string>(initial?.traitement || '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loadingPatients, setLoadingPatients] = useState(false);
-  
-  // Constantes for nurses
+
+  // External / non-AUI mode
+  const [isExternalPatient, setIsExternalPatient] = useState(false);
+  const [externalName, setExternalName] = useState('');
+  const [externalCategory, setExternalCategory] = useState('');
+  const [externalPhone, setExternalPhone] = useState('');
+
+  // Constantes for nurses (Temperature, TA, P, Sat, GàJ + optional extras)
   const [temperature, setTemperature] = useState('');
   const [tension, setTension] = useState('');
   const [pouls, setPouls] = useState('');
+  const [saturation, setSaturation] = useState('');
+  const [gaj, setGaj] = useState('');
   const [frequenceRespiratoire, setFrequenceRespiratoire] = useState('');
   const [poids, setPoids] = useState('');
   const [taille, setTaille] = useState('');
@@ -88,9 +85,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   // Fetch assigned materials when editing (using patient idNum)
   useEffect(() => {
     const fetchAssignedMaterials = async () => {
-      if (initial?.patient?.idNum) {
+      const initialPatient: any = (initial as any)?.patient;
+      if (initialPatient?.idNum) {
         try {
-          const res = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${initial.patient.idNum}`);
+          const res = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${initialPatient.idNum}`);
           
           if (res.ok) {
             const data = await res.json();
@@ -120,7 +118,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       }
     };
     fetchAssignedMaterials();
-  }, [initial?.patient?.idNum]);
+  }, [initial]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -162,14 +160,17 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const filteredPatients = useMemo(() => patients, [patients]);
 
   const addMaterialLine = () => {
-    setMaterialLines([...materialLines, { id: Date.now().toString(), materielId: '', quantite: 1 }]);
+    setMaterialLines([
+      ...materialLines,
+      { id: Date.now(), materielId: '', quantite: 1 }
+    ]);
   };
 
-  const removeMaterialLine = (id: string) => {
+  const removeMaterialLine = (id: number) => {
     setMaterialLines(materialLines.filter(line => line.id !== id));
   };
 
-  const updateMaterialLine = (id: string, field: 'materielId' | 'quantite', value: number | '') => {
+  const updateMaterialLine = (id: number, field: 'materielId' | 'quantite', value: number | '') => {
     setMaterialLines(materialLines.map(line => 
       line.id === id ? { ...line, [field]: value } : line
     ));
@@ -192,6 +193,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       });
       
       if (res.ok) {
+        removeAssignment(selectedPatientId, materialId);
         // Refresh assigned materials
         const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${selectedPatientId}`);
         if (refreshRes.ok) {
@@ -220,7 +222,11 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!selectedPatientId) e.patient = 'Sélectionner un patient';
+    if (!selectedPatientId && !isExternalPatient) e.patient = 'Sélectionner un patient';
+    if (isExternalPatient) {
+      if (!externalName.trim()) e.externalName = 'Nom requis pour les patients externes';
+      if (!externalCategory.trim()) e.externalCategory = 'Catégorie requise (Famille, Staff, ASI, Guest...)';
+    }
     if (!motif.trim()) e.motif = 'Motif requis';
     if (!diagnostic.trim() && !isNurse) e.diagnostic = 'Diagnostic requis';
     if (!traitement.trim()) e.traitement = 'Traitement requis';
@@ -242,8 +248,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     if (isNurse) {
       const constantes = [];
       if (temperature) constantes.push(`Température: ${temperature}°C`);
-      if (tension) constantes.push(`Tension: ${tension}`);
-      if (pouls) constantes.push(`Pouls: ${pouls} bpm`);
+      if (tension) constantes.push(`TA: ${tension}`);
+      if (pouls) constantes.push(`P: ${pouls} bpm`);
+      if (saturation) constantes.push(`Sat: ${saturation}%`);
+      if (gaj) constantes.push(`GàJ: ${gaj}`);
       if (frequenceRespiratoire) constantes.push(`FR: ${frequenceRespiratoire}/min`);
       if (poids) constantes.push(`Poids: ${poids} kg`);
       if (taille) constantes.push(`Taille: ${taille} cm`);
@@ -272,8 +280,49 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       diagnostic: finalDiagnostic,
       traitement
     };
-    
-    // Submit consultation
+
+    // If this is an external/non-AUI consultation, store it locally and skip backend call
+    if (isExternalPatient) {
+      const externalConsultationsRaw = localStorage.getItem('externalConsultations');
+      const externalConsultations: any[] = externalConsultationsRaw ? JSON.parse(externalConsultationsRaw) : [];
+      const externalId = -Date.now();
+
+      const externalRecord = {
+        id: externalId,
+        patientName: `${externalName} (${externalCategory || 'Externe'})`,
+        external: {
+          name: externalName,
+          category: externalCategory,
+          phone: externalPhone
+        },
+        personnelId,
+        personnelName: user ? `${(user as any).prenom} ${(user as any).nom}`.trim() : '',
+        consultationDate: dateString,
+        motif,
+        diagnostic: finalDiagnostic,
+        traitement,
+        vitals: {
+          temperature,
+          tension,
+          pouls,
+          saturation,
+          gaj,
+          frequenceRespiratoire,
+          poids,
+          taille
+        }
+      };
+
+      localStorage.setItem(
+        'externalConsultations',
+        JSON.stringify([externalRecord, ...externalConsultations])
+      );
+
+      onCancel();
+      return;
+    }
+
+    // Submit consultation to backend for AUI patients
     onSubmit(consultationPayload);
     
     // If there are materials to assign, use the new assign API
@@ -304,6 +353,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           });
           
           if (assignResponse.ok) {
+            const materielName = materiels.find(m => m.id === materialId)?.name;
+            saveAssignment(patientId, materialId, materielName);
             // Refresh assigned materials after successful assignment
             const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientId}`);
             if (refreshRes.ok) {
@@ -333,47 +384,131 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-6">
-      {/* Patient Selection */}
+      {/* Patient Selection / External Mode */}
       <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg border border-green-200">
-        <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center">
-          <Search className="w-4 h-4 mr-2 text-green-600" />
-          Patient *
-        </label>
-        <div className="relative">
-          <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={patientSearch}
-            onChange={(e) => setPatientSearch(e.target.value)}
-            placeholder="Saisir l'ID (idNum) du patient"
-            className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
-            disabled={!!initial}
-          />
+        <div className="flex items-center justify-between mb-3">
+          <label className="block text-sm font-semibold text-gray-800 flex items-center">
+            <Search className="w-4 h-4 mr-2 text-green-600" />
+            Patient *
+          </label>
+          {!initial && (
+            <div className="flex items-center gap-3 text-xs">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  checked={!isExternalPatient}
+                  onChange={() => setIsExternalPatient(false)}
+                  className="text-green-600"
+                />
+                <span className="font-medium text-gray-700">AUI (idNum)</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  checked={isExternalPatient}
+                  onChange={() => {
+                    setIsExternalPatient(true);
+                    setSelectedPatientId(null);
+                  }}
+                  className="text-green-600"
+                />
+                <span className="font-medium text-gray-700">Externe (Famille, Staff, ASI, Guest)</span>
+              </label>
+            </div>
+          )}
         </div>
-        {!initial && (
-          <div className="mt-2 max-h-40 overflow-y-auto border-2 border-gray-200 rounded-lg shadow-sm bg-white">
-            {loadingPatients ? (
-              <div className="p-3 text-sm text-gray-500 text-center">Chargement...</div>
-            ) : filteredPatients.length === 0 ? (
-              <div className="p-3 text-sm text-gray-500 text-center">Aucun patient</div>
-            ) : (
-              filteredPatients.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => { setSelectedPatientId(p.id!); setPatientSearch(`${p.prenom} ${p.nom}`); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-green-50 transition-colors border-b border-gray-100 last:border-0 ${
-                    selectedPatientId === p.id ? 'bg-green-100 border-l-4 border-l-green-600' : ''
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-gray-900">{p.prenom} {p.nom}</div>
-                  <div className="text-xs text-gray-600 mt-1">{p.cne} • {p.email}</div>
-                </button>
-              ))
+
+        {!isExternalPatient && (
+          <>
+            <div className="relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={patientSearch}
+                onChange={(e) => setPatientSearch(e.target.value)}
+                placeholder="Saisir l'ID (idNum) du patient"
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={!!initial}
+              />
+            </div>
+            {!initial && (
+              <div className="mt-2 max-h-40 overflow-y-auto border-2 border-gray-200 rounded-lg shadow-sm bg-white">
+                {loadingPatients ? (
+                  <div className="p-3 text-sm text-gray-500 text-center">Chargement...</div>
+                ) : filteredPatients.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500 text-center">Aucun patient</div>
+                ) : (
+                  filteredPatients.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => { setSelectedPatientId(p.id!); setPatientSearch(`${p.prenom} ${p.nom}`); }}
+                      className={`w-full text-left px-4 py-3 hover:bg-green-50 transition-colors border-b border-gray-100 last:border-0 ${
+                        selectedPatientId === p.id ? 'bg-green-100 border-l-4 border-l-green-600' : ''
+                      }`}
+                    >
+                      <div className="text-sm font-semibold text-gray-900">{p.prenom} {p.nom}</div>
+                      <div className="text-xs text-gray-600 mt-1">{p.cne} • {p.email}</div>
+                    </button>
+                  ))
+                )}
+              </div>
             )}
+            {errors.patient && <p className="text-red-600 text-sm mt-2 font-medium">{errors.patient}</p>}
+          </>
+        )}
+
+        {isExternalPatient && !initial && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Nom complet du patient externe *
+              </label>
+              <input
+                type="text"
+                value={externalName}
+                onChange={(e) => setExternalName(e.target.value)}
+                placeholder="Nom et prénom"
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+              {errors.externalName && (
+                <p className="text-red-600 text-xs mt-1 font-medium">{errors.externalName}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Catégorie *
+              </label>
+              <select
+                value={externalCategory}
+                onChange={(e) => setExternalCategory(e.target.value)}
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="">Sélectionner</option>
+                <option value="Famille">Famille</option>
+                <option value="Restaurant staff">Restaurant staff</option>
+                <option value="ASI student">ASI student</option>
+                <option value="Guest">Guest</option>
+                <option value="Autre">Autre</option>
+              </select>
+              {errors.externalCategory && (
+                <p className="text-red-600 text-xs mt-1 font-medium">{errors.externalCategory}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Téléphone (optionnel)
+              </label>
+              <input
+                type="tel"
+                value={externalPhone}
+                onChange={(e) => setExternalPhone(e.target.value)}
+                placeholder="+212..."
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              />
+            </div>
           </div>
         )}
-        {errors.patient && <p className="text-red-600 text-sm mt-2 font-medium">{errors.patient}</p>}
       </div>
 
       {/* Date and Time - Hidden but kept for compatibility */}
@@ -396,7 +531,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         {errors.motif && <p className="text-red-600 text-sm mt-2 font-medium">{errors.motif}</p>}
       </div>
 
-      {/* Constantes section for nurses */}
+      {/* Constantes section for nurses (Temperature, TA, P, Sat, GàJ) */}
       {isNurse && (
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border-2 border-purple-200 shadow-sm">
           <h3 className="text-sm font-bold text-purple-900 mb-3 flex items-center">
@@ -416,7 +551,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Tension</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">TA</label>
               <input 
                 type="text" 
                 value={tension} 
@@ -426,13 +561,33 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Pouls</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">P (bpm)</label>
               <input 
                 type="number" 
                 value={pouls} 
                 onChange={(e) => setPouls(e.target.value)} 
                 placeholder="70"
                 className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Sat (%)</label>
+              <input
+                type="number"
+                value={saturation}
+                onChange={(e) => setSaturation(e.target.value)}
+                placeholder="98"
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">GàJ</label>
+              <input
+                type="text"
+                value={gaj}
+                onChange={(e) => setGaj(e.target.value)}
+                placeholder="Ex: 1.0 g/L"
+                className="w-full px-3 py-2 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               />
             </div>
             <div>

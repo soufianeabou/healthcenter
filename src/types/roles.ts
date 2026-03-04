@@ -1,8 +1,8 @@
-// This enum should match exactly with your backend ERole enum
 export enum UserRole {
   ADMIN = 'ADMIN',
   MEDECIN = 'MEDECIN',
-  INFIRMIER = 'INFIRMIER'
+  INFIRMIER = 'INFIRMIER',
+  SUPER_ADMIN = 'SUPER_ADMIN'
 }
 
 // Type for user status
@@ -27,6 +27,8 @@ export function getRoleDisplayName(role: UserRole): string {
       return 'Doctor';
     case UserRole.INFIRMIER:
       return 'Nurse';
+    case UserRole.SUPER_ADMIN:
+      return 'Super Admin';
     default:
       return 'Unknown';
   }
@@ -41,6 +43,8 @@ export function getRoleBadgeColors(role: UserRole): string {
       return 'bg-blue-100 text-blue-800';
     case UserRole.INFIRMIER:
       return 'bg-green-100 text-green-800';
+    case UserRole.SUPER_ADMIN:
+      return 'bg-red-100 text-red-800';
     default:
       return 'bg-gray-100 text-gray-800';
   }

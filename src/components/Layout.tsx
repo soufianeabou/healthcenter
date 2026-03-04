@@ -110,16 +110,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sidebarContent = (
     <div className="h-full flex flex-col">
       {/* Logo */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AUI</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-800">Health Center</h1>
-            <p className="text-xs text-gray-500">Centre de Santé AUI</p>
-          </div>
-        </div>
+      <div className="p-4 border-b border-gray-200">
+        <img src="/assets/hclogo.png" alt="Health Center" className="h-10 w-auto object-contain" />
       </div>
 
       {/* User Info */}
@@ -175,11 +167,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         >
           <Menu size={20} />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-            {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-          </div>
-        </div>
+        <img src="/assets/hclogo.png" alt="Health Center" className="h-8 w-auto object-contain" />
+        <div className="w-10" />
       </div>
 
       {/* Desktop Layout */}

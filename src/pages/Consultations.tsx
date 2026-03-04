@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Filter, Calendar, User, FileText, Pill, Clock, Eye, Edit, Trash2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import ConsultationBackendForm from '../components/ConsultationBackendForm';
-import SortieStockForm from '../components/SortieStockForm';
 import MaterielAssignmentForm from '../components/MaterielAssignmentForm';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,11 +23,14 @@ interface ConsultationRow {
   notes: string; // mapped from motif/diagnostic/traitement
   status: 'COMPLETED' | 'PENDING' | 'FOLLOW_UP';
   prescriptionItems: PrescriptionItem[]; // optional visualization
+  isExternal?: boolean;
+  externalCategory?: string;
 }
 
 const Consultations = () => {
   const { user } = useAuth();
   const [consultations, setConsultations] = useState<ConsultationRow[]>([]);
+  const [externalConsultations, setExternalConsultations] = useState<ConsultationRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'PENDING' | 'FOLLOW_UP'>('ALL');
   const [dateFilter, setDateFilter] = useState('');
@@ -85,11 +87,41 @@ const Consultations = () => {
     }
   };
 
+  const loadExternalConsultations = () => {
+    try {
+      const raw = localStorage.getItem('externalConsultations');
+      if (!raw) {
+        setExternalConsultations([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as any[];
+      const mapped: ConsultationRow[] = parsed.map((c: any) => ({
+        id: c.id,
+        patientId: -1,
+        patientName: c.patientName,
+        doctorName: c.personnelName || 'Médecin',
+        consultationDate: c.consultationDate,
+        notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
+        status: 'COMPLETED',
+        prescriptionItems: [],
+        isExternal: true,
+        externalCategory: c.external?.category
+      }));
+      setExternalConsultations(mapped);
+    } catch (err) {
+      console.error('Failed to load external consultations:', err);
+      setExternalConsultations([]);
+    }
+  };
+
   useEffect(() => {
     fetchConsultations();
+    loadExternalConsultations();
   }, []);
 
-  const filteredConsultations = consultations.filter(consultation => {
+  const allConsultations = [...externalConsultations, ...consultations];
+
+  const filteredConsultations = allConsultations.filter(consultation => {
     const matchesSearch = consultation.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          consultation.doctorName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || consultation.status === statusFilter;
@@ -146,6 +178,7 @@ const Consultations = () => {
       
       setIsModalOpen(false);
       await fetchConsultations();
+      loadExternalConsultations();
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Erreur lors de la création de la consultation');
@@ -194,6 +227,7 @@ const Consultations = () => {
       const res = await fetch(`https://hc.aui.ma/api/consultations/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Delete failed (${res.status}): ${await readErrorText(res)}`);
       await fetchConsultations();
+      loadExternalConsultations();
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : 'Erreur lors de la suppression');
@@ -231,21 +265,6 @@ const Consultations = () => {
   const closeSortieModal = () => {
     setIsSortieModalOpen(false);
     setSortieConsultationId(null);
-  };
-
-  const handleCreateSortie = async (payload: any) => {
-    try {
-      const res = await fetch('https://hc.aui.ma/sortie-stock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error(`Sortie failed (${res.status}): ${await readErrorText(res)}`);
-      setIsSortieModalOpen(false);
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : 'Erreur lors de la création de la sortie de stock');
-    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -391,23 +410,23 @@ const Consultations = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto -mx-4 md:mx-0">
+          <table className="w-full min-w-[600px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Patient
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                   Doctor
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date & Time
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -415,20 +434,27 @@ const Consultations = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredConsultations.map((consultation) => (
                 <tr key={consultation.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-green-600" />
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{consultation.patientName}</div>
+                      <div className="ml-4 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {consultation.patientName}
+                          {consultation.isExternal && (
+                            <span className="ml-2 text-xs inline-flex items-center px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
+                              Externe{consultation.externalCategory ? ` • ${consultation.externalCategory}` : ''}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap hidden md:table-cell">
                     <div className="text-sm text-gray-900">{consultation.doctorName}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {consultation.consultationDate ? 
                         new Date(consultation.consultationDate).toLocaleString() : 
@@ -436,10 +462,10 @@ const Consultations = () => {
                       }
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
                     {getStatusBadge(consultation.status)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => openViewModal(consultation)}
@@ -448,27 +474,31 @@ const Consultations = () => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => openEditModal(consultation)}
-                        className="text-green-600 hover:text-green-900 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => openSortieModal(consultation)}
-                        className="text-purple-600 hover:text-purple-900 transition-colors"
-                        title="Sortie de stock"
-                      >
-                        <Pill className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteConsultation(consultation.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!consultation.isExternal && (
+                        <>
+                          <button
+                            onClick={() => openEditModal(consultation)}
+                            className="text-green-600 hover:text-green-900 transition-colors"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openSortieModal(consultation)}
+                            className="text-purple-600 hover:text-purple-900 transition-colors"
+                            title="Sortie de stock"
+                          >
+                            <Pill className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConsultation(consultation.id)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

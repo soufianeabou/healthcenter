@@ -1,20 +1,14 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Pill, 
   Package, 
   Users, 
   Truck, 
   BarChart3, 
   UserCog,
-  GraduationCap,
-  Heart,
   Stethoscope,
   User,
-  LogOut,
-  PackagePlus,
-  PackageMinus
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole, getRoleDisplayName } from '../types/roles';
@@ -61,16 +55,8 @@ const Sidebar = () => {
 
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">AUI Health</h1>
-            <p className="text-sm text-gray-500">Center</p>
-          </div>
-        </div>
+      <div className="p-4 border-b border-gray-200">
+        <img src="/assets/hclogo.png" alt="Health Center" className="h-12 w-auto object-contain" />
       </div>
       
       {/* User Info */}

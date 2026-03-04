@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ArrowLeft, Plus, X } from 'lucide-react';
+import { Package, ArrowLeft, Plus, X, AlertTriangle } from 'lucide-react';
 import { Materiel } from '../types/materiel';
 import Modal from '../components/Modal';
+import { saveAssignment, removeAssignment, getAssignment, isOverdue } from '../utils/materialAssignments';
 
 const ConsultationDetails: React.FC = () => {
   const { id } = useParams();
@@ -30,13 +31,14 @@ const ConsultationDetails: React.FC = () => {
       const cData = await cRes.json();
       setConsultation(cData);
       
-      // Fetch materials assigned to this patient
+      // Fetch materials assigned to this patient (API returns single object or null)
       const patientIdNum = cData.patient?.idNum || cData.patient?.id;
       if (patientIdNum) {
         const mRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientIdNum}`);
         if (mRes.ok) {
           const mData = await mRes.json();
-          setAssignedMaterials(mData);
+          const list = Array.isArray(mData) ? mData : (mData && typeof mData === 'object' ? [mData] : []);
+          setAssignedMaterials(list);
         }
       }
       
@@ -87,8 +89,7 @@ const ConsultationDetails: React.FC = () => {
       }
       
       console.log('✅ Material assigned successfully');
-      
-      // Refresh data
+      saveAssignment(consultation.patient.idNum, Number(selectedMaterialId), selectedMaterial?.name);
       await loadData();
       setIsAssignModalOpen(false);
       setSelectedMaterialId('');
@@ -125,8 +126,7 @@ const ConsultationDetails: React.FC = () => {
       }
       
       console.log('✅ Material unassigned successfully');
-      
-      // Refresh data
+      removeAssignment(consultation.patient.idNum, materialId);
       await loadData();
     } catch (e) {
       console.error(e);
@@ -184,16 +184,29 @@ const ConsultationDetails: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantité</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {assignedMaterials.map(material => (
+                {assignedMaterials.map((material: any) => {
+                  const patientIdNum = consultation?.patient?.idNum;
+                  const stored = patientIdNum && material.id ? getAssignment(patientIdNum, material.id) : null;
+                  const overdue = stored && isOverdue(stored.assignDate);
+                  return (
                   <tr key={material.id}>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{material.name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{material.category}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{material.quantity || 1}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{material.description}</td>
+                    <td className="px-6 py-4">
+                      {overdue && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Non retourné (&gt; 3 sem.)
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => material.id && handleUnassignMaterial(material.id, material.quantity || 1)}
@@ -204,7 +217,7 @@ const ConsultationDetails: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                );})}
               </tbody>
             </table>
           </div>
