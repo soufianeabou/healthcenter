@@ -23,11 +23,17 @@ const getAuthBaseUrl = () => {
     return configuredBaseUrl.replace(/\/$/, '');
   }
 
+  // In production, the SPA is served from https://hc.aui.ma but the gateway
+  // (which exposes /auth/** and /oauth2/**) runs on port 8222 with SSL.
+  // When we're on the production origin and no override is configured,
+  // talk directly to the gateway so that /auth/user returns JSON
+  // instead of the SPA HTML shell.
   if (window.location.origin === PROD_APP_ORIGIN) {
-    return window.location.origin;
+    return 'https://hc.aui.ma:8222';
   }
 
-  return PROD_APP_ORIGIN;
+  // For any other environment, default to the current origin.
+  return window.location.origin;
 };
 
 const AUTH_BASE_URL = getAuthBaseUrl();
