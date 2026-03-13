@@ -278,6 +278,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!response.ok) {
           return;
         }
+        const contentType = response.headers.get('content-type') || '';
+
+        // In some environments, unauthenticated calls may be redirected to an HTML login page.
+        // Guard against that so we do not try to parse HTML as JSON.
+        if (!contentType.toLowerCase().includes('application/json')) {
+          const preview = (await response.text()).slice(0, 100);
+          console.warn('SSO /auth/user did not return JSON. Content-Type:', contentType, 'Preview:', preview);
+          return;
+        }
+
         const principal = await response.json();
         const email = extractEmailFromPrincipal(principal);
         if (!email) {
