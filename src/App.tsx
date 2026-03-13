@@ -23,13 +23,24 @@ import { UserRole } from './types/roles';
 import ConsultationDetails from './pages/ConsultationDetails';
 
 function AppContent() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAuthLoading } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl px-8 py-10 text-center">
+          <div className="w-10 h-10 mx-auto rounded-full border-4 border-green-200 border-t-green-600 animate-spin" />
+          <p className="mt-4 text-sm text-gray-600">Checking your Health Center session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Login />;

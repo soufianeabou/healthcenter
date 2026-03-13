@@ -14,8 +14,24 @@ interface User {
   status: UserStatus;
 }
 
-const AUTH_BASE_URL =
-  (import.meta as any).env?.VITE_AUTH_BASE_URL || window.location.origin;
+const PROD_APP_ORIGIN = 'https://hc.aui.ma';
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1']);
+
+const getAuthBaseUrl = () => {
+  const configuredBaseUrl = (import.meta as any).env?.VITE_AUTH_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/$/, '');
+  }
+
+  if (window.location.origin === PROD_APP_ORIGIN) {
+    return window.location.origin;
+  }
+
+  return PROD_APP_ORIGIN;
+};
+
+const AUTH_BASE_URL = getAuthBaseUrl();
+const DEV_LOGIN_ENABLED = LOCAL_HOSTNAMES.has(window.location.hostname);
 
 const normalizeEmail = (value: string | null | undefined) =>
   (value || '').trim().toLowerCase();
@@ -177,6 +193,16 @@ const resolveUserFromEmail = (email: string | null | undefined): User | null => 
   return EMAIL_DIRECTORY[key] || null;
 };
 
+const clearStoredAuth = () => {
+  localStorage.removeItem('user');
+  localStorage.removeItem('authSource');
+};
+
+const persistUser = (nextUser: User, source: 'local' | 'sso') => {
+  localStorage.setItem('user', JSON.stringify(nextUser));
+  localStorage.setItem('authSource', source);
+};
+
 const extractEmailFromPrincipal = (principal: any): string | null => {
   if (!principal) return null;
 
@@ -202,6 +228,8 @@ const extractEmailFromPrincipal = (principal: any): string | null => {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
+  authError: string | null;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   loginWithOutlook: () => void;
   logout: () => void;
@@ -226,19 +254,25 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
+    const storedAuthSource = localStorage.getItem('authSource');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
+    }
+
+    if (storedAuthSource === 'local') {
+      setIsAuthLoading(false);
       return;
     }
 
     const tryHydrateFromSso = async () => {
       try {
-        const base = AUTH_BASE_URL.replace(/\/$/, '');
-        const response = await fetch(`${base}/auth/user`, {
+        const response = await fetch(`${AUTH_BASE_URL}/auth/user`, {
           credentials: 'include'
         });
         if (!response.ok) {
@@ -246,14 +280,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         const principal = await response.json();
         const email = extractEmailFromPrincipal(principal);
+        if (!email) {
+          if (!storedUser || storedAuthSource === 'sso') {
+            clearStoredAuth();
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+          return;
+        }
+
         const mappedUser = resolveUserFromEmail(email);
         if (mappedUser) {
+          setAuthError(null);
           setUser(mappedUser);
           setIsAuthenticated(true);
-          localStorage.setItem('user', JSON.stringify(mappedUser));
+          persistUser(mappedUser, 'sso');
+          return;
         }
+
+        clearStoredAuth();
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError(
+          `The Outlook account ${email} is authenticated but is not authorized to access this application.`
+        );
       } catch (error) {
         console.error('Failed to hydrate user from SSO:', error);
+      } finally {
+        setIsAuthLoading(false);
       }
     };
 
@@ -262,22 +316,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Minimal mock auth for non-SSO environments: support provided emails with shared password,
-      // and keep existing demo users for local testing.
-      const PASS = '@@Passw0rd@@';
       const uname = (username || '').trim();
-      const ukey = normalizeEmail(uname);
+      setAuthError(null);
 
-      const emailUser = resolveUserFromEmail(ukey);
-      if (emailUser && password === PASS) {
-        const u = emailUser;
-        setUser(u);
-        setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(u));
-        return { success: true };
+      if (!DEV_LOGIN_ENABLED) {
+        return {
+          success: false,
+          error: 'Production access is managed through Outlook. Please use "Sign in with Outlook".'
+        };
       }
 
-      // Existing minimal mocks preserved
       if (uname === 'inf' && password === 'inf') {
         const mockNurseUser: User = {
           id: 3,
@@ -293,7 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(mockNurseUser);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(mockNurseUser));
+        persistUser(mockNurseUser, 'local');
         return { success: true };
       }
 
@@ -312,7 +360,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(mockAdminUser);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(mockAdminUser));
+        persistUser(mockAdminUser, 'local');
         return { success: true };
       }
 
@@ -331,11 +379,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(mockDoctorUser);
         setIsAuthenticated(true);
-        localStorage.setItem('user', JSON.stringify(mockDoctorUser));
+        persistUser(mockDoctorUser, 'local');
         return { success: true };
       }
 
-      return { success: false, error: 'Invalid username or password' };
+      return { success: false, error: 'Invalid local development credentials.' };
     } catch (error) {
       console.error('Login failed:', error);
       return { success: false, error: 'An unexpected error occurred during login.' };
@@ -343,14 +391,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithOutlook = () => {
-    const base = AUTH_BASE_URL.replace(/\/$/, '');
-    window.location.href = `${base}/oauth2/authorization/azure-dev`;
+    setAuthError(null);
+    window.location.href = `${AUTH_BASE_URL}/oauth2/authorization/azure-dev`;
   };
 
   const logout = () => {
+    const authSource = localStorage.getItem('authSource');
+    clearStoredAuth();
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('user');
+    setAuthError(null);
+
+    if (authSource === 'local') {
+      return;
+    }
+
+    window.location.href = `${AUTH_BASE_URL}/logout`;
   };
 
   const updateProfile = async (userData: Partial<User>): Promise<boolean> => {
@@ -404,6 +460,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated,
+        isAuthLoading,
+        authError,
         login,
         loginWithOutlook,
         logout,
