@@ -16,11 +16,12 @@ interface User {
 
 /* ─────────────────────────────────────────────────────────
    Gateway URL resolution
-   Priority: VITE_AUTH_BASE_URL env var  →  production origin
-   port 8222  →  current origin (fallback for local testing)
+   Priority:
+   1) VITE_AUTH_BASE_URL env var
+   2) Production origin https://hc.aui.ma (fronted by nginx → gateway on 8222)
+   3) Current origin (for local dev, when you override via env)
 ───────────────────────────────────────────────────────── */
 const PROD_APP_ORIGIN = 'https://hc.aui.ma';
-const PROD_GATEWAY_URL = 'https://hc.aui.ma:8222';
 
 const getAuthBaseUrl = (): string => {
   const envOverride = (import.meta as any).env?.VITE_AUTH_BASE_URL?.trim();
@@ -29,15 +30,15 @@ const getAuthBaseUrl = (): string => {
     console.log('[Auth] Using VITE_AUTH_BASE_URL:', url);
     return url;
   }
-  
+
   const currentOrigin = window.location.origin;
   console.log('[Auth] Current origin:', currentOrigin);
-  
+
   if (currentOrigin === PROD_APP_ORIGIN) {
-    console.log('[Auth] Production detected, using gateway:', PROD_GATEWAY_URL);
-    return PROD_GATEWAY_URL;
+    console.log('[Auth] Production detected, using app origin (nginx → gateway):', PROD_APP_ORIGIN);
+    return PROD_APP_ORIGIN;
   }
-  
+
   console.log('[Auth] Development mode, using current origin:', currentOrigin);
   return currentOrigin;
 };
