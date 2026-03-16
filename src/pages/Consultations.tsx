@@ -150,13 +150,18 @@ const Consultations = () => {
       const seconds = String(now.getSeconds()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
       
-      const requestBody = { 
-        patientId: payload.patient.id, 
-        personnelId: payload.personnel.id, 
-        dateConsultation: dateString, 
-        motif: payload.motif, 
-        diagnostic: payload.diagnostic, 
-        traitement: payload.traitement 
+      // Backend ConsultationRequest expects patientId to match the patient
+      // service ID used elsewhere (idNum). Use idNum when available and fall
+      // back to id only if idNum is missing.
+      const patientIdForBackend = payload.patient.idNum ?? payload.patient.id;
+
+      const requestBody = {
+        patientId: patientIdForBackend,
+        personnelId: payload.personnel.id,
+        dateConsultation: dateString,
+        motif: payload.motif,
+        diagnostic: payload.diagnostic,
+        traitement: payload.traitement,
       };
       
       console.log('📅 Sending consultation request:', JSON.stringify(requestBody, null, 2));
