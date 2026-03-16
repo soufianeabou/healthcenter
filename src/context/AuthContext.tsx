@@ -57,6 +57,14 @@ const clearStoredAuth = () => {
   localStorage.removeItem('authSource');
 };
 
+// Explicit-logout flag: when set, tryHydrateFromSso skips SSO re-authentication
+// entirely so the user stays on the login page even if the Spring session is
+// still alive. Cleared only when the user intentionally clicks "Sign in".
+const LOGOUT_FLAG = 'hc_explicit_logout';
+const setLoggedOutFlag   = () => localStorage.setItem(LOGOUT_FLAG, '1');
+const clearLoggedOutFlag = () => localStorage.removeItem(LOGOUT_FLAG);
+const wasExplicitLogout  = () => localStorage.getItem(LOGOUT_FLAG) === '1';
+
 const persistUser = (nextUser: User, source: 'sso') => {
   localStorage.setItem('user', JSON.stringify(nextUser));
   localStorage.setItem('authSource', source);
@@ -243,6 +251,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const tryHydrateFromSso = async () => {
+      // If the user explicitly clicked Logout, do NOT auto-re-authenticate via
+      // the Spring session — even if the gateway still has an active session.
+      // This prevents the login-loop on Brave / browsers that keep the Azure SSO alive.
+      if (wasExplicitLogout()) {
+        console.log('[Auth] Explicit logout flag found — skipping SSO hydration. Show login page.');
+        setIsAuthLoading(false);
+        return;
+      }
+
       try {
         console.log('[Auth] Checking session at:', `${AUTH_BASE_URL}/auth/user`);
         const response = await fetch(`${AUTH_BASE_URL}/auth/user`, {
@@ -314,41 +331,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /* ── Redirect to Azure AD via the Spring Security gateway ── */
   const loginWithOutlook = () => {
     setAuthError(null);
+    // Clear the explicit-logout flag so that after Outlook redirects back,
+    // tryHydrateFromSso runs normally and logs the user in.
+    clearLoggedOutFlag();
     const redirectUrl = `${AUTH_BASE_URL}/oauth2/authorization/azure-dev`;
     console.log('[Auth] Redirecting to:', redirectUrl);
     window.location.href = redirectUrl;
   };
 
-  /* ── Logout: clear storage, kill Spring session cookie, go home ── */
+  /* ── Logout ── */
   const logout = () => {
     if (isLoggingOut) return;
     console.log('[Auth] Logging out...');
     setIsLoggingOut(true);
     clearStoredAuth();
+
+    // Mark explicit logout BEFORE navigating — tryHydrateFromSso will see this
+    // flag on the next page load and skip SSO hydration, keeping the user on
+    // the login page even if the Spring/Azure session is still alive.
+    setLoggedOutFlag();
+
     setUser(null);
     setIsAuthenticated(false);
     setAuthError(null);
 
-    // The Spring gateway sets http-only=false, so we can wipe the session
-    // cookie from JS. This prevents tryHydrateFromSso from logging the user
-    // back in when the page reloads (which happens because Nginx does not
-    // proxy /logout to the gateway — it serves the SPA instead).
-    const cookieClear = 'SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    document.cookie = cookieClear;
-    document.cookie = cookieClear + ' domain=hc.aui.ma;';
-    document.cookie = cookieClear + ' domain=.hc.aui.ma;';
-
-    // Also fire the backend logout in the background so the Spring session
-    // is invalidated server-side. We ignore the response/redirect because
-    // Nginx currently doesn't proxy /logout, so it may return the SPA HTML.
+    // Best-effort: try to invalidate the Spring session server-side.
+    // Uses redirect:manual so we don't follow the Microsoft logout redirect chain.
     void fetch(`${AUTH_BASE_URL}/logout`, {
       method: 'GET',
       credentials: 'include',
       redirect: 'manual',
-    }).catch(() => {/* ignore */});
+    }).catch(() => {/* ignore — nginx may not proxy /logout */});
 
-    // Navigate to root — with localStorage and the session cookie both gone,
-    // tryHydrateFromSso will receive a 401 and the login page will render.
     window.location.href = '/';
   };
 
