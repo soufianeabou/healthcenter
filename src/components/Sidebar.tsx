@@ -13,33 +13,32 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { UserRole, getRoleDisplayName } from '../types/roles';
 const Sidebar = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
 
   const adminNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Stethoscope, label: 'Consultations', path: '/consultations' },
-    { icon: Users, label: 'Patients', path: '/patients' },
-    { icon: Package, label: 'Liste des Matériels', path: '/materiels' },
-    { icon: UserCog, label: 'Personnel', path: '/personnel' },
-    { icon: Truck, label: 'Suppliers', path: '/suppliers' },
-    { icon: BarChart3, label: 'Reports', path: '/reports' },
+    { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
+    { icon: Stethoscope,    label: 'Consultations',   path: '/consultations' },
+    { icon: Users,          label: 'Patients',         path: '/patients' },
+    { icon: Package,        label: 'Matériels',        path: '/materiels' },
+    { icon: UserCog,        label: 'Personnel',        path: '/personnel' },
+    { icon: Truck,          label: 'Fournisseurs',     path: '/suppliers' },
+    { icon: BarChart3,      label: 'Rapports',         path: '/reports' },
   ];
 
   const medecinNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Stethoscope, label: 'Consultations', path: '/consultations' },
-    { icon: Users, label: 'Patients', path: '/patients' },
-    { icon: Package, label: 'Liste des Matériels', path: '/materiels-list' },
+    { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
+    { icon: Stethoscope,    label: 'Consultations',    path: '/consultations' },
+    { icon: Users,          label: 'Patients',          path: '/patients' },
+    { icon: Package,        label: 'Matériels',         path: '/materiels-list' },
   ];
 
   const getNavItems = () => {
     if (!user) return [];
-    
     switch (user.role) {
+      case UserRole.SUPER_ADMIN:
       case UserRole.ADMIN:
         return adminNavItems;
       case UserRole.MEDECIN:
-        return medecinNavItems;
       case UserRole.INFIRMIER:
         return medecinNavItems;
       default:
@@ -103,7 +102,7 @@ const Sidebar = () => {
             }
           >
             <User className="w-5 h-5 mr-3" />
-            My Profile
+            Mon Profil
           </NavLink>
         )}
       </nav>
@@ -113,10 +112,11 @@ const Sidebar = () => {
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors duration-200 rounded-lg"
+            disabled={isLoggingOut}
+            className="w-full flex items-center px-4 py-2 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors duration-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <LogOut className="w-5 h-5 mr-3" />
-            Logout
+            {isLoggingOut ? 'Déconnexion…' : 'Se déconnecter'}
           </button>
         </div>
       )}

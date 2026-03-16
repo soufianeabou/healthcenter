@@ -10,7 +10,7 @@ interface HeaderProps {
 }
 
 const Header = ({ onMenuClick }: HeaderProps) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoggingOut } = useAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [lowStockMedicines, setLowStockMedicines] = useState<Medicine[]>([]);
@@ -245,22 +245,23 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                 >
                   <User className="w-4 h-4" />
-                  <span>View Profile</span>
+                  <span>Mon Profil</span>
                 </button>
                 <button
-                  onClick={handleProfileClick}
+                  onClick={() => { navigate('/profile'); setShowProfileMenu(false); }}
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                 >
                   <Settings className="w-4 h-4" />
-                  <span>Edit Profile</span>
+                  <span>Modifier le profil</span>
                 </button>
                 <hr className="my-2 border-gray-200" />
                 <button
                   onClick={handleLogout}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                  disabled={isLoggingOut}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
+                  <span>{isLoggingOut ? 'Déconnexion…' : 'Se déconnecter'}</span>
                 </button>
               </div>
             )}

@@ -32,8 +32,6 @@ const Personnel = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching personnel from:', 'https://hc.aui.ma/personnels');
-      
       const response = await fetch('https://hc.aui.ma/api/consultations/personnels', {
         method: 'GET',
         headers: {
@@ -43,16 +41,12 @@ const Personnel = () => {
         mode: 'cors',
       });
       
-      console.log('Response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error text:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const data = await response.json();
-      console.log('Fetched data:', data);
       setPersonnel(data);
     } catch (err) {
       console.error('Error fetching personnel:', err);
@@ -222,129 +216,68 @@ const Personnel = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Personnel Management</h1>
-          <p className="text-gray-600">Manage health center staff and their information</p>
+          <h1 className="text-2xl font-bold text-gray-800">Personnel</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestion du personnel du centre de santé</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={fetchPersonnel}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            className="border border-gray-200 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm"
           >
-            <RefreshCw className="w-5 h-5" />
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                console.log('Testing API connection...');
-                const response = await fetch('https://hc.aui.ma/api/consultations/personnels', {
-                  method: 'GET',
-                  headers: { 'Accept': 'application/json' },
-                  mode: 'cors'
-                });
-                console.log('Test response:', response);
-                if (response.ok) {
-                  alert('API connection successful! Check console for details.');
-                } else {
-                  alert(`API connection failed with status: ${response.status}`);
-                }
-              } catch (err) {
-                console.error('Test connection error:', err);
-                alert(`API connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-              }
-            }}
-            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
-          >
-            <span>Test API</span>
+            <RefreshCw className="w-4 h-4" />
+            Actualiser
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
           >
-            <Plus className="w-5 h-5" />
-            <span>Add Personnel</span>
+            <Plus className="w-4 h-4" />
+            Ajouter
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Staff</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">{personnel.length}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total', value: personnel.length, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Actifs', value: personnel.filter(p => p.status === 'ACTIF' || p.status === 'ACTIVE').length, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Rôles', value: new Set(personnel.map(p => p.role)).size, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Spécialités', value: new Set(personnel.map(p => p.specialite)).size, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        ].map(({ label, value, color, bg }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+              <User className={`w-5 h-5 ${color}`} />
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
+            <div>
+              <p className="text-xs text-gray-500 font-medium">{label}</p>
+              <p className={`text-xl font-bold ${color}`}>{value}</p>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Staff</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">
-                {personnel.filter(p => p.status === 'ACTIF' || p.status === 'ACTIVE').length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Roles</p>
-              <p className="text-2xl font-bold text-purple-600 mt-2">
-                {new Set(personnel.map(p => p.role)).size}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Specialties</p>
-              <p className="text-2xl font-bold text-indigo-600 mt-2">
-                {new Set(personnel.map(p => p.specialite)).size}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <User className="w-6 h-6 text-indigo-600" />
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search personnel..."
+                placeholder="Recherche par nom, email…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="ALL">All Roles</option>
+              <option value="ALL">Tous les rôles</option>
               {Array.from(new Set(personnel.map(p => p.role))).map((role) => (
                 <option key={role} value={role}>{role}</option>
               ))}
@@ -352,17 +285,13 @@ const Personnel = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="ALL">All Statuses</option>
+              <option value="ALL">Tous les statuts</option>
               {Array.from(new Set(personnel.map(p => p.status))).map((status) => (
                 <option key={status} value={status}>{status}</option>
               ))}
             </select>
-            <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="w-5 h-5" />
-              <span>Filter</span>
-            </button>
           </div>
         </div>
 
@@ -452,14 +381,14 @@ const Personnel = () => {
 
         {filteredPersonnel.length === 0 && (
           <div className="p-12 text-center">
-            <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No personnel found</h3>
-            <p className="text-gray-600 mb-4">Try adjusting your search criteria or add new personnel.</p>
+            <User className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-base font-medium text-gray-700 mb-1">Aucun personnel trouvé</h3>
+            <p className="text-sm text-gray-500 mb-4">Ajustez vos filtres ou ajoutez un nouveau membre.</p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
             >
-              Add Personnel
+              Ajouter
             </button>
           </div>
         )}
@@ -468,7 +397,7 @@ const Personnel = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={editingPersonnel ? 'Edit Personnel' : 'Add New Personnel'}
+        title={editingPersonnel ? 'Modifier le personnel' : 'Ajouter du personnel'}
       >
         <PersonnelForm
           initialData={editingPersonnel}

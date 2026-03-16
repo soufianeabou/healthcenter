@@ -305,108 +305,78 @@ const Consultations = () => {
   const statusCounts = getStatusCounts();
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Doctor Consultations</h1>
-          <p className="text-gray-600">Manage patient consultations and prescriptions</p>
+          <h1 className="text-2xl font-bold text-gray-800">Consultations</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Gestion des consultations médicales</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm self-start sm:self-auto"
         >
-          <Plus className="w-5 h-5" />
-          <span>New Consultation</span>
+          <Plus className="w-4 h-4" />
+          Nouvelle consultation
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 whitespace-pre-wrap">{error}</div>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 whitespace-pre-wrap">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Consultations</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">{statusCounts.total}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total', value: statusCounts.total, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Terminées', value: statusCounts.completed, icon: FileText, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'En attente', value: statusCounts.pending, icon: Clock, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+          { label: 'Suivi', value: statusCounts.followUp, icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-50' },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 ${bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+              <Icon className={`w-5 h-5 ${color}`} />
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-blue-600" />
+            <div>
+              <p className="text-xs text-gray-500 font-medium">{label}</p>
+              <p className={`text-xl font-bold ${color}`}>{value}</p>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-green-600 mt-2">{statusCounts.completed}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600 mt-2">{statusCounts.pending}</p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Follow-up</p>
-              <p className="text-2xl font-bold text-purple-600 mt-2">{statusCounts.followUp}</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by patient or doctor..."
+                placeholder="Recherche patient ou médecin…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             >
-              <option value="ALL">All Status</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="PENDING">Pending</option>
-              <option value="FOLLOW_UP">Follow-up</option>
+              <option value="ALL">Tous les statuts</option>
+              <option value="COMPLETED">Terminée</option>
+              <option value="PENDING">En attente</option>
+              <option value="FOLLOW_UP">Suivi</option>
             </select>
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-            <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <Filter className="w-5 h-5" />
-              <span>Filter</span>
-            </button>
+            {dateFilter && (
+              <button onClick={() => setDateFilter('')} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                <Filter className="w-3 h-3" /> Effacer
+              </button>
+            )}
           </div>
         </div>
 
@@ -509,14 +479,14 @@ const Consultations = () => {
 
         {filteredConsultations.length === 0 && (
           <div className="p-12 text-center">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No consultations found</h3>
-            <p className="text-gray-600 mb-4">Try adjusting your search criteria or add a new consultation.</p>
+            <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-base font-medium text-gray-700 mb-1">Aucune consultation trouvée</h3>
+            <p className="text-sm text-gray-500 mb-4">Ajustez vos filtres ou créez une nouvelle consultation.</p>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
             >
-              New Consultation
+              Nouvelle consultation
             </button>
           </div>
         )}

@@ -78,6 +78,7 @@ interface ReportStats {
 const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('thisMonth');
+  const [exportToast, setExportToast] = useState(false);
   const [stats, setStats] = useState<ReportStats>({
     totalPatients: 0,
     totalConsultations: 0,
@@ -322,6 +323,8 @@ const Reports = () => {
     link.href = URL.createObjectURL(blob);
     link.download = `rapport_${selectedPeriod}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+    setExportToast(true);
+    setTimeout(() => setExportToast(false), 3000);
   };
 
   const growthPercentage = stats.consultationsLastMonth > 0
@@ -438,240 +441,203 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-            <BarChart3 className="w-8 h-8 mr-3 text-green-600" />
-            Rapports & Statistiques
-          </h1>
-          <p className="text-gray-600 mt-1">Analyse complète des opérations du centre de santé</p>
+
+      {/* Export toast */}
+      {exportToast && (
+        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white text-sm font-medium px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+          <Download className="w-4 h-4" />
+          Rapport exporté avec succès
         </div>
-        <div className="flex items-center space-x-3">
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-green-600" />
+            Rapports &amp; Statistiques
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">Vue d'ensemble des opérations du centre de santé</p>
+        </div>
+        <div className="flex items-center gap-3">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white font-medium"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-sm font-medium"
           >
             {periods.map((period) => (
-              <option key={period.id} value={period.id}>
-                {period.label}
-              </option>
+              <option key={period.id} value={period.id}>{period.label}</option>
             ))}
           </select>
           <button
             onClick={handleExportReport}
-            className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2.5 rounded-lg hover:from-green-700 hover:to-green-800 transition-all flex items-center space-x-2 shadow-md hover:shadow-lg font-medium"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm"
           >
-            <Download className="w-5 h-5" />
-            <span>Exporter CSV</span>
+            <Download className="w-4 h-4" />
+            Exporter CSV
           </button>
         </div>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Total Patients</p>
-              <p className="text-4xl font-bold mt-2">{stats.totalPatients}</p>
-            </div>
-            <div className="w-14 h-14 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <Users className="w-8 h-8" />
-            </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Users className="w-6 h-6 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Patients</p>
+            <p className="text-2xl font-bold text-gray-800 mt-0.5">{stats.totalPatients}</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm font-medium">Consultations</p>
-              <p className="text-4xl font-bold mt-2">{stats.totalConsultations}</p>
-            </div>
-            <div className="w-14 h-14 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <Stethoscope className="w-8 h-8" />
-            </div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Stethoscope className="w-6 h-6 text-green-600" />
           </div>
-          <div className="mt-3 flex items-center">
-            <TrendingUp className="w-4 h-4 mr-1" />
-            <span className="text-sm font-medium">
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Consultations</p>
+            <p className="text-2xl font-bold text-gray-800 mt-0.5">{stats.totalConsultations}</p>
+            <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+              <TrendingUp className="w-3 h-3" />
               {growthPercentage}% vs mois dernier
-            </span>
+            </p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm font-medium">Total Matériels</p>
-              <p className="text-4xl font-bold mt-2">{stats.totalMaterials}</p>
-            </div>
-            <div className="w-14 h-14 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <Package className="w-8 h-8" />
-            </div>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Package className="w-6 h-6 text-purple-600" />
           </div>
-          <p className="text-purple-100 text-sm mt-3">
-            {stats.materialsAssigned} assignés
-          </p>
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Matériels</p>
+            <p className="text-2xl font-bold text-gray-800 mt-0.5">{stats.totalMaterials}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{stats.materialsAssigned} assignés</p>
+          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm font-medium">Stock Faible</p>
-              <p className="text-4xl font-bold mt-2">{stats.lowStockMaterials}</p>
-            </div>
-            <div className="w-14 h-14 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8" />
-            </div>
+        <div className="bg-white rounded-xl border border-red-50 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
-          <p className="text-orange-100 text-sm mt-3">
-            Nécessite réapprovisionnement
-          </p>
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Stock Faible</p>
+            <p className="text-2xl font-bold text-gray-800 mt-0.5">{stats.lowStockMaterials}</p>
+            <p className="text-xs text-red-400 mt-0.5">Réapprovisionnement requis</p>
+          </div>
         </div>
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Consultations Trend */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-green-600" />
-              Évolution des Consultations
-            </h3>
-          </div>
-          <div className="h-80">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-green-600" />
+            Évolution des consultations
+          </h3>
+          <div className="h-72">
             <Line data={consultationsChartData} options={chartOptions} />
           </div>
         </div>
 
-        {/* Materials by Category */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center">
-              <Package className="w-5 h-5 mr-2 text-blue-600" />
-              Matériels par Catégorie
-            </h3>
-          </div>
-          <div className="h-80 flex items-center justify-center">
-            <Doughnut 
-              data={materialsChartData} 
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'right' as const
-                  }
-                }
-              }} 
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+            <Package className="w-4 h-4 text-blue-600" />
+            Matériels par catégorie
+          </h3>
+          <div className="h-72 flex items-center justify-center">
+            <Doughnut
+              data={materialsChartData}
+              options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' as const } } }}
             />
           </div>
         </div>
       </div>
 
-      {/* Top Materials */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
-            Matériels les Plus Utilisés
-          </h3>
-        </div>
-        <div className="h-80">
-          <Bar 
-            data={topMaterialsChartData} 
-            options={{
-              ...chartOptions,
-              indexAxis: 'y' as const
-            }} 
-          />
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+          <TrendingUp className="w-4 h-4 text-green-600" />
+          Matériels les plus utilisés
+        </h3>
+        <div className="h-72">
+          <Bar data={topMaterialsChartData} options={{ ...chartOptions, indexAxis: 'y' as const }} />
         </div>
       </div>
 
-      {/* By time slot & By diagnostic */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+            <Calendar className="w-4 h-4 text-blue-600" />
             Consultations par créneau horaire
           </h3>
-          <div className="h-64">
+          <div className="h-60">
             <Bar data={timeSlotChartData} options={chartOptions} />
           </div>
         </div>
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <FileText className="w-5 h-5 mr-2 text-green-600" />
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+            <FileText className="w-4 h-4 text-green-600" />
             Top diagnostics
           </h3>
-          <div className="h-64">
-            <Bar 
-              data={diagnosticChartData} 
-              options={{ ...chartOptions, indexAxis: 'y' as const }} 
-            />
+          <div className="h-60">
+            <Bar data={diagnosticChartData} options={{ ...chartOptions, indexAxis: 'y' as const }} />
           </div>
         </div>
       </div>
 
-      {/* By month (when multiple months in range) */}
       {stats.consultationsByMonth.length > 1 && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <Activity className="w-5 h-5 mr-2 text-purple-600" />
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-4">
+            <Activity className="w-4 h-4 text-purple-600" />
             Consultations par mois
           </h3>
-          <div className="h-64">
-            <Bar 
-              data={{
-                labels: stats.consultationsByMonth.map(m => m.month),
-                datasets: [{ label: 'Consultations', data: stats.consultationsByMonth.map(m => m.count), backgroundColor: 'rgba(168, 85, 247, 0.7)', borderColor: 'rgb(168, 85, 247)', borderWidth: 1 }]
-              }} 
-              options={chartOptions} 
+          <div className="h-60">
+            <Bar
+              data={{ labels: stats.consultationsByMonth.map(m => m.month), datasets: [{ label: 'Consultations', data: stats.consultationsByMonth.map(m => m.count), backgroundColor: 'rgba(99,102,241,0.70)', borderColor: 'rgb(99,102,241)', borderWidth: 1 }] }}
+              options={chartOptions}
             />
           </div>
         </div>
       )}
 
-      {/* Recent Consultations Table */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center">
-            <FileText className="w-5 h-5 mr-2 text-blue-600" />
-            Consultations Récentes
-          </h3>
+      {/* Recent Consultations */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-blue-600" />
+          <h3 className="text-sm font-semibold text-gray-700">Consultations récentes</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b-2 border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Patient</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Médecin</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Motif</th>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left py-3 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
+                <th className="text-left py-3 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Patient</th>
+                <th className="text-left py-3 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Médecin</th>
+                <th className="text-left py-3 px-5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Motif</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-50">
               {stats.recentConsultations.map((consultation, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                <tr key={index} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3 px-5 text-gray-500 whitespace-nowrap">
                     {new Date(consultation.dateConsultation).toLocaleDateString('fr-FR')}
                   </td>
-                  <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                  <td className="py-3 px-5 font-medium text-gray-900">
                     {consultation.patient?.prenom} {consultation.patient?.nom}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-3 px-5 text-gray-600">
                     {consultation.personnel?.prenom} {consultation.personnel?.nom}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-3 px-5 text-gray-600 max-w-xs truncate">
                     {consultation.motif}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {stats.recentConsultations.length === 0 && (
+            <div className="py-10 text-center text-sm text-gray-400">Aucune consultation pour cette période</div>
+          )}
         </div>
       </div>
     </div>

@@ -197,6 +197,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
+  isLoggingOut: boolean;
   authError: string | null;
   loginWithOutlook: () => void;
   logout: () => void;
@@ -223,6 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user,            setUser]            = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading,   setIsAuthLoading]   = useState(true);
+  const [isLoggingOut,    setIsLoggingOut]    = useState(false);
   const [authError,       setAuthError]       = useState<string | null>(null);
 
   /* ── On mount: pre-populate from storage, then always verify
@@ -319,7 +321,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /* ── Logout: clear storage and redirect through gateway logout ── */
   const logout = () => {
+    if (isLoggingOut) return;
     console.log('[Auth] Logging out...');
+    setIsLoggingOut(true);
     clearStoredAuth();
     setUser(null);
     setIsAuthenticated(false);
@@ -368,6 +372,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated,
         isAuthLoading,
+        isLoggingOut,
         authError,
         loginWithOutlook,
         logout,
