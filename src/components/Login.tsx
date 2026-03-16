@@ -11,19 +11,6 @@ const MicrosoftLogo = () => (
   </svg>
 );
 
-/* AUI official crest/shield inline SVG */
-const AuiCrest = () => (
-  <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M28 4 L50 14 L50 32 C50 43 40 51 28 54 C16 51 6 43 6 32 L6 14 Z" fill="#003366" stroke="#C4A326" strokeWidth="1.5"/>
-    <path d="M28 10 L45 18.5 L45 32 C45 40 37.5 47 28 50 C18.5 47 11 40 11 32 L11 18.5 Z" fill="#002244"/>
-    {/* Cross */}
-    <rect x="25.5" y="16" width="5" height="22" rx="0.5" fill="#C4A326"/>
-    <rect x="18" y="24" width="20" height="5" rx="0.5" fill="#C4A326"/>
-    {/* Crown top accent */}
-    <circle cx="28" cy="13" r="2" fill="#C4A326"/>
-  </svg>
-);
-
 const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
 const Login: React.FC = () => {
@@ -50,21 +37,21 @@ const Login: React.FC = () => {
         }
         @keyframes lcZoom { from { transform:scale(1); } to { transform:scale(1.06); } }
 
-        /* AUI navy overlay — richer and more institutional than the blue */
+        /* Green health overlay on background */
         .lc-overlay {
           position: absolute; inset: 0; z-index: 1;
           background: linear-gradient(
-            160deg,
-            rgba(0, 20, 60, 0.92) 0%,
-            rgba(0, 40, 100, 0.72) 45%,
-            rgba(0, 16, 50, 0.90) 100%
+            155deg,
+            rgba(4, 120, 87, 0.96) 0%,
+            rgba(5, 150, 105, 0.82) 40%,
+            rgba(6, 95, 70, 0.96) 100%
           );
         }
 
-        /* Gold vignette at bottom — gives an AUI-crest/seal warmth */
+        /* Soft vignette at bottom */
         .lc-vignette {
           position: absolute; inset: 0; z-index: 2; pointer-events: none;
-          background: radial-gradient(ellipse 90% 60% at 50% 110%, rgba(196,163,38,0.18) 0%, transparent 70%);
+          background: radial-gradient(ellipse 90% 60% at 50% 110%, rgba(16,185,129,0.18) 0%, transparent 70%);
         }
 
         /* Card */
@@ -74,23 +61,23 @@ const Login: React.FC = () => {
           background: rgba(255,255,255,0.96);
           border-radius: 4px;
           padding: 0;
-          box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 0 1px rgba(196,163,38,0.30);
+          box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 0 1px rgba(16,185,129,0.32);
           opacity: 0; transform: translateY(24px);
           transition: opacity 0.55s cubic-bezier(.22,1,.36,1), transform 0.55s cubic-bezier(.22,1,.36,1);
           overflow: hidden;
         }
         .lc-card.mounted { opacity:1; transform:translateY(0); }
 
-        /* Maroon top bar — AUI identity stripe */
+        /* Top bar in health green */
         .lc-topbar {
           height: 5px;
-          background: linear-gradient(90deg, #003366 0%, #C4A326 50%, #003366 100%);
+          background: linear-gradient(90deg, #0f766e 0%, #22c55e 40%, #0f766e 100%);
         }
 
         /* Card body */
         .lc-body { padding: 2.2rem 2rem 1.8rem; }
 
-        /* Crest + wordmark */
+        /* Brand + wordmark */
         .lc-brand {
           display: flex; flex-direction: column; align-items: center;
           gap: 0.75rem; margin-bottom: 1.6rem; text-align: center;
@@ -98,16 +85,16 @@ const Login: React.FC = () => {
 
         .lc-university {
           font-size: 0.62rem; font-weight: 500; letter-spacing: 0.16em;
-          text-transform: uppercase; color: #003366; opacity: 0.65;
+          text-transform: uppercase; color: #064e3b; opacity: 0.7;
         }
         .lc-title {
           font-family: 'EB Garamond', Georgia, serif;
-          font-size: 1.55rem; font-weight: 600; color: #001833;
+          font-size: 1.55rem; font-weight: 600; color: #022c22;
           line-height: 1.15; letter-spacing: -0.01em; margin-top: 0.1rem;
         }
         .lc-gold-rule {
           width: 36px; height: 2px; margin: 0.5rem auto 0;
-          background: linear-gradient(90deg, transparent, #C4A326, transparent);
+          background: linear-gradient(90deg, transparent, #22c55e, transparent);
           border-radius: 2px;
         }
 
@@ -126,16 +113,16 @@ const Login: React.FC = () => {
         .lc-btn {
           width:100%; display:flex; align-items:center; justify-content:center; gap:0.65rem;
           padding: 0.85rem 1rem;
-          background: #003366; color: #fff;
+          background: #059669; color: #f9fafb;
           font-size: 0.88rem; font-weight: 500; font-family: 'Inter', sans-serif;
           border: none; border-radius: 3px; cursor: pointer;
           letter-spacing: 0.02em;
           transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
-          box-shadow: 0 2px 8px rgba(0,51,102,0.30);
+          box-shadow: 0 2px 8px rgba(5,150,105,0.35);
         }
-        .lc-btn:hover  { background:#002244; transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,51,102,0.38); }
-        .lc-btn:active { transform:translateY(0); box-shadow:0 2px 6px rgba(0,51,102,0.22); }
-        .lc-btn:focus-visible { outline:2px solid #C4A326; outline-offset:3px; }
+        .lc-btn:hover  { background:#047857; transform:translateY(-1px); box-shadow:0 6px 18px rgba(5,150,105,0.45); }
+        .lc-btn:active { transform:translateY(0); box-shadow:0 2px 6px rgba(5,150,105,0.28); }
+        .lc-btn:focus-visible { outline:2px solid #22c55e; outline-offset:3px; }
         .lc-btn:disabled { opacity:0.55; cursor:not-allowed; transform:none; }
 
         .lc-hint {
@@ -161,7 +148,7 @@ const Login: React.FC = () => {
           color:#111827; font-size:0.82rem; font-family:'Inter',sans-serif;
           outline:none; transition:border-color 0.15s; margin-bottom:0.6rem; box-sizing:border-box;
         }
-        .lc-dev-input:focus { border-color:#003366; }
+        .lc-dev-input:focus { border-color:#047857; }
         .lc-dev-btn {
           width:100%; padding:0.70rem; background:#16a34a; color:#fff;
           border:none; border-radius:3px; font-size:0.83rem; font-weight:500;
@@ -180,12 +167,16 @@ const Login: React.FC = () => {
         <div className="lc-topbar" />
         <div className="lc-body">
 
-          {/* Brand header */}
+          {/* Brand header with provided logo */}
           <div className="lc-brand">
-            <AuiCrest />
+            <img
+              src="/assets/hclogo.png"
+              alt="AUI Health Center"
+              style={{ height: 64, width: 'auto', objectFit: 'contain' }}
+            />
             <div>
-              <p className="lc-university">Al Akhawayn University · Ifrane</p>
-              <h1 className="lc-title">Health Center Portal</h1>
+              <p className="lc-university">Al Akhawayn University · Health Center</p>
+              <h1 className="lc-title">Healthcare Management System</h1>
               <div className="lc-gold-rule" />
             </div>
           </div>
