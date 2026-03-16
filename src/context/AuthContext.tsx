@@ -94,6 +94,15 @@ const EMAIL_DIRECTORY: Record<string, User> = {
     status: UserStatus.ACTIVE,
   },
 
+  // ── ADMIN (AUI Outlook) ────────────────────────────────
+  's.aboulhamam@aui.ma': {
+    id: 12, nom: 'Aboulhamam', prenom: 'Soufiane',
+    username: 's.aboulhamam@aui.ma', passwd: null,
+    role: UserRole.ADMIN, specialite: 'Administration',
+    telephone: '0000000000', email: 's.aboulhamam@aui.ma',
+    status: UserStatus.ACTIVE,
+  },
+
   // ── MEDECIN ────────────────────────────────────────────
   'm.aslaf@aui.ma': {
     id: 3, nom: 'Aslaf', prenom: 'Dr.Mounia',
