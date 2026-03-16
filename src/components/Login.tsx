@@ -37,41 +37,41 @@ const Login: React.FC = () => {
         }
         @keyframes lcZoom { from { transform:scale(1); } to { transform:scale(1.06); } }
 
-        /* Green health overlay on background */
+        /* Deep neutral overlay on background (eye-friendly) */
         .lc-overlay {
           position: absolute; inset: 0; z-index: 1;
           background: linear-gradient(
-            155deg,
-            rgba(4, 120, 87, 0.96) 0%,
-            rgba(5, 150, 105, 0.82) 40%,
-            rgba(6, 95, 70, 0.96) 100%
+            150deg,
+            rgba(15, 23, 42, 0.96) 0%,
+            rgba(15, 23, 42, 0.88) 35%,
+            rgba(15, 23, 42, 0.92) 100%
           );
         }
 
         /* Soft vignette at bottom */
         .lc-vignette {
           position: absolute; inset: 0; z-index: 2; pointer-events: none;
-          background: radial-gradient(ellipse 90% 60% at 50% 110%, rgba(16,185,129,0.18) 0%, transparent 70%);
+          background: radial-gradient(ellipse 90% 60% at 50% 115%, rgba(15,118,110,0.28) 0%, transparent 75%);
         }
 
         /* Card */
         .lc-card {
           position: relative; z-index: 10;
           width: 100%; max-width: 380px;
-          background: rgba(255,255,255,0.96);
+          background: rgba(255,255,255,0.98);
           border-radius: 4px;
           padding: 0;
-          box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 0 1px rgba(16,185,129,0.32);
+          box-shadow: 0 40px 100px rgba(15,23,42,0.78), 0 0 0 1px rgba(148,163,184,0.40);
           opacity: 0; transform: translateY(24px);
           transition: opacity 0.55s cubic-bezier(.22,1,.36,1), transform 0.55s cubic-bezier(.22,1,.36,1);
           overflow: hidden;
         }
         .lc-card.mounted { opacity:1; transform:translateY(0); }
 
-        /* Top bar in health green */
+        /* Top bar subtle green accent */
         .lc-topbar {
           height: 5px;
-          background: linear-gradient(90deg, #0f766e 0%, #22c55e 40%, #0f766e 100%);
+          background: linear-gradient(90deg, #10b981 0%, #059669 40%, #0f766e 100%);
         }
 
         /* Card body */
@@ -85,16 +85,16 @@ const Login: React.FC = () => {
 
         .lc-university {
           font-size: 0.62rem; font-weight: 500; letter-spacing: 0.16em;
-          text-transform: uppercase; color: #064e3b; opacity: 0.7;
+          text-transform: uppercase; color: #6b7280; opacity: 0.9;
         }
         .lc-title {
           font-family: 'EB Garamond', Georgia, serif;
-          font-size: 1.55rem; font-weight: 600; color: #022c22;
+          font-size: 1.55rem; font-weight: 600; color: #111827;
           line-height: 1.15; letter-spacing: -0.01em; margin-top: 0.1rem;
         }
         .lc-gold-rule {
           width: 36px; height: 2px; margin: 0.5rem auto 0;
-          background: linear-gradient(90deg, transparent, #22c55e, transparent);
+          background: linear-gradient(90deg, transparent, #10b981, transparent);
           border-radius: 2px;
         }
 
@@ -126,8 +126,8 @@ const Login: React.FC = () => {
         .lc-btn:disabled { opacity:0.55; cursor:not-allowed; transform:none; }
 
         .lc-hint {
-          text-align:center; font-size:0.70rem; color:#6b7280;
-          margin-top:0.9rem; line-height:1.5;
+          text-align:center; font-size:0.72rem; color:#6b7280;
+          margin-top:0.4rem; line-height:1.5;
         }
 
         /* Footer */
@@ -176,12 +176,25 @@ const Login: React.FC = () => {
             />
             <div>
               <p className="lc-university">Al Akhawayn University · Health Center</p>
-              <h1 className="lc-title">Healthcare Management System</h1>
+              <h1 className="lc-title">AUI Health Center Portal</h1>
               <div className="lc-gold-rule" />
             </div>
           </div>
 
           <div className="lc-rule" />
+
+          {/* Single sign-on status + error if any */}
+          <div className="mb-3">
+            <div className="flex items-center gap-3 rounded-md border border-gray-100 bg-gray-50 px-3 py-2">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center bg-emerald-100">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              </div>
+              <div className="text-xs">
+                <p className="font-medium text-gray-800">Single sign-on enabled</p>
+                <p className="text-gray-500">Use your AUI Outlook account to access the portal.</p>
+              </div>
+            </div>
+          </div>
 
           {/* Error banner */}
           {authError && (
@@ -202,7 +215,7 @@ const Login: React.FC = () => {
             Sign in with Outlook
           </button>
 
-          <p className="lc-hint">Use your authorized AUI Outlook account to access the system.</p>
+          <p className="lc-hint">Click the button above to authenticate using your Outlook account.</p>
 
           {/* Local dev fallback */}
           {isLocalDev && <DevLogin />}
