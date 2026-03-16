@@ -319,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = redirectUrl;
   };
 
-  /* ── Logout: clear storage and redirect through gateway logout ── */
+  /* ── Logout: clear storage, kill Spring session cookie, go home ── */
   const logout = () => {
     if (isLoggingOut) return;
     console.log('[Auth] Logging out...');
@@ -328,7 +328,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsAuthenticated(false);
     setAuthError(null);
-    window.location.href = `${AUTH_BASE_URL}/logout`;
+
+    // The Spring gateway sets http-only=false, so we can wipe the session
+    // cookie from JS. This prevents tryHydrateFromSso from logging the user
+    // back in when the page reloads (which happens because Nginx does not
+    // proxy /logout to the gateway — it serves the SPA instead).
+    const cookieClear = 'SESSION=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = cookieClear;
+    document.cookie = cookieClear + ' domain=hc.aui.ma;';
+    document.cookie = cookieClear + ' domain=.hc.aui.ma;';
+
+    // Also fire the backend logout in the background so the Spring session
+    // is invalidated server-side. We ignore the response/redirect because
+    // Nginx currently doesn't proxy /logout, so it may return the SPA HTML.
+    void fetch(`${AUTH_BASE_URL}/logout`, {
+      method: 'GET',
+      credentials: 'include',
+      redirect: 'manual',
+    }).catch(() => {/* ignore */});
+
+    // Navigate to root — with localStorage and the session cookie both gone,
+    // tryHydrateFromSso will receive a 401 and the login page will render.
+    window.location.href = '/';
   };
 
   /* ── Profile update ── */
