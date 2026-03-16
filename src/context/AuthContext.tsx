@@ -20,15 +20,30 @@ interface User {
    port 8222  →  current origin (fallback for local testing)
 ───────────────────────────────────────────────────────── */
 const PROD_APP_ORIGIN = 'https://hc.aui.ma';
+const PROD_GATEWAY_URL = 'https://hc.aui.ma:8222';
 
 const getAuthBaseUrl = (): string => {
   const envOverride = (import.meta as any).env?.VITE_AUTH_BASE_URL?.trim();
-  if (envOverride) return envOverride.replace(/\/$/, '');
-  if (window.location.origin === PROD_APP_ORIGIN) return 'https://hc.aui.ma:8222';
-  return window.location.origin;
+  if (envOverride) {
+    const url = envOverride.replace(/\/$/, '');
+    console.log('[Auth] Using VITE_AUTH_BASE_URL:', url);
+    return url;
+  }
+  
+  const currentOrigin = window.location.origin;
+  console.log('[Auth] Current origin:', currentOrigin);
+  
+  if (currentOrigin === PROD_APP_ORIGIN) {
+    console.log('[Auth] Production detected, using gateway:', PROD_GATEWAY_URL);
+    return PROD_GATEWAY_URL;
+  }
+  
+  console.log('[Auth] Development mode, using current origin:', currentOrigin);
+  return currentOrigin;
 };
 
 const AUTH_BASE_URL = getAuthBaseUrl();
+console.log('[Auth] Final AUTH_BASE_URL:', AUTH_BASE_URL);
 
 /* ─────────────────────────────────────────────────────────
    Helpers
@@ -217,12 +232,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const tryHydrateFromSso = async () => {
       try {
+        console.log('[Auth] Checking session at:', `${AUTH_BASE_URL}/auth/user`);
         const response = await fetch(`${AUTH_BASE_URL}/auth/user`, {
           credentials: 'include',
         });
 
         // 401 / 403 → no active SSO session; keep whatever localStorage has
-        if (!response.ok) return;
+        if (!response.ok) {
+          console.log('[Auth] No active SSO session (status:', response.status, ')');
+          return;
+        }
 
         const contentType = response.headers.get('content-type') ?? '';
 
@@ -234,9 +253,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const principal = await response.json();
-        const email     = extractEmailFromPrincipal(principal);
+        console.log('[Auth] Principal received:', principal);
+        
+        const email = extractEmailFromPrincipal(principal);
+        console.log('[Auth] Email extracted:', email);
 
         if (!email) {
+          console.warn('[Auth] No email found in principal');
           // Session exists but carries no email claim → clear only SSO sessions
           if (localStorage.getItem('authSource') === 'sso') {
             clearStoredAuth();
@@ -250,12 +273,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (mappedUser) {
           // ✅ Recognised email → grant access
+          console.log('[Auth] ✅ Email authorized, role:', mappedUser.role);
           setAuthError(null);
           setUser(mappedUser);
           setIsAuthenticated(true);
           persistUser(mappedUser, 'sso');
         } else {
           // ❌ Azure authenticated but not in the whitelist
+          console.warn('[Auth] ❌ Email not in whitelist:', email);
           clearStoredAuth();
           setUser(null);
           setIsAuthenticated(false);
@@ -277,11 +302,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /* ── Redirect to Azure AD via the Spring Security gateway ── */
   const loginWithOutlook = () => {
     setAuthError(null);
-    window.location.href = `${AUTH_BASE_URL}/oauth2/authorization/azure-dev`;
+    const redirectUrl = `${AUTH_BASE_URL}/oauth2/authorization/azure-dev`;
+    console.log('[Auth] Redirecting to:', redirectUrl);
+    window.location.href = redirectUrl;
   };
 
   /* ── Logout: clear storage and redirect through gateway logout ── */
   const logout = () => {
+    console.log('[Auth] Logging out...');
     clearStoredAuth();
     setUser(null);
     setIsAuthenticated(false);
