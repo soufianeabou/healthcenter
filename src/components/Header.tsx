@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, User, LogOut, Settings, ChevronDown, AlertTriangle, Menu } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings, ChevronDown, AlertTriangle, Menu, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Medicine } from '../types/medicine';
 import { getOverdueAssignments } from '../utils/materialAssignments';
+import { UserRole } from '../types/roles';
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  [UserRole.SUPER_ADMIN]: 'Supervision',
+  [UserRole.ADMIN]:       'Administrateur',
+  [UserRole.MEDECIN]:     'Médecin',
+  [UserRole.INFIRMIER]:   'Infirmier(e)',
+};
 
 interface HeaderProps {
   onMenuClick?: () => void;
 }
 
 const Header = ({ onMenuClick }: HeaderProps) => {
-  const { user, logout, isLoggingOut } = useAuth();
+  const { user, logout, isLoggingOut, effectiveRole, resetActiveRole } = useAuth();
+  const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [lowStockMedicines, setLowStockMedicines] = useState<Medicine[]>([]);
@@ -232,7 +241,10 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               </div>
               <div className="text-sm text-left hidden sm:block min-w-0">
                 <p className="font-medium text-gray-700 truncate">{user ? `${user.prenom} ${user.nom}` : 'User'}</p>
-                <p className="text-gray-500 capitalize truncate">{user?.role || 'Unknown'}</p>
+                <p className="text-gray-500 truncate">
+                  {effectiveRole ? ROLE_LABELS[effectiveRole] : (user?.role || 'Unknown')}
+                  {isSuperAdmin && <span className="ml-1 text-amber-500 font-semibold text-xs">SA</span>}
+                </p>
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
             </button>
@@ -254,6 +266,18 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   <Settings className="w-4 h-4" />
                   <span>Modifier le profil</span>
                 </button>
+                {isSuperAdmin && (
+                  <>
+                    <hr className="my-1 border-gray-100" />
+                    <button
+                      onClick={() => { resetActiveRole(); setShowProfileMenu(false); }}
+                      className="w-full px-4 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 flex items-center space-x-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Changer de rôle</span>
+                    </button>
+                  </>
+                )}
                 <hr className="my-2 border-gray-200" />
                 <button
                   onClick={handleLogout}

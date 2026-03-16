@@ -93,21 +93,50 @@ const extractEmailFromPrincipal = (principal: unknown): string | null => {
    Add / remove entries here to grant / revoke access.
 ───────────────────────────────────────────────────────── */
 const EMAIL_DIRECTORY: Record<string, User> = {
-  // ── SUPER ADMIN (frontend-only elevated role) ──────────
-  's.aboulhamam@gmail.com': {
-    id: 99, nom: 'Aboulhamam', prenom: 'Soufiane',
-    username: 's.aboulhamam@gmail.com', passwd: null,
-    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-    telephone: '0000000000', email: 's.aboulhamam@gmail.com',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── ADMIN (AUI Outlook) ────────────────────────────────
+  // ── SUPER ADMIN ────────────────────────────────────────
+  // These users land on a role-picker screen and can act as any role.
   's.aboulhamam@aui.ma': {
     id: 12, nom: 'Aboulhamam', prenom: 'Soufiane',
     username: 's.aboulhamam@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
+    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
     telephone: '0000000000', email: 's.aboulhamam@aui.ma',
+    status: UserStatus.ACTIVE,
+  },
+  'a.bettahi@aui.ma': {
+    id: 11, nom: 'Bettahi', prenom: 'Abdelkarim',
+    username: 'a.bettahi@aui.ma', passwd: null,
+    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
+    telephone: '0000000000', email: 'a.bettahi@aui.ma',
+    status: UserStatus.ACTIVE,
+  },
+  's.ghajdaoui@aui.ma': {
+    id: 13, nom: 'Ghajdaoui', prenom: 'Soufiane',
+    username: 's.ghajdaoui@aui.ma', passwd: null,
+    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
+    telephone: '0000000000', email: 's.ghajdaoui@aui.ma',
+    status: UserStatus.ACTIVE,
+  },
+  'h.harroud@aui.ma': {
+    id: 10, nom: 'Harroud', prenom: 'Dr.Hamid',
+    username: 'h.harroud@aui.ma', passwd: null,
+    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
+    telephone: '0000000000', email: 'h.harroud@aui.ma',
+    status: UserStatus.ACTIVE,
+  },
+
+  // ── ADMIN ──────────────────────────────────────────────
+  'a.guennoun@aui.ma': {
+    id: 1, nom: 'Guennoun', prenom: 'Dr.Adnane',
+    username: 'a.guennoun@aui.ma', passwd: null,
+    role: UserRole.ADMIN, specialite: 'Administration',
+    telephone: '0000000000', email: 'a.guennoun@aui.ma',
+    status: UserStatus.ACTIVE,
+  },
+  'o.ghazal@aui.ma': {
+    id: 5, nom: 'Ghazal', prenom: 'Oumaima',
+    username: 'o.ghazal@aui.ma', passwd: null,
+    role: UserRole.ADMIN, specialite: 'Administration',
+    telephone: '0000000000', email: 'o.ghazal@aui.ma',
     status: UserStatus.ACTIVE,
   },
 
@@ -124,36 +153,6 @@ const EMAIL_DIRECTORY: Record<string, User> = {
     username: 'Health.Center.Doctor@aui.ma', passwd: null,
     role: UserRole.MEDECIN, specialite: 'Interne',
     telephone: '0000000000', email: 'Health.Center.Doctor@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── ADMIN ──────────────────────────────────────────────
-  'a.guennoun@aui.ma': {
-    id: 1, nom: 'Guennoun', prenom: 'Dr.Adnane',
-    username: 'a.guennoun@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'a.guennoun@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'h.harroud@aui.ma': {
-    id: 10, nom: 'Harroud', prenom: 'Dr.Hamid',
-    username: 'h.harroud@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'h.harroud@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'a.bettahi@aui.ma': {
-    id: 11, nom: 'Bettahi', prenom: 'Abdelkarim',
-    username: 'a.bettahi@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'a.bettahi@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'o.ghazal@aui.ma': {
-    id: 5, nom: 'Ghazal', prenom: 'Oumaima',
-    username: 'o.ghazal@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'o.ghazal@aui.ma',
     status: UserStatus.ACTIVE,
   },
 
@@ -207,6 +206,13 @@ interface AuthContextType {
   isAuthLoading: boolean;
   isLoggingOut: boolean;
   authError: string | null;
+  // For SUPER_ADMIN: the role they chose to act as. null = not yet picked.
+  activeRole: UserRole | null;
+  // The role that drives navigation/permissions. For SUPER_ADMIN it's activeRole,
+  // for everyone else it's their actual user.role.
+  effectiveRole: UserRole | null;
+  setActiveRole: (role: UserRole) => void;
+  resetActiveRole: () => void;
   loginWithOutlook: () => void;
   logout: () => void;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
@@ -228,12 +234,18 @@ export const useAuth = () => {
 /* ─────────────────────────────────────────────────────────
    AuthProvider
 ───────────────────────────────────────────────────────── */
+const ACTIVE_ROLE_KEY = 'hc_active_role';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user,            setUser]            = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading,   setIsAuthLoading]   = useState(true);
   const [isLoggingOut,    setIsLoggingOut]    = useState(false);
   const [authError,       setAuthError]       = useState<string | null>(null);
+  const [activeRole,      setActiveRoleState] = useState<UserRole | null>(() => {
+    const stored = localStorage.getItem(ACTIVE_ROLE_KEY);
+    return stored as UserRole | null;
+  });
 
   /* ── On mount: pre-populate from storage, then always verify
         with the gateway so an Outlook redirect is always picked up. ── */
@@ -346,10 +358,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoggingOut(true);
     clearStoredAuth();
 
-    // Mark explicit logout BEFORE navigating — tryHydrateFromSso will see this
-    // flag on the next page load and skip SSO hydration, keeping the user on
-    // the login page even if the Spring/Azure session is still alive.
     setLoggedOutFlag();
+    setActiveRoleState(null);
+    localStorage.removeItem(ACTIVE_ROLE_KEY);
 
     setUser(null);
     setIsAuthenticated(false);
@@ -394,9 +405,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  /* ── Role helpers ── */
-  const hasRole     = (role: UserRole)    => user?.role === role;
-  const hasAnyRole  = (roles: UserRole[]) => roles.some(hasRole);
+  /* ── Active-role management (SUPER_ADMIN only) ── */
+  const setActiveRole = (role: UserRole) => {
+    setActiveRoleState(role);
+    localStorage.setItem(ACTIVE_ROLE_KEY, role);
+  };
+  const resetActiveRole = () => {
+    setActiveRoleState(null);
+    localStorage.removeItem(ACTIVE_ROLE_KEY);
+  };
+
+  // The role that drives all navigation / permission checks.
+  // SUPER_ADMINs act as their chosen role; everyone else uses their own role.
+  const effectiveRole: UserRole | null =
+    user?.role === UserRole.SUPER_ADMIN && activeRole ? activeRole : (user?.role ?? null);
+
+  /* ── Role helpers (based on effectiveRole) ── */
+  const hasRole     = (role: UserRole)    => effectiveRole === role;
+  const hasAnyRole  = (roles: UserRole[]) => roles.some(r => effectiveRole === r);
   const isAdmin     = ()                  => hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]);
   const isMedecin   = ()                  => hasRole(UserRole.MEDECIN);
   const isInfirmier = ()                  => hasRole(UserRole.INFIRMIER);
@@ -409,6 +435,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthLoading,
         isLoggingOut,
         authError,
+        activeRole,
+        effectiveRole,
+        setActiveRole,
+        resetActiveRole,
         loginWithOutlook,
         logout,
         updateProfile,

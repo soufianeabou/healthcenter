@@ -16,6 +16,7 @@ import StudentPortal from './pages/StudentPortal';
 import Profile from './pages/Profile';
 import MaterielsList from './pages/MaterielsList';
 import MaterielDetails from './pages/MaterielDetails';
+import RolePicker from './pages/RolePicker';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -23,7 +24,7 @@ import { UserRole } from './types/roles';
 import ConsultationDetails from './pages/ConsultationDetails';
 
 function AppContent() {
-  const { user, isAuthenticated, isAuthLoading } = useAuth();
+  const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -36,7 +37,7 @@ function AppContent() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl px-8 py-10 text-center">
           <div className="w-10 h-10 mx-auto rounded-full border-4 border-green-200 border-t-green-600 animate-spin" />
-          <p className="mt-4 text-sm text-gray-600">Checking your Health Center session...</p>
+          <p className="mt-4 text-sm text-gray-600">Vérification de la session…</p>
         </div>
       </div>
     );
@@ -46,8 +47,13 @@ function AppContent() {
     return <Login />;
   }
 
-  const isAdmin = user?.role === UserRole.ADMIN;
-  const isMedecinOrNurse = user?.role === UserRole.MEDECIN || user?.role === UserRole.INFIRMIER;
+  // SUPER_ADMIN must pick a role before entering the app
+  if (user?.role === UserRole.SUPER_ADMIN && !activeRole) {
+    return <RolePicker />;
+  }
+
+  const isAdmin = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
+  const isMedecinOrNurse = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.INFIRMIER;
 
   return (
     <div className="flex h-screen bg-gray-50">
