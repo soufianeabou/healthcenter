@@ -511,6 +511,7 @@ const Consultations = () => {
         title={editingConsultation ? 'Edit Consultation' : 'New Consultation'}
       >
         <ConsultationBackendForm
+          key={editingConsultation ? `edit-${editingConsultation.id}` : 'new-consultation'}
           personnelId={user?.id as number}
           initial={editingConsultation ? {
             id: editingConsultation.id,

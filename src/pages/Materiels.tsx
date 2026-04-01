@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, Package, RefreshCw } from 'lucide-react';
 import { Materiel, Supplier, getCategorieDisplayName, getCategorieBadgeColors, getStatusDisplayName, getStatusBadgeColors } from '../types/materiel';
 import Modal from '../components/Modal';
 
 const Materiels = () => {
+  const location = useLocation();
   const [materiels, setMateriels] = useState<Materiel[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [filteredMateriels, setFilteredMateriels] = useState<Materiel[]>([]);
@@ -36,10 +38,11 @@ const Materiels = () => {
     { value: 'OTHER', label: 'Autre' }
   ];
 
-  const fetchMateriels = async () => {
+  const fetchMateriels = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('https://hc.aui.ma/api/consultations/materials');
+      setError('');
+      const response = await fetch('https://hc.aui.ma/api/consultations/materials', { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch materials');
       const data = await response.json();
       setMateriels(data);
@@ -50,7 +53,7 @@ const Materiels = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const fetchSuppliers = async () => {
     try {
@@ -65,9 +68,25 @@ const Materiels = () => {
   };
 
   useEffect(() => {
-    fetchMateriels();
     fetchSuppliers();
   }, []);
+
+  useEffect(() => {
+    fetchMateriels();
+  }, [location.pathname, fetchMateriels]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchMateriels();
+    };
+    const onFocus = () => fetchMateriels();
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [fetchMateriels]);
 
   useEffect(() => {
     let filtered = materiels;
@@ -174,13 +193,24 @@ const Materiels = () => {
           </h1>
           <p className="text-gray-600 mt-1">Gérer l'inventaire des matériels médicaux</p>
         </div>
-        <button
-          onClick={openAddForm}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Nouveau Matériel</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchMateriels()}
+            className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700"
+            title="Rafraîchir les quantités"
+          >
+            <RefreshCw className="w-5 h-5" />
+            <span className="hidden sm:inline">Actualiser</span>
+          </button>
+          <button
+            onClick={openAddForm}
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Nouveau Matériel</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

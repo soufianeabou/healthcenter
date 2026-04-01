@@ -65,22 +65,43 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [materialLines, setMaterialLines] = useState<MaterialLine[]>([]);
   const [showMaterialSection, setShowMaterialSection] = useState(false);
   const [assignedMaterials, setAssignedMaterials] = useState<any[]>([]);
+  const [materialOpError, setMaterialOpError] = useState('');
+
+  const MATERIALS_API = 'https://hc.aui.ma/api/consultations/materials';
+
+  const refreshMaterielsCatalog = async () => {
+    try {
+      const res = await fetch(MATERIALS_API, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        setMateriels(data);
+      }
+    } catch (e) {
+      console.error('Error refreshing materials catalog:', e);
+    }
+  };
+
+  /** idNum attendu par le backend patient-service (GET /api/patients/{idNum}) */
+  const getPatientIdForMaterialOps = (): number | null => {
+    const p = (initial as any)?.patient;
+    const fromInitial = p?.idNum ?? p?.id;
+    const raw = fromInitial ?? selectedPatientId;
+    if (raw === null || raw === undefined) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
 
   // Fetch materials on mount
   useEffect(() => {
-    const fetchMateriels = async () => {
-      try {
-        const res = await fetch('https://hc.aui.ma/api/consultations/materials');
-        if (res.ok) {
-          const data = await res.json();
-          setMateriels(data);
-        }
-      } catch (e) {
-        console.error('Error fetching materials:', e);
-      }
-    };
-    fetchMateriels();
+    refreshMaterielsCatalog();
   }, []);
+
+  // Édition : garder le patient AUI (idNum) aligné avec la consultation chargée
+  useEffect(() => {
+    const p = (initial as any)?.patient;
+    if (p?.idNum != null) setSelectedPatientId(Number(p.idNum));
+    else if (p?.id != null) setSelectedPatientId(Number(p.id));
+  }, [initial]);
 
   // Fetch assigned materials when editing (using patient idNum)
   useEffect(() => {
@@ -88,7 +109,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       const initialPatient: any = (initial as any)?.patient;
       if (initialPatient?.idNum) {
         try {
-          const res = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${initialPatient.idNum}`);
+          const res = await fetch(`${MATERIALS_API}/patient/${initialPatient.idNum}`, { cache: 'no-store' });
           
           if (res.ok) {
             const data = await res.json();
@@ -177,46 +198,55 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   };
 
   const handleUnassignMaterial = async (materialId: number, quantity: number) => {
-    if (!selectedPatientId) return;
-    
+    const patientId = getPatientIdForMaterialOps();
+    if (patientId == null) {
+      setMaterialOpError('Patient introuvable (idNum). Sélectionnez le patient ou rouvrez la consultation.');
+      return;
+    }
+
+    setMaterialOpError('');
     try {
       const unassignPayload = {
         id: materialId,
-        patientId: selectedPatientId,
-        quantity: quantity
+        patientId,
+        quantity
       };
-      
-      const res = await fetch('https://hc.aui.ma/api/consultations/materials/unassign', {
+
+      const res = await fetch(`${MATERIALS_API}/unassign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(unassignPayload)
       });
-      
-      if (res.ok) {
-        removeAssignment(selectedPatientId, materialId);
-        // Refresh assigned materials
-        const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${selectedPatientId}`);
-        if (refreshRes.ok) {
-          const refreshData = await refreshRes.json();
-          let materialsArray = [];
-          
-          if (Array.isArray(refreshData)) {
-            materialsArray = refreshData;
-          } else if (refreshData && typeof refreshData === 'object') {
-            if (refreshData.id) {
-              materialsArray = [refreshData];
-            } else if (refreshData.materials && Array.isArray(refreshData.materials)) {
-              materialsArray = refreshData.materials;
-            }
+
+      if (!res.ok) {
+        const txt = await res.text();
+        setMaterialOpError(txt || `Retour au stock impossible (${res.status})`);
+        return;
+      }
+
+      removeAssignment(patientId, materialId);
+      await refreshMaterielsCatalog();
+
+      const refreshRes = await fetch(`${MATERIALS_API}/patient/${patientId}`, { cache: 'no-store' });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        let materialsArray: any[] = [];
+
+        if (Array.isArray(refreshData)) {
+          materialsArray = refreshData;
+        } else if (refreshData && typeof refreshData === 'object') {
+          if ((refreshData as any).id) {
+            materialsArray = [refreshData];
+          } else if ((refreshData as any).materials && Array.isArray((refreshData as any).materials)) {
+            materialsArray = (refreshData as any).materials;
           }
-          
-          setAssignedMaterials(materialsArray);
         }
-      } else {
-        console.error('Failed to unassign material:', await res.text());
+
+        setAssignedMaterials(materialsArray);
       }
     } catch (err) {
       console.error('Error unassigning material:', err);
+      setMaterialOpError(err instanceof Error ? err.message : 'Erreur lors du retour au stock');
     }
   };
 
@@ -346,7 +376,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             quantity: line.quantite
           };
           
-          const assignResponse = await fetch('https://hc.aui.ma/api/consultations/materials/assign', {
+          const assignResponse = await fetch(`${MATERIALS_API}/assign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(assignPayload)
@@ -355,8 +385,9 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
           if (assignResponse.ok) {
             const materielName = materiels.find(m => m.id === materialId)?.name;
             saveAssignment(patientId, materialId, materielName);
+            await refreshMaterielsCatalog();
             // Refresh assigned materials after successful assignment
-            const refreshRes = await fetch(`https://hc.aui.ma/api/consultations/materials/patient/${patientId}`);
+            const refreshRes = await fetch(`${MATERIALS_API}/patient/${patientId}`, { cache: 'no-store' });
             if (refreshRes.ok) {
               const refreshData = await refreshRes.json();
               let materialsArray = [];
@@ -655,6 +686,11 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
 
       {/* Material assignment section */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200 shadow-sm">
+        {materialOpError && (
+          <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800 whitespace-pre-wrap">
+            {materialOpError}
+          </div>
+        )}
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-bold text-blue-900 flex items-center">
             <Package className="w-4 h-4 mr-2" />

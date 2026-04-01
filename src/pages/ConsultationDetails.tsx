@@ -15,6 +15,7 @@ const ConsultationDetails: React.FC = () => {
   const [availableMaterials, setAvailableMaterials] = useState<Materiel[]>([]);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedMaterialId, setSelectedMaterialId] = useState<number | ''>('');
+  const [materialMsg, setMaterialMsg] = useState('');
 
   useEffect(() => {
     loadData();
@@ -100,23 +101,23 @@ const ConsultationDetails: React.FC = () => {
   };
   
   const handleUnassignMaterial = async (materialId: number, quantity: number = 1) => {
-    if (!consultation?.patient?.idNum) return;
+    const rawPid = consultation?.patient?.idNum ?? consultation?.patient?.id;
+    const patientId = rawPid != null ? Number(rawPid) : null;
+    if (patientId == null || !Number.isFinite(patientId)) {
+      setMaterialMsg('Patient introuvable (idNum). Impossible de retourner le matériel.');
+      return;
+    }
     if (!confirm('Retourner ce matériel au stock ?')) return;
     
     try {
-      console.log('📤 Unassigning material:', {
-        id: materialId,
-        patientId: consultation.patient.idNum,
-        quantity: quantity
-      });
-      
+      setMaterialMsg('');
       const res = await fetch('https://hc.aui.ma/api/consultations/materials/unassign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: materialId,  // Use 'id' not 'materialId'
-          patientId: consultation.patient.idNum,
-          quantity: quantity
+          id: materialId,
+          patientId,
+          quantity
         })
       });
       
@@ -125,12 +126,11 @@ const ConsultationDetails: React.FC = () => {
         throw new Error(`Unassignment failed: ${res.status} ${txt}`);
       }
       
-      console.log('✅ Material unassigned successfully');
-      removeAssignment(consultation.patient.idNum, materialId);
+      removeAssignment(patientId, materialId);
       await loadData();
     } catch (e) {
       console.error(e);
-      setError(e instanceof Error ? e.message : 'Erreur lors du retour');
+      setMaterialMsg(e instanceof Error ? e.message : 'Erreur lors du retour');
     }
   };
 
@@ -160,6 +160,11 @@ const ConsultationDetails: React.FC = () => {
 
       {/* Assigned Materials */}
       <div className="bg-white rounded-lg shadow-sm p-6">
+        {materialMsg && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
+            {materialMsg}
+          </div>
+        )}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-800 flex items-center">
             <Package className="w-5 h-5 mr-2 text-blue-600" /> Matériels assignés
