@@ -140,6 +140,10 @@ const Consultations = () => {
 
   const handleAddConsultation = async (payload: any) => {
     try {
+      if (!payload?.personnel?.id) {
+        throw new Error("Aucun personnel valide n'est lié à votre session. Vérifiez votre compte dans la table personnel.");
+      }
+
       // Format current date/time for backend LocalDateTime (ISO-8601 format)
       const now = new Date();
       const year = now.getFullYear();
@@ -193,6 +197,10 @@ const Consultations = () => {
   const handleEditConsultation = async (payload: any) => {
     if (!editingConsultation) return;
     try {
+      if (!payload?.personnel?.id) {
+        throw new Error("Aucun personnel valide n'est lié à votre session. Vérifiez votre compte dans la table personnel.");
+      }
+
       // Use the original patientId from the consultation (which is the idNum)
       const updatePayload = {
         id: editingConsultation.id,

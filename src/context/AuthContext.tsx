@@ -88,114 +88,59 @@ const extractEmailFromPrincipal = (principal: unknown): string | null => {
   return candidates.find((v) => v.includes('@')) ?? null;
 };
 
-/* ─────────────────────────────────────────────────────────
-   EMAIL DIRECTORY  –  maps AUI Outlook emails → app user objects
-   Add / remove entries here to grant / revoke access.
-───────────────────────────────────────────────────────── */
-const EMAIL_DIRECTORY: Record<string, User> = {
-  // ── SUPER ADMIN ────────────────────────────────────────
-  // These users land on a role-picker screen and can act as any role.
-  's.aboulhamam@aui.ma': {
-    id: 12, nom: 'Aboulhamam', prenom: 'Soufiane',
-    username: 's.aboulhamam@aui.ma', passwd: null,
-    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-    telephone: '0000000000', email: 's.aboulhamam@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'a.bettahi@aui.ma': {
-    id: 11, nom: 'Bettahi', prenom: 'Abdelkarim',
-    username: 'a.bettahi@aui.ma', passwd: null,
-    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-    telephone: '0000000000', email: 'a.bettahi@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  's.ghajdaoui@aui.ma': {
-    id: 13, nom: 'Ghajdaoui', prenom: 'Soufiane',
-    username: 's.ghajdaoui@aui.ma', passwd: null,
-    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-    telephone: '0000000000', email: 's.ghajdaoui@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'h.harroud@aui.ma': {
-    id: 10, nom: 'Harroud', prenom: 'Dr.Hamid',
-    username: 'h.harroud@aui.ma', passwd: null,
-    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-    telephone: '0000000000', email: 'h.harroud@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
+interface PersonnelApiUser {
+  id: number;
+  nom: string;
+  prenom: string;
+  username?: string;
+  passwd?: string | null;
+  role?: string;
+  specialite?: string;
+  telephone?: string;
+  email?: string;
+  status?: string;
+}
 
-  // ── ADMIN ──────────────────────────────────────────────
-  'a.guennoun@aui.ma': {
-    id: 1, nom: 'Guennoun', prenom: 'Dr.Adnane',
-    username: 'a.guennoun@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'a.guennoun@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'o.ghazal@aui.ma': {
-    id: 5, nom: 'Ghazal', prenom: 'Oumaima',
-    username: 'o.ghazal@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'o.ghazal@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
+const SUPER_ADMIN_EMAILS = new Set([
+  's.aboulhamam@aui.ma',
+  'a.bettahi@aui.ma',
+  's.ghajdaoui@aui.ma',
+  'h.harroud@aui.ma',
+]);
 
-  // ── MEDECIN ────────────────────────────────────────────
-  'm.aslaf@aui.ma': {
-    id: 3, nom: 'Aslaf', prenom: 'Dr.Mounia',
-    username: 'm.aslaf@aui.ma', passwd: null,
-    role: UserRole.MEDECIN, specialite: 'Médecine Générale',
-    telephone: '0000000000', email: 'm.aslaf@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'health.center.doctor@aui.ma': {
-    id: 4, nom: 'Physician', prenom: 'Intern',
-    username: 'Health.Center.Doctor@aui.ma', passwd: null,
-    role: UserRole.MEDECIN, specialite: 'Interne',
-    telephone: '0000000000', email: 'Health.Center.Doctor@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── INFIRMIER ──────────────────────────────────────────
-  'm.ouakki@aui.ma': {
-    id: 6, nom: 'Ouakki', prenom: 'Meriem',
-    username: 'm.ouakki@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 'm.ouakki@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'f.elmajdoubi@aui.ma': {
-    id: 2, nom: 'Elmajdoubi', prenom: 'Fatima',
-    username: 'f.elmajdoubi@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 'f.elmajdoubi@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  's.ghazal@aui.ma': {
-    id: 7, nom: 'Ghazal', prenom: 'Siham',
-    username: 's.ghazal@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 's.ghazal@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'g.makhsou@aui.ma': {
-    id: 8, nom: 'Makhsou', prenom: 'Ghizlane',
-    username: 'g.makhsou@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 'g.makhsou@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'health.center.nurse@aui.ma': {
-    id: 9, nom: 'Nurses', prenom: 'Intern',
-    username: 'Health.Center.Nurse@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Interne',
-    telephone: '0000000000', email: 'Health.Center.Nurse@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
+const toUserRole = (rawRole: string | null | undefined): UserRole => {
+  const normalized = String(rawRole ?? '').trim().toUpperCase();
+  if (normalized === UserRole.ADMIN) return UserRole.ADMIN;
+  if (normalized === UserRole.MEDECIN) return UserRole.MEDECIN;
+  if (normalized === UserRole.INFIRMIER) return UserRole.INFIRMIER;
+  return UserRole.ADMIN;
 };
 
-const resolveUserFromEmail = (email: string | null | undefined): User | null =>
-  EMAIL_DIRECTORY[normalizeEmail(email)] ?? null;
+const toUserStatus = (rawStatus: string | null | undefined): UserStatus => {
+  const normalized = String(rawStatus ?? '').trim().toUpperCase();
+  if (normalized === UserStatus.ACTIVE) return UserStatus.ACTIVE;
+  if (normalized === UserStatus.INACTIVE) return UserStatus.INACTIVE;
+  if (normalized === UserStatus.PENDING) return UserStatus.PENDING;
+  if (normalized === UserStatus.SUSPENDED) return UserStatus.SUSPENDED;
+  return UserStatus.ACTIVE;
+};
+
+const resolveUserFromBackendPersonnel = (personnel: PersonnelApiUser, ssoEmail: string): User => {
+  const email = normalizeEmail(personnel.email ?? ssoEmail);
+  const isSuperAdmin = SUPER_ADMIN_EMAILS.has(email);
+  return {
+    id: personnel.id,
+    nom: personnel.nom ?? '',
+    prenom: personnel.prenom ?? '',
+    username: personnel.username ?? email,
+    passwd: null,
+    role: isSuperAdmin ? UserRole.SUPER_ADMIN : toUserRole(personnel.role),
+    specialite: personnel.specialite ?? '',
+    telephone: personnel.telephone ?? '',
+    email,
+    status: toUserStatus(personnel.status),
+  };
+};
 
 /* ─────────────────────────────────────────────────────────
    Context
@@ -310,23 +255,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        const mappedUser = resolveUserFromEmail(email);
+        // Source of truth is backend personnel table: match Outlook email
+        const personnelResponse = await fetch('https://hc.aui.ma/api/consultations/personnels');
+        if (!personnelResponse.ok) {
+          throw new Error(`Failed to load personnels (${personnelResponse.status})`);
+        }
+        const personnels = (await personnelResponse.json()) as PersonnelApiUser[];
+        const matchedPersonnel = personnels.find(
+          (p) => normalizeEmail(p.email) === normalizeEmail(email),
+        );
 
-        if (mappedUser) {
-          // ✅ Recognised email → grant access
-          console.log('[Auth] ✅ Email authorized, role:', mappedUser.role);
+        if (matchedPersonnel) {
+          const mappedUser = resolveUserFromBackendPersonnel(matchedPersonnel, email);
+          console.log('[Auth] ✅ Email authorized from personnel table. role:', mappedUser.role, 'id:', mappedUser.id);
           setAuthError(null);
           setUser(mappedUser);
           setIsAuthenticated(true);
           persistUser(mappedUser, 'sso');
         } else {
-          // ❌ Azure authenticated but not in the whitelist
-          console.warn('[Auth] ❌ Email not in whitelist:', email);
+          // ❌ Outlook authenticated but no matching row in personnel table
+          console.warn('[Auth] ❌ Email not found in personnels table:', email);
           clearStoredAuth();
           setUser(null);
           setIsAuthenticated(false);
           setAuthError(
-            `Le compte Outlook ${email} est authentifié mais n'est pas autorisé à accéder à cette application.`,
+            `Le compte Outlook ${email} est authentifié mais n'existe pas dans la table du personnel.`,
           );
         }
       } catch (err) {

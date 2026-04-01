@@ -26,8 +26,8 @@ interface MaterialLine {
 }
 
 const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel }) => {
-  const { user } = useAuth();
-  const isNurse = user?.role === UserRole.INFIRMIER;
+  const { user, effectiveRole } = useAuth();
+  const isNurse = effectiveRole === UserRole.INFIRMIER;
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
