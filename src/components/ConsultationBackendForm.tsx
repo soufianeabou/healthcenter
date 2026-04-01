@@ -81,11 +81,17 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     }
   };
 
-  /** idNum attendu par le backend patient-service (GET /api/patients/{idNum}) */
-  const getPatientIdForMaterialOps = (): number | null => {
-    const p = (initial as any)?.patient;
-    const fromInitial = p?.idNum ?? p?.id;
-    const raw = fromInitial ?? selectedPatientId;
+  /**
+   * idNum uniquement (clé patient / material_patient). Ne jamais utiliser patient.id (appid BDD)
+   * comme repli : le service patient et material_patient utilisent idNum.
+   */
+  const getPatientIdNumForMaterials = (): number | null => {
+    const init = initial as any;
+    const p = init?.patient;
+    const raw =
+      p?.idNum ??
+      init?.patientIdNum ??
+      selectedPatientId;
     if (raw === null || raw === undefined) return null;
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
@@ -96,20 +102,23 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     refreshMaterielsCatalog();
   }, []);
 
-  // Édition : garder le patient AUI (idNum) aligné avec la consultation chargée
+  // Édition : aligner sur idNum (pas sur patient.id / appid)
   useEffect(() => {
-    const p = (initial as any)?.patient;
-    if (p?.idNum != null) setSelectedPatientId(Number(p.idNum));
-    else if (p?.id != null) setSelectedPatientId(Number(p.id));
+    const init = initial as any;
+    const n = init?.patient?.idNum ?? init?.patientIdNum;
+    if (n != null) setSelectedPatientId(Number(n));
   }, [initial]);
 
   // Fetch assigned materials when editing (using patient idNum)
   useEffect(() => {
     const fetchAssignedMaterials = async () => {
-      const initialPatient: any = (initial as any)?.patient;
-      if (initialPatient?.idNum) {
+      const init = initial as any;
+      const initialPatient: any = init?.patient;
+      const pid =
+        initialPatient?.idNum ?? init?.patientIdNum;
+      if (pid != null && Number.isFinite(Number(pid))) {
         try {
-          const res = await fetch(`${MATERIALS_API}/patient/${initialPatient.idNum}`, { cache: 'no-store' });
+          const res = await fetch(`${MATERIALS_API}/patient/${Number(pid)}`, { cache: 'no-store' });
           
           if (res.ok) {
             const data = await res.json();
@@ -198,7 +207,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   };
 
   const handleUnassignMaterial = async (materialId: number, quantity: number) => {
-    const patientId = getPatientIdForMaterialOps();
+    const patientId = getPatientIdNumForMaterials();
     if (patientId == null) {
       setMaterialOpError('Patient introuvable (idNum). Sélectionnez le patient ou rouvrez la consultation.');
       return;

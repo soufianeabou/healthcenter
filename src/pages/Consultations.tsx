@@ -515,7 +515,9 @@ const Consultations = () => {
           personnelId={user?.id as number}
           initial={editingConsultation ? {
             id: editingConsultation.id,
-            patient: (editingConsultation as any).patient || { id: editingConsultation.patientId, idNum: editingConsultation.patientId },
+            /** Toujours idNum (même clé que material_patient.patient_id) — ne pas confondre avec patient.id (appid) */
+            patientIdNum: editingConsultation.patientId,
+            patient: (editingConsultation as any).patient || { idNum: editingConsultation.patientId },
             personnel: { id: user?.id as number },
             dateConsultation: editingConsultation.consultationDate,
             motif: (editingConsultation as any).motif || editingConsultation.notes,
