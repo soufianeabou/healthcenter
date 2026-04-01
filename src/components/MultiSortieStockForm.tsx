@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Medicine } from '../types/medicine';
-import { SortieStockDTO } from '../types/consultation';
+import { SortieStockRequest } from '../types/consultation';
 
 interface Props {
   consultationId: number;
@@ -59,14 +59,14 @@ const MultiSortieStockForm: React.FC<Props> = ({ consultationId, onSubmitted, on
     setSubmitting(true);
     setError('');
     try {
-      const payloads: SortieStockDTO[] = lines
+      const payloads: SortieStockRequest[] = lines
         .filter(l => l.medicamentId && l.quantite > 0)
         .map(l => ({
-          consultation: { id: consultationId },
-          medicament: { id: l.medicamentId as number },
+          consultationId,
+          medicamentId: l.medicamentId as number,
           parUnite: l.parUnite,
           quantite: l.quantite,
-          dateSortie
+          dateSortie,
         }));
 
       if (payloads.length === 0) {
@@ -76,10 +76,10 @@ const MultiSortieStockForm: React.FC<Props> = ({ consultationId, onSubmitted, on
       }
 
       for (const p of payloads) {
-        const res = await fetch('https://hc.aui.ma/sortie-stock', {
+        const res = await fetch('https://hc.aui.ma/api/consultations/sortiestocks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(p)
+          body: JSON.stringify(p),
         });
         if (!res.ok) {
           const txt = await res.text();

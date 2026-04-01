@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SortieStockDTO } from '../types/consultation';
+import { SortieStockRequest } from '../types/consultation';
 import { Medicine } from '../types/medicine';
 
 interface Props {
   consultationId: number;
-  onSubmit: (payload: SortieStockDTO) => void;
+  onSubmit: (payload: SortieStockRequest) => void;
   onCancel: () => void;
 }
 
@@ -37,11 +37,11 @@ const SortieStockForm: React.FC<Props> = ({ consultationId, onSubmit, onCancel }
     e.preventDefault();
     if (!medicineId || quantite <= 0) return;
     onSubmit({
-      consultation: { id: consultationId },
-      medicament: { id: medicineId as number },
+      consultationId,
+      medicamentId: medicineId as number,
       parUnite,
       quantite,
-      dateSortie
+      dateSortie,
     });
   };
 

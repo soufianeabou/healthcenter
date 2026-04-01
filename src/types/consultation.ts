@@ -13,11 +13,22 @@ export interface ConsultationView extends ConsultationDTO {
   personnel: { id: number; nom?: string; prenom?: string };
 }
 
+/** Correspond à backend SortieStockRequest — champs plats pour JSON */
+export interface SortieStockRequest {
+  id?: number;
+  consultationId: number;
+  medicamentId: number;
+  parUnite: boolean;
+  quantite: number;
+  dateSortie: string; // YYYY-MM-DD (LocalDate côté Spring)
+}
+
+/** @deprecated Préférer SortieStockRequest pour les POST API */
 export interface SortieStockDTO {
   id?: number;
   consultation: { id: number };
   medicament: { id: number };
   parUnite: boolean;
   quantite: number;
-  dateSortie: string; // ISO date
+  dateSortie: string;
 }

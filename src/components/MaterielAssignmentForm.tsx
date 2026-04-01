@@ -92,12 +92,13 @@ const MaterielAssignmentForm: React.FC<Props> = ({ consultationId, onSubmitted, 
 
       // Submit each line
       for (const line of validLines) {
+        // SortieStockRequest (plat) — pas consultation/medicament imbriqués
         const payload = {
-          consultation: { id: consultationId },
-          medicament: { id: line.materielId },
+          consultationId,
+          medicamentId: Number(line.materielId),
           parUnite: true,
           quantite: line.quantite,
-          dateSortie: dateSortie
+          dateSortie,
         };
 
         console.log('Envoi du payload:', payload);
