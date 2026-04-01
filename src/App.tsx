@@ -22,6 +22,8 @@ import Header from './components/Header';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UserRole } from './types/roles';
 import ConsultationDetails from './pages/ConsultationDetails';
+import Medicines from './pages/Medicines';
+import MedicinesList from './pages/MedicinesList';
 
 function AppContent() {
   const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole } = useAuth();
@@ -89,10 +91,12 @@ function AppContent() {
             <Route path="/patients" element={<Patients />} />
             <Route path="/materiels-list" element={<MaterielsList />} />
             <Route path="/materiels/:id" element={<MaterielDetails />} />
+            <Route path="/medicines" element={<MedicinesList />} />
             
             {/* Admin Only Routes */}
             {isAdmin && (
               <>
+                <Route path="/medicines/manage" element={<Medicines />} />
                 <Route path="/materiels" element={<Materiels />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/reports" element={<Reports />} />

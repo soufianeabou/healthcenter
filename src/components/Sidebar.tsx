@@ -58,13 +58,13 @@ const Sidebar = () => {
   return (
     <div className="w-64 bg-white shadow-lg flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-gray-200 flex items-center gap-2">
-        <svg width="28" height="28" viewBox="0 0 56 56" fill="none">
-          <path d="M28 4 L50 14 L50 32 C50 43 40 51 28 54 C16 51 6 43 6 32 L6 14 Z" fill="#003366" stroke="#C4A326" strokeWidth="1.5"/>
-          <rect x="25.5" y="16" width="5" height="22" rx="0.5" fill="#C4A326"/>
-          <rect x="18" y="24" width="20" height="5" rx="0.5" fill="#C4A326"/>
-        </svg>
-        <div>
+      <div className="p-4 border-b border-gray-200 flex items-center gap-3">
+        <img
+          src="/assets/hclogo.png"
+          alt="AUI Health Center"
+          className="h-10 w-auto object-contain flex-shrink-0"
+        />
+        <div className="min-w-0">
           <p className="text-xs font-bold text-gray-800 leading-tight">AUI Health Center</p>
           <p className="text-xs text-gray-400 leading-tight">Portal</p>
         </div>

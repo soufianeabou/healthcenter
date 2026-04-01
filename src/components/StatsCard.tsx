@@ -17,10 +17,12 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon: Icon, color, 
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
           {trend && (
-            <p className={`text-sm mt-2 ${
-              trend.startsWith('+') ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {trend} from last month
+            <p
+              className={`text-sm mt-2 ${
+                trend.startsWith('+') ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {trend}
             </p>
           )}
         </div>
