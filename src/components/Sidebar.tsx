@@ -12,8 +12,10 @@ import {
   RefreshCw,
   FileCheck,
   ClipboardList,
-  GraduationCap,
   ShieldCheck,
+  PackagePlus,
+  PackageMinus,
+  Pill,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
@@ -32,22 +34,32 @@ const Sidebar = () => {
   const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
   const adminNavItems = [
-    { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
-    { icon: Stethoscope,     label: 'Consultations',   path: '/consultations' },
-    { icon: Users,           label: 'Patients',         path: '/patients' },
-    { icon: Package,         label: 'Matériels',        path: '/materiels' },
-    { icon: UserCog,         label: 'Personnel',        path: '/personnel' },
-    { icon: Truck,           label: 'Fournisseurs',     path: '/suppliers' },
-    { icon: BarChart3,       label: 'Rapports',         path: '/reports' },
-    { icon: FileCheck,       label: 'Certificate Review', path: '/certificate-review' },
+    { icon: LayoutDashboard, label: 'Tableau de bord',       path: '/dashboard' },
+    { icon: Stethoscope,     label: 'Consultations',          path: '/consultations' },
+    { icon: Users,           label: 'Patients',               path: '/patients' },
+    { icon: Package,         label: 'Matériels',              path: '/materiels' },
+    { icon: Pill,            label: 'Médicaments',            path: '/medicines/manage' },
+    { icon: PackagePlus,     label: 'Entrées stock',          path: '/entry-stock' },
+    { icon: PackageMinus,    label: 'Sorties stock',          path: '/exit-stock' },
+    { icon: UserCog,         label: 'Personnel',              path: '/personnel' },
+    { icon: Truck,           label: 'Fournisseurs',           path: '/suppliers' },
+    { icon: BarChart3,       label: 'Rapports',               path: '/reports' },
+    { icon: FileCheck,       label: 'Revue des certificats',  path: '/certificate-review' },
   ];
 
   const medecinNavItems = [
+    { icon: LayoutDashboard, label: 'Tableau de bord',       path: '/dashboard' },
+    { icon: Stethoscope,     label: 'Consultations',          path: '/consultations' },
+    { icon: Users,           label: 'Patients',               path: '/patients' },
+    { icon: Package,         label: 'Matériels',              path: '/materiels-list' },
+    { icon: FileCheck,       label: 'Revue des certificats',  path: '/certificate-review' },
+  ];
+
+  const infirmierNavItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
     { icon: Stethoscope,     label: 'Consultations',    path: '/consultations' },
     { icon: Users,           label: 'Patients',          path: '/patients' },
     { icon: Package,         label: 'Matériels',         path: '/materiels-list' },
-    { icon: FileCheck,       label: 'Certificate Review', path: '/certificate-review' },
   ];
 
   const studentNavItems = [
@@ -66,8 +78,9 @@ const Sidebar = () => {
       case UserRole.SUPER_ADMIN:
         return adminNavItems;
       case UserRole.MEDECIN:
-      case UserRole.INFIRMIER:
         return medecinNavItems;
+      case UserRole.INFIRMIER:
+        return infirmierNavItems;
       case UserRole.STUDENT:
         return studentNavItems;
       case UserRole.DSA:

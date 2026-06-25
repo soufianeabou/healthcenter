@@ -1,368 +1,139 @@
-import React, { useState } from 'react';
-import { User, Mail, Phone, Shield, Briefcase, Save, Edit, X } from 'lucide-react';
+import { User, Mail, Phone, Briefcase, Shield, Info, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserRole, UserStatus, getRoleBadgeColors } from '../types/roles';
+import { UserRole, getRoleBadgeColors } from '../types/roles';
 
-interface Personnel {
-  id: number;
-  nom: string;
-  prenom: string;
-  username: string;
-  passwd: string;
-  role: UserRole;
-  specialite: string;
-  telephone: string;
-  email: string;
-  status: UserStatus;
-}
+const roleLabel: Record<string, string> = {
+  [UserRole.ADMIN]:       'Administrateur',
+  [UserRole.SUPER_ADMIN]: 'Super Administrateur',
+  [UserRole.MEDECIN]:     'Médecin',
+  [UserRole.INFIRMIER]:   'Infirmier(e)',
+  [UserRole.STUDENT]:     'Étudiant(e)',
+  [UserRole.DSA]:         'Dean of Student Affairs',
+};
 
-interface PersonnelFormProps {
-  initialData?: Personnel | null;
-  onSubmit: (data: Partial<Personnel>) => Promise<boolean>;
-  onCancel: () => void;
-}
+const Field = ({ label, value }: { label: string; value?: string }) => (
+  <div>
+    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+    <p className="text-sm text-gray-900 font-medium">{value || <span className="text-gray-400 font-normal">—</span>}</p>
+  </div>
+);
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
-  const [formData, setFormData] = useState({
-    nom: user?.nom || '',
-    prenom: user?.prenom || '',
-    email: user?.email || '',
-    telephone: user?.telephone || '',
-    specialite: user?.specialite || '',
-    passwd: ''
-  });
-
-
+  const { user, effectiveRole } = useAuth();
+  const navigate = useNavigate();
 
   if (!user) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">Please log in to view your profile.</p>
+      <div className="flex items-center justify-center py-16 text-gray-500 text-sm">
+        Veuillez vous connecter pour accéder à votre profil.
       </div>
     );
   }
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setFormData({
-      nom: user.nom,
-      prenom: user.prenom,
-      email: user.email,
-      telephone: user.telephone,
-      specialite: user.specialite,
-      passwd: ''
-    });
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setError('');
-    setSuccess('');
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      // Only include password if it's been changed (not empty)
-      const dataToUpdate: Partial<Personnel> = { ...formData };
-      if (!dataToUpdate.passwd?.trim()) {
-        dataToUpdate.passwd = undefined;
-      } else if (dataToUpdate.passwd && dataToUpdate.passwd.length < 6) {
-        setError('Le mot de passe doit contenir au moins 6 caractères');
-        setIsLoading(false);
-        return;
-      }
-
-      const success = await updateProfile(dataToUpdate);
-      if (success) {
-        setSuccess('Profile updated successfully!');
-        setIsEditing(false);
-        // Clear password field after successful update
-        setFormData(prev => ({ ...prev, passwd: '' }));
-      } else {
-        setError('Failed to update profile. Please try again.');
-      }
-    } catch (err) {
-      setError('An error occurred while updating your profile.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getStatusBadge = (status: UserStatus) => {
-    const colors = {
-      [UserStatus.ACTIVE]: 'bg-green-100 text-green-800',
-      [UserStatus.INACTIVE]: 'bg-red-100 text-red-800',
-      [UserStatus.PENDING]: 'bg-yellow-100 text-yellow-800',
-      [UserStatus.SUSPENDED]: 'bg-orange-100 text-orange-800'
-    };
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-        colors[status] || 'bg-gray-100 text-gray-800'
-      }`}>
-        {status}
-      </span>
-    );
-  };
+  const isAdminRole = effectiveRole === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">My Profile</h1>
-          <p className="text-gray-600">Manage your personal information and account settings</p>
-        </div>
-        {!isEditing && (
-          <button
-            onClick={handleEdit}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <Edit className="w-5 h-5" />
-            <span>Edit Profile</span>
-          </button>
-        )}
+    <div className="max-w-3xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Mon profil</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Informations du compte AUI Health Center</p>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-2">
-          <X className="w-5 h-5 text-red-500" />
-          <span className="text-red-700">{error}</span>
+      {/* SSO notice */}
+      <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3.5">
+        <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-blue-800">
+          <p className="font-medium">Profil géré via Azure AD / Outlook AUI</p>
+          <p className="text-blue-700 mt-0.5">
+            Ces informations proviennent de votre compte institutionnel. Pour les modifier, contactez le service IT AUI.
+            {isAdminRole && (
+              <> Pour gérer le personnel du Health Center, utilisez la page <button onClick={() => navigate('/personnel')} className="underline font-medium hover:text-blue-900">Personnel</button>.</>
+            )}
+          </p>
         </div>
-      )}
+      </div>
 
-      {success && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-2">
-          <Save className="w-5 h-5 text-green-500" />
-          <span className="text-green-700">{success}</span>
-        </div>
-      )}
+      {/* Profile card */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Top strip */}
+        <div className="h-20 bg-gradient-to-r from-teal-600 to-teal-700" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Card */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-12 h-12 text-green-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900">
+        {/* Avatar + name */}
+        <div className="px-6 pb-6">
+          <div className="-mt-10 mb-4 flex items-end gap-4">
+            <div className="w-20 h-20 rounded-full bg-white border-4 border-white shadow-md flex items-center justify-center flex-shrink-0">
+              <User className="w-9 h-9 text-teal-600" />
+            </div>
+            <div className="mb-1">
+              <h2 className="text-xl font-bold text-gray-900">
                 {user.prenom} {user.nom}
               </h2>
-              <p className="text-gray-600 mb-2">{user.username}</p>
-              <div className="flex items-center justify-center space-x-2 mb-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColors(user.role)}`}>
-                  {user.role}
-                </span>
-                {getStatusBadge(user.status)}
-              </div>
-            </div>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Briefcase className="w-4 h-4" />
-                <span>{user.specialite}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Mail className="w-4 h-4" />
-                <span>{user.email}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Phone className="w-4 h-4" />
-                <span>{user.telephone}</span>
-              </div>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${getRoleBadgeColors(user.role)}`}>
+                {roleLabel[user.role] || user.role}
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Profile Form */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">
-              {isEditing ? 'Edit Profile Information' : 'Profile Information'}
-            </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2 border-t border-gray-100">
+            <Field label="Prénom" value={user.prenom} />
+            <Field label="Nom" value={user.nom} />
 
-            {isEditing ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="prenom"
-                      value={formData.prenom}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name *
-                    </label>
-                    <input
-                      type="text"
-                      name="nom"
-                      value={formData.nom}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
+            <div className="flex items-start gap-2.5 sm:col-span-2">
+              <Mail className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">Email</p>
+                <p className="text-sm text-gray-900 font-medium">{user.email}</p>
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      name="telephone"
-                      value={formData.telephone}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                      required
-                    />
-                  </div>
-                </div>
-
+            {user.telephone && (
+              <div className="flex items-start gap-2.5">
+                <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Specialty *
-                  </label>
-                  <input
-                    type="text"
-                    name="specialite"
-                    value={formData.specialite}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nouveau mot de passe (optionnel)
-                  </label>
-                  <input
-                    type="password"
-                    name="passwd"
-                    value={formData.passwd}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="Laissez vide pour ne pas changer"
-                    minLength={6}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Laissez vide si vous ne voulez pas changer votre mot de passe. Minimum 6 caractères si fourni.
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-end space-x-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{isLoading ? 'Saving...' : 'Save Changes'}</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                    <p className="text-gray-900">{user.prenom}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                    <p className="text-gray-900">{user.nom}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <p className="text-gray-900">{user.email}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                    <p className="text-gray-900">{user.telephone}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
-                  <p className="text-gray-900">{user.specialite}</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <p className="text-gray-900">{user.username}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                    <div className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeColors(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">Téléphone</p>
+                  <p className="text-sm text-gray-900 font-medium">{user.telephone}</p>
                 </div>
               </div>
             )}
+
+            {user.specialite && (
+              <div className="flex items-start gap-2.5">
+                <Briefcase className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">Spécialité</p>
+                  <p className="text-sm text-gray-900 font-medium">{user.specialite}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start gap-2.5">
+              <Shield className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">Rôle système</p>
+                <p className="text-sm text-gray-900 font-medium">{roleLabel[user.role] || user.role}</p>
+              </div>
+            </div>
           </div>
         </div>
-
-
-        
       </div>
+
+      {/* Admin shortcut */}
+      {isAdminRole && (
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">Administration</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            En tant qu'administrateur, vous pouvez gérer les comptes du personnel via la page dédiée.
+          </p>
+          <button
+            onClick={() => navigate('/personnel')}
+            className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" /> Gérer le personnel
+          </button>
+        </div>
+      )}
     </div>
   );
 };

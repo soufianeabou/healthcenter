@@ -57,8 +57,10 @@ function AppContent() {
     return <RolePicker />;
   }
 
-  const isAdmin = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
-  const isMedecinOrNurse = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.INFIRMIER;
+  const isAdmin       = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
+  const isClinical    = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.INFIRMIER;
+  const isStudentRole = effectiveRole === UserRole.STUDENT;
+  const isDSARole     = effectiveRole === UserRole.DSA;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -88,41 +90,47 @@ function AppContent() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
 
-            {/* Shared Routes - Consultations, Patients, Materials List */}
-            <Route path="/consultations" element={<Consultations />} />
-            <Route path="/consultations/:id" element={<ConsultationDetails />} />
-            <Route path="/patients" element={<Patients />} />
-            <Route path="/materiels-list" element={<MaterielsList />} />
-            <Route path="/materiels/:id" element={<MaterielDetails />} />
-            <Route path="/medicines" element={<MedicinesList />} />
+            {/* Clinical staff + Admin: consultations and patients */}
+            {(isAdmin || isClinical) && (
+              <>
+                <Route path="/consultations" element={<Consultations />} />
+                <Route path="/consultations/:id" element={<ConsultationDetails />} />
+                <Route path="/patients" element={<Patients />} />
+                <Route path="/materiels-list" element={<MaterielsList />} />
+                <Route path="/materiels/:id" element={<MaterielDetails />} />
+                <Route path="/medicines" element={<MedicinesList />} />
+              </>
+            )}
 
-            {/* Admin Only Routes */}
+            {/* Admin only */}
             {isAdmin && (
               <>
                 <Route path="/medicines/manage" element={<Medicines />} />
                 <Route path="/materiels" element={<Materiels />} />
+                <Route path="/entry-stock" element={<EntryStock />} />
+                <Route path="/exit-stock" element={<ExitStock />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/personnel" element={<Personnel />} />
               </>
             )}
 
-            {/* Certificate Review — Admin & Medecin */}
+            {/* Certificate review — Admin & Médecin */}
             {(isAdmin || isMedecin()) && (
               <Route path="/certificate-review" element={<CertificateReview />} />
             )}
 
-            {/* Student Routes */}
-            {isStudent() && (
+            {/* Student */}
+            {isStudentRole && (
               <Route path="/my-certificates" element={<StudentCertificates />} />
             )}
 
-            {/* DSA Routes */}
-            {isDSA() && (
+            {/* DSA */}
+            {isDSARole && (
               <Route path="/dsa-certificates" element={<DSACertificates />} />
             )}
 
-            {/* Fallback for unknown routes */}
+            {/* Fallback */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
