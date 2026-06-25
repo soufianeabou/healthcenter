@@ -15,12 +15,18 @@ const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const Login: React.FC = () => {
   const [mounted, setMounted] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const { loginWithOutlook, authError } = useAuth();
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);
+
+  const handleSignIn = () => {
+    setSigningIn(true);
+    loginWithOutlook(); // triggers a full redirect, so the spinner just shows until navigation
+  };
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", minHeight: '100vh', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
@@ -207,15 +213,26 @@ const Login: React.FC = () => {
           {/* Sign-in CTA */}
           <button
             type="button"
-            onClick={loginWithOutlook}
+            onClick={handleSignIn}
+            disabled={signingIn}
             className="lc-btn"
             aria-label="Sign in with Microsoft Outlook"
           >
-            <MicrosoftLogo />
-            Sign in with Outlook
+            {signingIn ? (
+              <>
+                <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                Redirection vers Microsoft…
+              </>
+            ) : (
+              <>
+                <MicrosoftLogo />
+                Sign in with Outlook
+              </>
+            )}
           </button>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-          <p className="lc-hint">Click the button above to authenticate using your Outlook account.</p>
+          <p className="lc-hint">Use your AUI Outlook account (@aui.ma) to access the portal.</p>
 
           {/* Local dev fallback */}
           {isLocalDev && <DevLogin />}

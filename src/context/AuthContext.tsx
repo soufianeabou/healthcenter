@@ -16,15 +16,14 @@ interface User {
 
 /* ─────────────────────────────────────────────────────────
    Gateway URL resolution
-   Priority: VITE_AUTH_BASE_URL env var  →  production origin
-   port 8222  →  current origin (fallback for local testing)
+   Auth endpoints (/auth/user, /oauth2/*, /logout) are served
+   by Spring Security through nginx on port 443 — same origin.
+   Never use port 8222 directly; that port is internal only.
 ───────────────────────────────────────────────────────── */
-const PROD_APP_ORIGIN = 'https://hc.aui.ma';
-
 const getAuthBaseUrl = (): string => {
   const envOverride = (import.meta as any).env?.VITE_AUTH_BASE_URL?.trim();
   if (envOverride) return envOverride.replace(/\/$/, '');
-  if (window.location.origin === PROD_APP_ORIGIN) return 'https://hc.aui.ma:8222';
+  // Always use the same origin — nginx proxies /oauth2/* and /auth/* to the gateway
   return window.location.origin;
 };
 
@@ -65,123 +64,61 @@ const extractEmailFromPrincipal = (principal: unknown): string | null => {
 };
 
 /* ─────────────────────────────────────────────────────────
-   EMAIL DIRECTORY  –  maps AUI Outlook emails → app user objects
-   Add / remove entries here to grant / revoke access.
+   SUPER_ADMIN override — these emails get the elevated role
+   regardless of what is stored in the personnel table.
 ───────────────────────────────────────────────────────── */
-const EMAIL_DIRECTORY: Record<string, User> = {
-  // ── SUPER ADMIN (frontend-only elevated role) ──────────
-  's.aboulhamam@gmail.com': {
-    id: 99, nom: 'Aboulhamam', prenom: 'Soufiane',
-    username: 's.aboulhamam@gmail.com', passwd: null,
-    role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-    telephone: '0000000000', email: 's.aboulhamam@gmail.com',
-    status: UserStatus.ACTIVE,
-  },
+const SUPER_ADMIN_EMAILS = new Set([
+  's.aboulhamam@aui.ma',
+  'a.bettahi@aui.ma',
+  's.ghajdaoui@aui.ma',
+  'h.harroud@aui.ma',
+]);
 
-  // ── MEDECIN ────────────────────────────────────────────
-  'm.aslaf@aui.ma': {
-    id: 3, nom: 'Aslaf', prenom: 'Dr.Mounia',
-    username: 'm.aslaf@aui.ma', passwd: null,
-    role: UserRole.MEDECIN, specialite: 'Médecine Générale',
-    telephone: '0000000000', email: 'm.aslaf@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'health.center.doctor@aui.ma': {
-    id: 4, nom: 'Physician', prenom: 'Intern',
-    username: 'Health.Center.Doctor@aui.ma', passwd: null,
-    role: UserRole.MEDECIN, specialite: 'Interne',
-    telephone: '0000000000', email: 'Health.Center.Doctor@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── ADMIN ──────────────────────────────────────────────
-  'a.guennoun@aui.ma': {
-    id: 1, nom: 'Guennoun', prenom: 'Dr.Adnane',
-    username: 'a.guennoun@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'a.guennoun@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'h.harroud@aui.ma': {
-    id: 10, nom: 'Harroud', prenom: 'Dr.Hamid',
-    username: 'h.harroud@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'h.harroud@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'a.bettahi@aui.ma': {
-    id: 11, nom: 'Bettahi', prenom: 'Abdelkarim',
-    username: 'a.bettahi@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'a.bettahi@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'o.ghazal@aui.ma': {
-    id: 5, nom: 'Ghazal', prenom: 'Oumaima',
-    username: 'o.ghazal@aui.ma', passwd: null,
-    role: UserRole.ADMIN, specialite: 'Administration',
-    telephone: '0000000000', email: 'o.ghazal@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── STUDENT ────────────────────────────────────────────
-  'student.test@aui.ma': {
-    id: 200, nom: 'Test', prenom: 'Student',
-    username: 'student.test@aui.ma', passwd: null,
-    role: UserRole.STUDENT, specialite: '',
-    telephone: '', email: 'student.test@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── DSA ────────────────────────────────────────────────
-  'dsa.officer@aui.ma': {
-    id: 201, nom: 'Officer', prenom: 'DSA',
-    username: 'dsa.officer@aui.ma', passwd: null,
-    role: UserRole.DSA, specialite: 'Dean of Student Affairs',
-    telephone: '', email: 'dsa.officer@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-
-  // ── INFIRMIER ──────────────────────────────────────────
-  'm.ouakki@aui.ma': {
-    id: 6, nom: 'Ouakki', prenom: 'Meriem',
-    username: 'm.ouakki@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 'm.ouakki@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'f.elmajdoubi@aui.ma': {
-    id: 2, nom: 'Elmajdoubi', prenom: 'Fatima',
-    username: 'f.elmajdoubi@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 'f.elmajdoubi@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  's.ghazal@aui.ma': {
-    id: 7, nom: 'Ghazal', prenom: 'Siham',
-    username: 's.ghazal@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 's.ghazal@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'g.makhsou@aui.ma': {
-    id: 8, nom: 'Makhsou', prenom: 'Ghizlane',
-    username: 'g.makhsou@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Soins Infirmiers',
-    telephone: '0000000000', email: 'g.makhsou@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
-  'health.center.nurse@aui.ma': {
-    id: 9, nom: 'Nurses', prenom: 'Intern',
-    username: 'Health.Center.Nurse@aui.ma', passwd: null,
-    role: UserRole.INFIRMIER, specialite: 'Interne',
-    telephone: '0000000000', email: 'Health.Center.Nurse@aui.ma',
-    status: UserStatus.ACTIVE,
-  },
+/* Maps the backend ERole ordinal (or string) → frontend UserRole */
+const toUserRole = (rawRole: unknown): UserRole => {
+  if (typeof rawRole === 'number') {
+    if (rawRole === 0) return UserRole.MEDECIN;
+    if (rawRole === 1) return UserRole.INFIRMIER;
+    if (rawRole === 2) return UserRole.ADMIN;
+  }
+  const s = String(rawRole ?? '').trim().toUpperCase();
+  if (s === 'MEDECIN')   return UserRole.MEDECIN;
+  if (s === 'INFIRMIER') return UserRole.INFIRMIER;
+  if (s === 'ADMIN')     return UserRole.ADMIN;
+  if (s === 'STUDENT')   return UserRole.STUDENT;
+  if (s === 'DSA')       return UserRole.DSA;
+  return UserRole.ADMIN; // safe fallback
 };
 
-const resolveUserFromEmail = (email: string | null | undefined): User | null =>
-  EMAIL_DIRECTORY[normalizeEmail(email)] ?? null;
+/* Fetches the personnels table and matches by email.
+   Returns a User object on match, null if not found or request fails. */
+const resolveUserFromBackendPersonnel = async (email: string): Promise<User | null> => {
+  try {
+    const res = await fetch('https://hc.aui.ma/api/consultations/personnels', {
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    const personnels: any[] = await res.json();
+    const match = personnels.find(
+      (p) => normalizeEmail(p.email) === normalizeEmail(email),
+    );
+    if (!match) return null;
+    return {
+      id:         match.id,
+      nom:        match.nom        ?? '',
+      prenom:     match.prenom     ?? '',
+      username:   match.email      ?? email,
+      passwd:     null,
+      role:       toUserRole(match.role),
+      specialite: match.specialite ?? '',
+      telephone:  match.telephone  ?? '',
+      email:      match.email      ?? email,
+      status:     UserStatus.ACTIVE,
+    };
+  } catch {
+    return null;
+  }
+};
 
 /* ─────────────────────────────────────────────────────────
    Context
@@ -261,9 +198,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const tryHydrateFromSso = async () => {
-      // 5-second timeout — if the gateway is unreachable we fall through to localStorage
+      // 12-second timeout — server responses legitimately take ~4s; give plenty of margin
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 5000);
+      const timer = setTimeout(() => controller.abort(), 12000);
 
       try {
         const response = await fetch(`${AUTH_BASE_URL}/auth/user`, {
@@ -278,9 +215,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const contentType = response.headers.get('content-type') ?? '';
 
+        // Gateway may redirect unauthenticated requests to an HTML login page
         if (!contentType.toLowerCase().includes('application/json')) {
-          const preview = (await response.text()).slice(0, 120);
-          console.warn('[Auth] /auth/user did not return JSON. CT:', contentType, '| Preview:', preview);
           return;
         }
 
@@ -296,27 +232,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        const mappedUser = resolveUserFromEmail(email);
+        const normalizedEmail = normalizeEmail(email);
 
-        if (mappedUser) {
+        // 1. SUPER_ADMIN override — elevated role regardless of DB entry
+        if (SUPER_ADMIN_EMAILS.has(normalizedEmail)) {
+          const personnelUser = await resolveUserFromBackendPersonnel(email);
+          const superAdminUser: User = personnelUser
+            ? { ...personnelUser, role: UserRole.SUPER_ADMIN }
+            : {
+                id: 0, nom: normalizedEmail.split('@')[0], prenom: '',
+                username: email, passwd: null,
+                role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
+                telephone: '', email, status: UserStatus.ACTIVE,
+              };
           setAuthError(null);
-          setUser(mappedUser);
+          setUser(superAdminUser);
           setIsAuthenticated(true);
-          persistUser(mappedUser, 'sso');
+          persistUser(superAdminUser, 'sso');
+          return;
+        }
+
+        // 2. Look up the user in the personnels table by email
+        const personnelUser = await resolveUserFromBackendPersonnel(email);
+
+        if (personnelUser) {
+          setAuthError(null);
+          setUser(personnelUser);
+          setIsAuthenticated(true);
+          persistUser(personnelUser, 'sso');
         } else {
+          // Authenticated by Azure but not found in the personnel table
           clearStoredAuth();
           setUser(null);
           setIsAuthenticated(false);
           setAuthError(
-            `Le compte Outlook ${email} est authentifié mais n'est pas autorisé à accéder à cette application.`,
+            `Le compte ${email} est authentifié mais n'a pas de profil personnel dans le système. Contactez l'administrateur.`,
           );
         }
       } catch (err: any) {
         clearTimeout(timer);
-        // Timeout or network error — silently fall through to whatever localStorage has
         if (err?.name !== 'AbortError') {
           console.warn('[Auth] SSO hydration failed:', err);
         }
+        // Network/timeout — silently keep whatever localStorage has
       } finally {
         setIsAuthLoading(false);
       }
