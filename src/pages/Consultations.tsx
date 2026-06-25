@@ -33,6 +33,7 @@ interface ConsultationRow {
   diagnostic?: string;
   traitement?: string;
   patient?: any;
+  personnelId?: number;
 }
 
 /* ─── helpers ─── */
@@ -114,7 +115,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
         body: JSON.stringify({
           id: consultation.id,
           patientId: consultation.patientId,
-          personnelId: null,
+          personnelId: consultation.personnelId,
           dateConsultation: consultation.consultationDate,
           motif: consultation.motif,
           diagnostic,
@@ -453,6 +454,7 @@ const Consultations = () => {
         diagnostic: c.diagnostic,
         traitement: c.traitement,
         patient: c.patient,
+        personnelId: c.personnel?.id ?? null,
       }));
       setConsultations(rows);
     } catch (e) {
