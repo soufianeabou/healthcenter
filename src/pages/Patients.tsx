@@ -54,30 +54,7 @@ const Patients: React.FC = () => {
     category: patientCategories[r.idNum] || ''
   });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const term = searchId.trim();
-    if (!term) return () => controller.abort();
-    if (!/^\d{3,}$/.test(term)) return () => controller.abort();
-    const timer = setTimeout(async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`https://hc.aui.ma/api/patients/${term}`, { signal: controller.signal });
-        if (!res.ok) {
-          setPatients([]);
-          return;
-        }
-        const r = await res.json();
-        const mapped = mapPatient(r);
-        setPatients([mapped]);
-      } catch (e) {
-        setPatients([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 200);
-    return () => { clearTimeout(timer); controller.abort(); };
-  }, [searchId]);
+  // No separate effect needed for searchId — filtered inline below
 
   const fetchPatients = async () => {
     try {
@@ -366,11 +343,13 @@ const Patients: React.FC = () => {
   ];
 
   const filteredPatients = patients.filter((p) => {
+    const term = searchId.trim();
+    const matchesId = term ? p.idNum.toString().startsWith(term) : true;
     const matchesName = nameSearch
       ? (`${p.prenom} ${p.nom}`.toLowerCase().includes(nameSearch.toLowerCase()))
       : true;
     const matchesCategory = categoryFilter === 'ALL' || (p.category || '') === categoryFilter;
-    return matchesName && matchesCategory;
+    return matchesId && matchesName && matchesCategory;
   });
 
   return (

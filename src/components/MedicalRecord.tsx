@@ -63,12 +63,31 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
   const [medicalRecord, setMedicalRecord] = useState<MedicalRecordData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [form] = Form.useForm();
+  const [activeTab, setActiveTab] = useState<'dossier' | 'historique'>('dossier');
+  const [consultationHistory, setConsultationHistory] = useState<any[]>([]);
+  const [histLoading, setHistLoading] = useState(false);
 
   useEffect(() => {
     if (visible && patient) {
       fetchMedicalRecord();
+      fetchConsultationHistory();
     }
   }, [visible, patient]);
+
+  const fetchConsultationHistory = async () => {
+    setHistLoading(true);
+    try {
+      const res = await fetch('https://hc.aui.ma/api/consultations');
+      if (res.ok) {
+        const all = await res.json();
+        const patientConsultations = all
+          .filter((c: any) => c.patient?.idNum === patient.idNum || c.patientId === patient.idNum)
+          .sort((a: any, b: any) => new Date(b.dateConsultation).getTime() - new Date(a.dateConsultation).getTime());
+        setConsultationHistory(patientConsultations);
+      }
+    } catch { setConsultationHistory([]); }
+    finally { setHistLoading(false); }
+  };
 
   const fetchMedicalRecord = async () => {
     try {
@@ -787,6 +806,73 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
     </Form>
   );
 
+  const renderHistorique = () => (
+    <div>
+      {histLoading ? (
+        <div style={{ textAlign: 'center', padding: 40 }}>Chargement…</div>
+      ) : consultationHistory.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+          Aucune consultation enregistrée pour ce patient.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {consultationHistory.map((c: any) => {
+            const hasTraitement = c.traitement?.trim();
+            const diagnostic: string = c.diagnostic || '';
+            const isConstantes = diagnostic.startsWith('CONSTANTES:');
+            const constantes = isConstantes
+              ? diagnostic.split('\n\nNOTES:\n')[0].replace('CONSTANTES:\n', '').split('\n').filter(Boolean)
+              : [];
+            const notes = isConstantes
+              ? (diagnostic.split('\n\nNOTES:\n')[1] || '')
+              : diagnostic;
+
+            return (
+              <div key={c.id} style={{ border: `1px solid ${hasTraitement ? '#d9f7be' : '#ffe7ba'}`, borderRadius: 8, padding: 16, background: hasTraitement ? '#f6ffed' : '#fffbe6' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>
+                      {new Date(c.dateConsultation).toLocaleString('fr-MA', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                    <span style={{ marginLeft: 12, fontSize: 12, color: '#666' }}>
+                      {`${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Personnel inconnu'}
+                    </span>
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 12,
+                    background: hasTraitement ? '#b7eb8f' : '#ffd591',
+                    color: hasTraitement ? '#237804' : '#873800'
+                  }}>
+                    {hasTraitement ? 'Terminée' : 'En attente médecin'}
+                  </span>
+                </div>
+                {c.motif && (
+                  <p style={{ margin: '4px 0', fontSize: 13 }}><strong>Motif:</strong> {c.motif}</p>
+                )}
+                {constantes.length > 0 && (
+                  <div style={{ margin: '6px 0' }}>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: 12, color: '#722ed1' }}>Constantes:</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                      {constantes.map((line: string, i: number) => (
+                        <span key={i} style={{ background: '#f9f0ff', border: '1px solid #d3adf7', borderRadius: 6, padding: '2px 8px', fontSize: 12 }}>{line}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {notes && (
+                  <p style={{ margin: '4px 0', fontSize: 13 }}><strong>Diagnostic:</strong> {notes}</p>
+                )}
+                {c.traitement && (
+                  <p style={{ margin: '4px 0', fontSize: 13, color: '#135200' }}><strong>Traitement:</strong> {c.traitement}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <Modal
       title={
@@ -800,17 +886,37 @@ const MedicalRecord: React.FC<MedicalRecordProps> = ({ patient, visible, onClose
       width={1200}
       footer={null}
     >
-      <Spin spinning={loading}>
-        {!medicalRecord && !loading && (
-          <div style={{ marginBottom: 16, padding: 16, background: '#f0f2f5', borderRadius: 8 }}>
-            <p style={{ margin: 0 }}>
-              <strong>Aucun dossier médical trouvé.</strong> Veuillez remplir le formulaire ci-dessous.
-            </p>
-          </div>
-        )}
-        
-        {!isEditing && medicalRecord ? renderViewMode() : renderEditMode()}
-      </Spin>
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', marginBottom: 16 }}>
+        {([['dossier', 'Dossier Médical'], ['historique', `Historique des consultations${consultationHistory.length ? ` (${consultationHistory.length})` : ''}`]] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            style={{
+              padding: '8px 20px', fontSize: 14, fontWeight: activeTab === key ? 600 : 400,
+              borderBottom: activeTab === key ? '2px solid #1890ff' : '2px solid transparent',
+              color: activeTab === key ? '#1890ff' : '#666',
+              background: 'none', border: 'none', borderBottom: activeTab === key ? '2px solid #1890ff' : '2px solid transparent',
+              cursor: 'pointer', marginBottom: -1,
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'dossier' ? (
+        <Spin spinning={loading}>
+          {!medicalRecord && !loading && (
+            <div style={{ marginBottom: 16, padding: 16, background: '#f0f2f5', borderRadius: 8 }}>
+              <p style={{ margin: 0 }}>
+                <strong>Aucun dossier médical trouvé.</strong> Veuillez remplir le formulaire ci-dessous.
+              </p>
+            </div>
+          )}
+          {!isEditing && medicalRecord ? renderViewMode() : renderEditMode()}
+        </Spin>
+      ) : renderHistorique()}
     </Modal>
   );
 };

@@ -268,7 +268,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     }
     if (!motif.trim()) e.motif = 'Motif requis';
     if (!diagnostic.trim() && !isNurse) e.diagnostic = 'Diagnostic requis';
-    if (!traitement.trim()) e.traitement = 'Traitement requis';
+    if (!traitement.trim() && !isNurse) e.traitement = 'Traitement requis';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -680,18 +680,26 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         {errors.diagnostic && <p className="text-red-600 text-sm mt-2 font-medium">{errors.diagnostic}</p>}
       </div>
 
-      {/* Traitement */}
-      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
-        <label className="block text-sm font-semibold text-gray-800 mb-2">Traitement *</label>
-        <textarea 
-          value={traitement} 
-          onChange={(e) => setTraitement(e.target.value)} 
-          rows={4} 
-          placeholder="Prescription et traitement recommandé..."
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none" 
-        />
-        {errors.traitement && <p className="text-red-600 text-sm mt-2 font-medium">{errors.traitement}</p>}
-      </div>
+      {/* Traitement — optional for nurses */}
+      {!isNurse && (
+        <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">Traitement *</label>
+          <textarea
+            value={traitement}
+            onChange={(e) => setTraitement(e.target.value)}
+            rows={4}
+            placeholder="Prescription et traitement recommandé..."
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+          />
+          {errors.traitement && <p className="text-red-600 text-sm mt-2 font-medium">{errors.traitement}</p>}
+        </div>
+      )}
+      {isNurse && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 flex items-start gap-2">
+          <span className="mt-0.5">ℹ️</span>
+          <span>Le traitement sera complété par le médecin. La consultation sera enregistrée en statut <strong>En attente médecin</strong>.</span>
+        </div>
+      )}
 
       {/* Material assignment section */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200 shadow-sm">
