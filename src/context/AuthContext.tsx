@@ -190,9 +190,14 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAuthLoading: boolean;
+  isLoggingOut: boolean;
   authError: string | null;
+  activeRole: UserRole | null;
+  effectiveRole: UserRole | null;
   loginWithOutlook: () => void;
   logout: () => void;
+  setActiveRole: (role: UserRole) => void;
+  resetActiveRole: () => void;
   updateProfile: (userData: Partial<User>) => Promise<boolean>;
   hasRole: (role: UserRole) => boolean;
   hasAnyRole: (roles: UserRole[]) => boolean;
@@ -214,18 +219,38 @@ export const useAuth = () => {
 /* ─────────────────────────────────────────────────────────
    AuthProvider
 ───────────────────────────────────────────────────────── */
+const ACTIVE_ROLE_KEY = 'activeRole';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user,            setUser]            = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading,   setIsAuthLoading]   = useState(true);
+  const [isLoggingOut,    setIsLoggingOut]    = useState(false);
   const [authError,       setAuthError]       = useState<string | null>(null);
+  const [activeRole,      setActiveRoleState] = useState<UserRole | null>(
+    () => (localStorage.getItem(ACTIVE_ROLE_KEY) as UserRole | null)
+  );
 
-  /* ── On mount: pre-populate from storage, then always verify
-        with the gateway so an Outlook redirect is always picked up. ── */
+  /* effectiveRole: what the UI should treat as the current role.
+     For SUPER_ADMIN it's whatever they picked; for others it's their own role. */
+  const effectiveRole: UserRole | null =
+    user?.role === UserRole.SUPER_ADMIN ? activeRole : (user?.role ?? null);
+
+  const setActiveRole = (role: UserRole) => {
+    setActiveRoleState(role);
+    localStorage.setItem(ACTIVE_ROLE_KEY, role);
+  };
+
+  const resetActiveRole = () => {
+    setActiveRoleState(null);
+    localStorage.removeItem(ACTIVE_ROLE_KEY);
+  };
+
+  /* ── On mount: restore from localStorage, then verify SSO with a 5-second
+        timeout so a stalled/unreachable gateway never blocks the app. ── */
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
 
-    // Pre-populate immediately to avoid blank flash while the fetch runs
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser));
@@ -236,17 +261,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const tryHydrateFromSso = async () => {
+      // 5-second timeout — if the gateway is unreachable we fall through to localStorage
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+
       try {
         const response = await fetch(`${AUTH_BASE_URL}/auth/user`, {
           credentials: 'include',
+          signal: controller.signal,
         });
+
+        clearTimeout(timer);
 
         // 401 / 403 → no active SSO session; keep whatever localStorage has
         if (!response.ok) return;
 
         const contentType = response.headers.get('content-type') ?? '';
 
-        // Guard: gateway may redirect unauthenticated requests to an HTML login page
         if (!contentType.toLowerCase().includes('application/json')) {
           const preview = (await response.text()).slice(0, 120);
           console.warn('[Auth] /auth/user did not return JSON. CT:', contentType, '| Preview:', preview);
@@ -257,7 +288,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const email     = extractEmailFromPrincipal(principal);
 
         if (!email) {
-          // Session exists but carries no email claim → clear only SSO sessions
           if (localStorage.getItem('authSource') === 'sso') {
             clearStoredAuth();
             setUser(null);
@@ -269,13 +299,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mappedUser = resolveUserFromEmail(email);
 
         if (mappedUser) {
-          // ✅ Recognised email → grant access
           setAuthError(null);
           setUser(mappedUser);
           setIsAuthenticated(true);
           persistUser(mappedUser, 'sso');
         } else {
-          // ❌ Azure authenticated but not in the whitelist
           clearStoredAuth();
           setUser(null);
           setIsAuthenticated(false);
@@ -283,9 +311,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             `Le compte Outlook ${email} est authentifié mais n'est pas autorisé à accéder à cette application.`,
           );
         }
-      } catch (err) {
-        // Network / gateway error: don't wipe a valid existing session
-        console.error('[Auth] SSO hydration failed:', err);
+      } catch (err: any) {
+        clearTimeout(timer);
+        // Timeout or network error — silently fall through to whatever localStorage has
+        if (err?.name !== 'AbortError') {
+          console.warn('[Auth] SSO hydration failed:', err);
+        }
       } finally {
         setIsAuthLoading(false);
       }
@@ -302,7 +333,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   /* ── Logout: clear storage and redirect through gateway logout ── */
   const logout = () => {
+    setIsLoggingOut(true);
     clearStoredAuth();
+    resetActiveRole();
     setUser(null);
     setIsAuthenticated(false);
     setAuthError(null);
@@ -337,14 +370,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  /* ── Role helpers ── */
-  const hasRole     = (role: UserRole)    => user?.role === role;
-  const hasAnyRole  = (roles: UserRole[]) => roles.some(hasRole);
-  const isAdmin     = ()                  => hasAnyRole([UserRole.ADMIN, UserRole.SUPER_ADMIN]);
-  const isMedecin   = ()                  => hasRole(UserRole.MEDECIN);
-  const isInfirmier = ()                  => hasRole(UserRole.INFIRMIER);
-  const isStudent   = ()                  => hasRole(UserRole.STUDENT);
-  const isDSA       = ()                  => hasRole(UserRole.DSA);
+  /* ── Role helpers — check effectiveRole so SUPER_ADMIN simulation works ── */
+  const hasRole     = (role: UserRole)    => effectiveRole === role;
+  const hasAnyRole  = (roles: UserRole[]) => roles.some(r => effectiveRole === r);
+  const isAdmin     = ()                  => effectiveRole === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN && !activeRole || effectiveRole === UserRole.SUPER_ADMIN;
+  const isMedecin   = ()                  => effectiveRole === UserRole.MEDECIN;
+  const isInfirmier = ()                  => effectiveRole === UserRole.INFIRMIER;
+  const isStudent   = ()                  => effectiveRole === UserRole.STUDENT;
+  const isDSA       = ()                  => effectiveRole === UserRole.DSA;
 
   return (
     <AuthContext.Provider
@@ -352,9 +385,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated,
         isAuthLoading,
+        isLoggingOut,
         authError,
+        activeRole,
+        effectiveRole,
         loginWithOutlook,
         logout,
+        setActiveRole,
+        resetActiveRole,
         updateProfile,
         hasRole,
         hasAnyRole,
