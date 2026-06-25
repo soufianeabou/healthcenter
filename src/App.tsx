@@ -24,9 +24,12 @@ import { UserRole } from './types/roles';
 import ConsultationDetails from './pages/ConsultationDetails';
 import Medicines from './pages/Medicines';
 import MedicinesList from './pages/MedicinesList';
+import StudentCertificates from './pages/StudentCertificates';
+import CertificateReview from './pages/CertificateReview';
+import DSACertificates from './pages/DSACertificates';
 
 function AppContent() {
-  const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole } = useAuth();
+  const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole, isMedecin, isStudent, isDSA } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -84,7 +87,7 @@ function AppContent() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<Profile />} />
-            
+
             {/* Shared Routes - Consultations, Patients, Materials List */}
             <Route path="/consultations" element={<Consultations />} />
             <Route path="/consultations/:id" element={<ConsultationDetails />} />
@@ -92,7 +95,7 @@ function AppContent() {
             <Route path="/materiels-list" element={<MaterielsList />} />
             <Route path="/materiels/:id" element={<MaterielDetails />} />
             <Route path="/medicines" element={<MedicinesList />} />
-            
+
             {/* Admin Only Routes */}
             {isAdmin && (
               <>
@@ -103,7 +106,22 @@ function AppContent() {
                 <Route path="/personnel" element={<Personnel />} />
               </>
             )}
-            
+
+            {/* Certificate Review — Admin & Medecin */}
+            {(isAdmin || isMedecin()) && (
+              <Route path="/certificate-review" element={<CertificateReview />} />
+            )}
+
+            {/* Student Routes */}
+            {isStudent() && (
+              <Route path="/my-certificates" element={<StudentCertificates />} />
+            )}
+
+            {/* DSA Routes */}
+            {isDSA() && (
+              <Route path="/dsa-certificates" element={<DSACertificates />} />
+            )}
+
             {/* Fallback for unknown routes */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

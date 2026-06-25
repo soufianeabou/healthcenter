@@ -10,6 +10,10 @@ import {
   User,
   LogOut,
   RefreshCw,
+  FileCheck,
+  ClipboardList,
+  GraduationCap,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
@@ -19,6 +23,8 @@ const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.ADMIN]:       'Administrateur',
   [UserRole.MEDECIN]:     'Médecin',
   [UserRole.INFIRMIER]:   'Infirmier(e)',
+  [UserRole.STUDENT]:     'Étudiant(e)',
+  [UserRole.DSA]:         'DSA',
 };
 
 const Sidebar = () => {
@@ -27,29 +33,45 @@ const Sidebar = () => {
 
   const adminNavItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
-    { icon: Stethoscope,    label: 'Consultations',   path: '/consultations' },
-    { icon: Users,          label: 'Patients',         path: '/patients' },
-    { icon: Package,        label: 'Matériels',        path: '/materiels' },
-    { icon: UserCog,        label: 'Personnel',        path: '/personnel' },
-    { icon: Truck,          label: 'Fournisseurs',     path: '/suppliers' },
-    { icon: BarChart3,      label: 'Rapports',         path: '/reports' },
+    { icon: Stethoscope,     label: 'Consultations',   path: '/consultations' },
+    { icon: Users,           label: 'Patients',         path: '/patients' },
+    { icon: Package,         label: 'Matériels',        path: '/materiels' },
+    { icon: UserCog,         label: 'Personnel',        path: '/personnel' },
+    { icon: Truck,           label: 'Fournisseurs',     path: '/suppliers' },
+    { icon: BarChart3,       label: 'Rapports',         path: '/reports' },
+    { icon: FileCheck,       label: 'Certificate Review', path: '/certificate-review' },
   ];
 
   const medecinNavItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord', path: '/dashboard' },
-    { icon: Stethoscope,    label: 'Consultations',    path: '/consultations' },
-    { icon: Users,          label: 'Patients',          path: '/patients' },
-    { icon: Package,        label: 'Matériels',         path: '/materiels-list' },
+    { icon: Stethoscope,     label: 'Consultations',    path: '/consultations' },
+    { icon: Users,           label: 'Patients',          path: '/patients' },
+    { icon: Package,         label: 'Matériels',         path: '/materiels-list' },
+    { icon: FileCheck,       label: 'Certificate Review', path: '/certificate-review' },
+  ];
+
+  const studentNavItems = [
+    { icon: LayoutDashboard, label: 'Tableau de bord',  path: '/dashboard' },
+    { icon: ClipboardList,   label: 'Mes Certificats',  path: '/my-certificates' },
+  ];
+
+  const dsaNavItems = [
+    { icon: LayoutDashboard, label: 'Tableau de bord',    path: '/dashboard' },
+    { icon: ShieldCheck,     label: 'Certificats DSA',    path: '/dsa-certificates' },
   ];
 
   const navItems = (() => {
     switch (effectiveRole) {
-      case UserRole.SUPER_ADMIN:
       case UserRole.ADMIN:
+      case UserRole.SUPER_ADMIN:
         return adminNavItems;
       case UserRole.MEDECIN:
       case UserRole.INFIRMIER:
         return medecinNavItems;
+      case UserRole.STUDENT:
+        return studentNavItems;
+      case UserRole.DSA:
+        return dsaNavItems;
       default:
         return adminNavItems;
     }

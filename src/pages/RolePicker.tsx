@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, UserCog, Stethoscope, Heart, LogOut } from 'lucide-react';
+import { Shield, UserCog, Stethoscope, Heart, LogOut, GraduationCap, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
 
@@ -49,6 +49,24 @@ const ROLE_CARDS: RoleCard[] = [
     accent: '#047857',
     light: '#F0FDF4',
     border: '#A7F3D0',
+  },
+  {
+    role: UserRole.STUDENT,
+    label: 'Étudiant(e)',
+    description: 'Soumettre et suivre les certificats médicaux d\'absence.',
+    icon: GraduationCap,
+    accent: '#0F766E',
+    light: '#F0FDFA',
+    border: '#99F6E4',
+  },
+  {
+    role: UserRole.DSA,
+    label: 'DSA',
+    description: 'Traiter les dossiers d\'appel et les absences justifiées.',
+    icon: ShieldCheck,
+    accent: '#C2410C',
+    light: '#FFF7ED',
+    border: '#FDBA74',
   },
 ];
 
