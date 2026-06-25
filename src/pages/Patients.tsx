@@ -44,6 +44,15 @@ const Patients: React.FC = () => {
     fetchPatients();
   }, []);
 
+  // AUI student emails are purely numeric: 10981@aui.ma
+  // Faculty/staff have named emails: m.aslaf@aui.ma
+  const inferCategory = (email: string): string => {
+    if (!email) return '';
+    if (/^\d+@/i.test(email)) return 'Student';
+    if (/@aui\.ma$/i.test(email)) return 'Faculty';
+    return '';
+  };
+
   const mapPatient = (r: any): Patient => ({
     id: r.id,
     nom: r.nom || '',
@@ -51,7 +60,8 @@ const Patients: React.FC = () => {
     idNum: r.idNum,
     telephone: r.telephone || '',
     email: r.email || '',
-    category: patientCategories[r.idNum] || ''
+    // Manual override from localStorage takes priority; fall back to email heuristic
+    category: patientCategories[r.idNum] || inferCategory(r.email || '')
   });
 
   // No separate effect needed for searchId — filtered inline below
