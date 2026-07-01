@@ -472,11 +472,21 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
       const res = await fetch('https://hc.aui.ma/api/consultations');
       if (!res.ok) throw new Error('Failed to fetch consultations');
       const data = await res.json();
+      // Build reverse map: externalId → employeeId for staff patients
+      const staffExternalIdsRaw = localStorage.getItem('staffExternalIds');
+      const staffExternalIds: Record<string, number> = staffExternalIdsRaw ? JSON.parse(staffExternalIdsRaw) : {};
+      const reverseStaffIds: Record<number, number> = {};
+      for (const [empId, extId] of Object.entries(staffExternalIds)) {
+        reverseStaffIds[extId] = Number(empId);
+      }
+      const resolveDisplayId = (idNum: number): number =>
+        idNum < 0 ? (reverseStaffIds[-idNum] ?? idNum) : idNum;
+
       const rows: ConsultationRow[] = data.map((c: any) => ({
         id: c.id,
         patientId: c.patient?.idNum || c.patientId,
         patientName: c.patient
-          ? `${c.patient.prenom || ''} ${c.patient.nom || ''} #${c.patient.idNum}`.trim()
+          ? `${c.patient.prenom || ''} ${c.patient.nom || ''} #${resolveDisplayId(c.patient.idNum)}`.trim()
           : `#${c.patientId}`,
         doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
         consultationDate: c.dateConsultation,
