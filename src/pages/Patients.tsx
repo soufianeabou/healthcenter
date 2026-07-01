@@ -68,32 +68,38 @@ const Patients: React.FC = () => {
   const fetchPatients = async () => {
     try {
       setLoading(true);
+      const opts: RequestInit = { credentials: 'include' };
       const [studentsRes, facultyRes] = await Promise.all([
-        fetch('https://hc.aui.ma/api/patients/by-type/students'),
-        fetch('https://hc.aui.ma/api/patients/by-type/faculty'),
+        fetch('https://hc.aui.ma/api/patients/by-type/students', opts),
+        fetch('https://hc.aui.ma/api/patients/by-type/faculty', opts),
       ]);
 
       const isJson = (res: Response) => res.ok && res.headers.get('content-type')?.includes('application/json');
 
       const staff = getStaffPatients();
-      // If both dedicated endpoints are available, use them for category tagging
       if (isJson(studentsRes) || isJson(facultyRes)) {
         const students: any[] = isJson(studentsRes) ? await studentsRes.json() : [];
         const faculty: any[] = isJson(facultyRes) ? await facultyRes.json() : [];
+        if (students.length === 0 && faculty.length === 0) {
+          message.warning('Aucun patient retourné par le serveur. Vérifiez votre connexion ou vos droits d\'accès.');
+        }
         setPatients([
           ...students.map(p => mapPatient(p, 'Student')),
           ...faculty.map(p => mapPatient(p, 'Faculty')),
           ...staff,
         ]);
       } else {
-        // Fallback: original single endpoint (no category distinction)
-        const res = await fetch('https://hc.aui.ma/api/patients');
+        // Fallback: original single endpoint
+        const res = await fetch('https://hc.aui.ma/api/patients', opts);
+        if (!res.ok) {
+          message.error(`Impossible de charger les patients (HTTP ${res.status}). Vérifiez votre session ou votre accès réseau.`);
+        }
         const data: any[] = res.ok ? await res.json() : [];
         setPatients([...data.map(p => mapPatient(p, 'Student')), ...staff]);
       }
     } catch (error) {
       console.error('Error fetching patients:', error);
-      message.error('Erreur lors du chargement des patients');
+      message.error('Erreur réseau lors du chargement des patients. Vérifiez votre connexion.');
     } finally {
       setLoading(false);
     }

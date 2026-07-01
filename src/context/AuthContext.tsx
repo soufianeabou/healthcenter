@@ -283,6 +283,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void tryHydrateFromSso();
   }, []);
 
+  /* ── 30-minute inactivity timeout ── */
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const TIMEOUT_MS = 30 * 60 * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        clearStoredAuth();
+        localStorage.removeItem(ACTIVE_ROLE_KEY);
+        setActiveRoleState(null);
+        setUser(null);
+        setIsAuthenticated(false);
+      }, TIMEOUT_MS);
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'] as const;
+    events.forEach(e => window.addEventListener(e, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [isAuthenticated]);
+
   /* ── Redirect to Azure AD via the Spring Security gateway ── */
   const loginWithOutlook = () => {
     setAuthError(null);
