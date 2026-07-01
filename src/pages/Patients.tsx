@@ -61,14 +61,16 @@ const Patients: React.FC = () => {
     try {
       setLoading(true);
       const [studentsRes, facultyRes] = await Promise.all([
-        fetch('https://hc.aui.ma/api/patients/students'),
-        fetch('https://hc.aui.ma/api/patients/faculty'),
+        fetch('https://hc.aui.ma/api/patient-categories/students'),
+        fetch('https://hc.aui.ma/api/patient-categories/faculty'),
       ]);
 
+      const isJson = (res: Response) => res.ok && res.headers.get('content-type')?.includes('application/json');
+
       // If both dedicated endpoints are available, use them for category tagging
-      if (studentsRes.ok || facultyRes.ok) {
-        const students: any[] = studentsRes.ok ? await studentsRes.json() : [];
-        const faculty: any[] = facultyRes.ok ? await facultyRes.json() : [];
+      if (isJson(studentsRes) || isJson(facultyRes)) {
+        const students: any[] = isJson(studentsRes) ? await studentsRes.json() : [];
+        const faculty: any[] = isJson(facultyRes) ? await facultyRes.json() : [];
         const mapped: Patient[] = [
           ...students.map(p => mapPatient(p, 'Student')),
           ...faculty.map(p => mapPatient(p, 'Faculty')),
