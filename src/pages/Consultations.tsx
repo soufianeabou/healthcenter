@@ -251,7 +251,6 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               </section>
               ) : null;
             })()}
-            )}
 
             {/* Diagnostic / Notes */}
             {editing ? (
