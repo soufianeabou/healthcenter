@@ -162,7 +162,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   useEffect(() => {
     const controller = new AbortController();
     const term = patientSearch.trim();
-    if (!term || !/^\d{3,}$/.test(term)) {
+    if (!term || !/^\d{2,}$/.test(term)) {
       setPatients([]);
       return () => controller.abort();
     }
@@ -170,23 +170,42 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`https://hc.aui.ma/api/patients/${term}`, { signal: controller.signal });
-        if (!res.ok) {
-          setPatients([]);
-          return;
+        if (res.ok) {
+          const r = await res.json();
+          setPatients([{
+            id: (r.idNum ?? r.id) as number,
+            nom: r.nom || '',
+            prenom: r.prenom || '',
+            cne: r.cne || '',
+            dateNaissance: r.dateNaissance || '',
+            sexe: r.sexe || '',
+            telephone: r.telephone || '',
+            email: r.email || ''
+          }]);
+        } else {
+          // Fallback: check locally imported staff
+          try {
+            const staffRaw = localStorage.getItem('staffPatients');
+            const staff: any[] = staffRaw ? JSON.parse(staffRaw) : [];
+            const found = staff.find(s => String(s.idNum) === term);
+            if (found) {
+              setPatients([{
+                id: found.idNum,
+                nom: found.nom || '',
+                prenom: found.prenom || '',
+                cne: '',
+                dateNaissance: '',
+                sexe: '',
+                telephone: found.telephone || '',
+                email: found.email || ''
+              }]);
+            } else {
+              setPatients([]);
+            }
+          } catch {
+            setPatients([]);
+          }
         }
-        const r = await res.json();
-        // Map API shape to local Patient shape; map idNum -> id
-        const mapped: Patient[] = [{
-          id: (r.idNum ?? r.id) as number,
-          nom: r.nom || '',
-          prenom: r.prenom || '',
-          cne: r.cne || '',
-          dateNaissance: r.dateNaissance || '',
-          sexe: r.sexe || '',
-          telephone: r.telephone || '',
-          email: r.email || ''
-        }];
-        setPatients(mapped);
       } catch (e) {
         setPatients([]);
       } finally {

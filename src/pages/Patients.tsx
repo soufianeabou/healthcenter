@@ -33,6 +33,13 @@ const Patients: React.FC = () => {
   const [historyConsultations, setHistoryConsultations] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const getStaffPatients = (): Patient[] => {
+    try {
+      const raw = localStorage.getItem('staffPatients');
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  };
+
   useEffect(() => {
     const storedCategories = localStorage.getItem('patientCategories');
     if (storedCategories) {
@@ -68,20 +75,21 @@ const Patients: React.FC = () => {
 
       const isJson = (res: Response) => res.ok && res.headers.get('content-type')?.includes('application/json');
 
+      const staff = getStaffPatients();
       // If both dedicated endpoints are available, use them for category tagging
       if (isJson(studentsRes) || isJson(facultyRes)) {
         const students: any[] = isJson(studentsRes) ? await studentsRes.json() : [];
         const faculty: any[] = isJson(facultyRes) ? await facultyRes.json() : [];
-        const mapped: Patient[] = [
+        setPatients([
           ...students.map(p => mapPatient(p, 'Student')),
           ...faculty.map(p => mapPatient(p, 'Faculty')),
-        ];
-        setPatients(mapped);
+          ...staff,
+        ]);
       } else {
         // Fallback: original single endpoint (no category distinction)
         const res = await fetch('https://hc.aui.ma/api/patients');
         const data: any[] = res.ok ? await res.json() : [];
-        setPatients(data.map(p => mapPatient(p, 'Student')));
+        setPatients([...data.map(p => mapPatient(p, 'Student')), ...staff]);
       }
     } catch (error) {
       console.error('Error fetching patients:', error);
@@ -122,6 +130,61 @@ const Patients: React.FC = () => {
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  const handleStaffCsvImport = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const header = lines[0].split(',').map(h => h.trim());
+        const nameIdx = header.findIndex(h => h.toLowerCase() === 'name');
+        const emailIdx = header.findIndex(h => h.toLowerCase() === 'email');
+        const idIdx = header.findIndex(h => h.toLowerCase() === 'employee id');
+        const deptIdx = header.findIndex(h => h.toLowerCase() === 'department');
+        const jobIdx = header.findIndex(h => h.toLowerCase() === 'job title');
+
+        const existing: Patient[] = getStaffPatients();
+        const existingIds = new Set(existing.map(p => p.idNum));
+        const added: Patient[] = [];
+
+        for (let i = 1; i < lines.length; i++) {
+          // Handle quoted fields with commas inside
+          const cols = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)?.map(v => v.replace(/^"|"$/g, '').trim()) ?? lines[i].split(',').map(v => v.trim());
+          const rawId = cols[idIdx] ?? '';
+          const numId = parseInt(rawId, 10);
+          if (!rawId || isNaN(numId)) continue; // skip non-numeric IDs
+
+          if (existingIds.has(numId)) continue;
+          existingIds.add(numId);
+
+          const fullName = cols[nameIdx] ?? '';
+          const parts = fullName.trim().split(' ');
+          const prenom = parts[0] || '';
+          const nom = parts.slice(1).join(' ') || '';
+
+          added.push({
+            id: numId,
+            idNum: numId,
+            nom,
+            prenom,
+            email: cols[emailIdx] ?? '',
+            telephone: '',
+            category: 'Staff',
+          });
+        }
+
+        const merged = [...existing, ...added];
+        localStorage.setItem('staffPatients', JSON.stringify(merged));
+        message.success(`${added.length} membres du personnel importés.`);
+        fetchPatients();
+      } catch {
+        message.error('Erreur lors de la lecture du CSV.');
+      }
+    };
+    reader.readAsText(file);
+    return false;
   };
 
   const parseExcelDate = (excelDate: any): string | null => {
@@ -390,6 +453,15 @@ const Patients: React.FC = () => {
             <option value="Staff">Staff</option>
             <option value="Guest">Guest</option>
           </select>
+          <Upload
+            accept=".csv"
+            showUploadList={false}
+            beforeUpload={handleStaffCsvImport}
+          >
+            <Button icon={<UploadOutlined />} style={{ backgroundColor: '#52c41a', color: 'white', borderColor: '#52c41a' }}>
+              Importer Personnel CSV
+            </Button>
+          </Upload>
           <Upload
             accept=".xlsx,.xls,.csv"
             showUploadList={false}
