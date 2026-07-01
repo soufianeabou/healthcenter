@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, message, Upload, Modal } from 'antd';
-import { UserOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { Table, Button, Space, message, Upload, Modal, Tag, Spin } from 'antd';
+import { UserOutlined, HistoryOutlined, UploadOutlined } from '@ant-design/icons';
 import MedicalRecord from '../components/MedicalRecord';
 import * as XLSX from 'xlsx';
 
@@ -16,7 +15,6 @@ interface Patient {
 }
 
 const Patients: React.FC = () => {
-  const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -31,6 +29,9 @@ const Patients: React.FC = () => {
     failed: 0,
     errors: []
   });
+  const [historyPatient, setHistoryPatient] = useState<Patient | null>(null);
+  const [historyConsultations, setHistoryConsultations] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     const storedCategories = localStorage.getItem('patientCategories');
@@ -100,8 +101,27 @@ const Patients: React.FC = () => {
     setSelectedPatient(null);
   };
 
-  const handleAddConsultation = (patient: Patient) => {
-    navigate('/consultations', { state: { selectedPatient: patient } });
+  const handleViewHistory = async (patient: Patient) => {
+    setHistoryPatient(patient);
+    setHistoryConsultations([]);
+    setHistoryLoading(true);
+    try {
+      const res = await fetch('https://hc.aui.ma/api/consultations');
+      if (res.ok) {
+        const all: any[] = await res.json();
+        const patientConsultations = all.filter(
+          c => c.patient?.idNum === patient.idNum || c.patientId === patient.idNum
+        );
+        patientConsultations.sort((a, b) =>
+          new Date(b.dateConsultation).getTime() - new Date(a.dateConsultation).getTime()
+        );
+        setHistoryConsultations(patientConsultations);
+      }
+    } catch {
+      message.error('Erreur lors du chargement de l\'historique');
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const parseExcelDate = (excelDate: any): string | null => {
@@ -265,21 +285,6 @@ const Patients: React.FC = () => {
     }
   };
 
-  const handleCategoryChange = (patient: Patient, value: string) => {
-    const idNum = patient.idNum;
-    const nextCategories = { ...patientCategories, [idNum]: value };
-    setPatientCategories(nextCategories);
-    localStorage.setItem('patientCategories', JSON.stringify(nextCategories));
-
-    setPatients(prev =>
-      prev.map(p =>
-        p.idNum === idNum
-          ? { ...p, category: value }
-          : p
-      )
-    );
-  };
-
   const columns = [
     {
       title: 'ID',
@@ -314,25 +319,17 @@ const Patients: React.FC = () => {
       title: 'Catégorie',
       dataIndex: 'category',
       key: 'category',
-      width: 160,
-      render: (_: string, record: Patient) => (
-        <select
-          value={record.category || ''}
-          onChange={(e) => handleCategoryChange(record, e.target.value)}
-          style={{ padding: 4, borderRadius: 6, border: '1px solid #e5e7eb', fontSize: 12 }}
-        >
-          <option value="">Non défini</option>
-          <option value="Student">Student</option>
-          <option value="Faculty">Faculty</option>
-          <option value="Staff">Staff</option>
-          <option value="Guest">Guest</option>
-        </select>
-      ),
+      width: 120,
+      render: (_: string, record: Patient) => {
+        const cat = record.category || '';
+        const color = cat === 'Student' ? 'blue' : cat === 'Faculty' ? 'purple' : cat === 'Staff' ? 'green' : 'default';
+        return cat ? <Tag color={color}>{cat}</Tag> : <Tag>—</Tag>;
+      },
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 300,
+      width: 220,
       render: (_: string, record: Patient) => (
         <Space size="small">
           <Button
@@ -344,13 +341,11 @@ const Patients: React.FC = () => {
             Dossier Médical
           </Button>
           <Button
-            type="default"
-            icon={<PlusOutlined />}
+            icon={<HistoryOutlined />}
             size="small"
-            style={{ backgroundColor: '#52c41a', color: 'white', borderColor: '#52c41a' }}
-            onClick={() => handleAddConsultation(record)}
+            onClick={() => handleViewHistory(record)}
           >
-            Ajouter Consultation
+            Historique
           </Button>
         </Space>
       ),
@@ -426,6 +421,47 @@ const Patients: React.FC = () => {
           onClose={handleCloseMedicalRecord}
         />
       )}
+
+      <Modal
+        title={historyPatient ? `Historique de ${historyPatient.prenom} ${historyPatient.nom} (#${historyPatient.idNum})` : 'Historique'}
+        open={!!historyPatient}
+        onCancel={() => setHistoryPatient(null)}
+        footer={null}
+        width={800}
+      >
+        {historyLoading ? (
+          <div className="flex justify-center py-8"><Spin /></div>
+        ) : historyConsultations.length === 0 ? (
+          <p style={{ textAlign: 'center', color: '#999', padding: 24 }}>Aucune consultation enregistrée pour ce patient.</p>
+        ) : (
+          <div style={{ maxHeight: 500, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {historyConsultations.map((c: any) => (
+              <div key={c.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>
+                    {new Date(c.dateConsultation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  </span>
+                  <span style={{ fontSize: 12, color: '#6b7280' }}>
+                    Dr. {c.personnel?.prenom} {c.personnel?.nom}
+                  </span>
+                  <Tag color={(c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'green' : 'orange'}>
+                    {(c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'Terminée' : 'En attente'}
+                  </Tag>
+                </div>
+                {c.motif && <p style={{ margin: '4px 0', fontSize: 13 }}><strong>Motif :</strong> {c.motif}</p>}
+                {c.diagnostic && <p style={{ margin: '4px 0', fontSize: 13 }}><strong>Diagnostic :</strong> {c.diagnostic}</p>}
+                {c.traitement && <p style={{ margin: '4px 0', fontSize: 13, color: '#059669' }}><strong>Traitement :</strong> {c.traitement}</p>}
+                {c.infirmierTraitement && <p style={{ margin: '4px 0', fontSize: 13, color: '#d97706' }}><strong>Traitement infirmier :</strong> {c.infirmierTraitement}</p>}
+                {(c.temperature || c.tension || c.pouls || c.saturation) && (
+                  <p style={{ margin: '4px 0', fontSize: 12, color: '#6b7280' }}>
+                    Constantes : {[c.temperature && `T° ${c.temperature}`, c.tension && `TA ${c.tension}`, c.pouls && `P ${c.pouls}bpm`, c.saturation && `Sat ${c.saturation}%`].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
 
       <Modal
         title="Résultats de l'Import"
