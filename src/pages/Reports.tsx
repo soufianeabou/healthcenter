@@ -60,6 +60,8 @@ function getTimeSlot(dateConsultation: string): string {
 
 interface ReportStats {
   totalPatients: number;
+  totalStudents: number;
+  totalFaculty: number;
   totalConsultations: number;
   totalMaterials: number;
   lowStockMaterials: number;
@@ -81,6 +83,8 @@ const Reports = () => {
   const [exportToast, setExportToast] = useState(false);
   const [stats, setStats] = useState<ReportStats>({
     totalPatients: 0,
+    totalStudents: 0,
+    totalFaculty: 0,
     totalConsultations: 0,
     totalMaterials: 0,
     lowStockMaterials: 0,
@@ -112,13 +116,17 @@ const Reports = () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [patientsRes, consultationsRes, materialsRes] = await Promise.all([
+      const [patientsRes, consultationsRes, materialsRes, studentsRes, facultyRes] = await Promise.all([
         fetch('https://hc.aui.ma/api/patients'),
         fetch('https://hc.aui.ma/api/consultations'),
-        fetch('https://hc.aui.ma/api/consultations/materials')
+        fetch('https://hc.aui.ma/api/consultations/materials'),
+        fetch('https://hc.aui.ma/api/patients/by-type/students'),
+        fetch('https://hc.aui.ma/api/patients/by-type/faculty'),
       ]);
 
       const patients = patientsRes.ok ? await patientsRes.json() : [];
+      const students = studentsRes.ok ? await studentsRes.json() : [];
+      const faculty = facultyRes.ok ? await facultyRes.json() : [];
       const consultations = consultationsRes.ok ? await consultationsRes.json() : [];
       const materials = materialsRes.ok ? await materialsRes.json() : [];
 
@@ -227,6 +235,8 @@ const Reports = () => {
 
       setStats({
         totalPatients: patients.length,
+        totalStudents: students.length,
+        totalFaculty: faculty.length,
         totalConsultations: filteredConsultations.length,
         totalMaterials: materials.length,
         lowStockMaterials,
@@ -488,6 +498,10 @@ const Reports = () => {
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Patients</p>
             <p className="text-2xl font-bold text-gray-800 mt-0.5">{stats.totalPatients}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              <span className="text-blue-600 font-medium">{stats.totalStudents}</span> étudiants ·{' '}
+              <span className="text-purple-600 font-medium">{stats.totalFaculty}</span> faculty
+            </p>
           </div>
         </div>
 
