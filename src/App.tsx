@@ -94,6 +94,7 @@ function AppContent() {
             {(isAdmin || isClinical) && (
               <>
                 <Route path="/consultations" element={<Consultations />} />
+                <Route path="/psychiatrie" element={<Consultations typeFilter="PSYCHIATRIE" />} />
                 <Route path="/consultations/:id" element={<ConsultationDetails />} />
                 <Route path="/patients" element={<Patients />} />
                 <Route path="/materiels-list" element={<MaterielsList />} />

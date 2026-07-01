@@ -7,6 +7,7 @@ import {
   BarChart3,
   UserCog,
   Stethoscope,
+  Brain,
   User,
   LogOut,
   RefreshCw,
@@ -36,6 +37,7 @@ const Sidebar = () => {
   const adminNavItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord',       path: '/dashboard' },
     { icon: Stethoscope,     label: 'Consultations',          path: '/consultations' },
+    { icon: Brain,           label: 'Psychiatrie',            path: '/psychiatrie' },
     { icon: Users,           label: 'Patients',               path: '/patients' },
     { icon: Package,         label: 'Matériels',              path: '/materiels' },
     { icon: Pill,            label: 'Médicaments',            path: '/medicines/manage' },
@@ -50,6 +52,7 @@ const Sidebar = () => {
   const medecinNavItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord',       path: '/dashboard' },
     { icon: Stethoscope,     label: 'Consultations',          path: '/consultations' },
+    { icon: Brain,           label: 'Psychiatrie',            path: '/psychiatrie' },
     { icon: Users,           label: 'Patients',               path: '/patients' },
     { icon: Package,         label: 'Matériels',              path: '/materiels-list' },
     { icon: FileCheck,       label: 'Revue des certificats',  path: '/certificate-review' },

@@ -34,6 +34,7 @@ interface ConsultationRow {
   traitement?: string;
   patient?: any;
   personnelId?: number;
+  consultationType?: string;
 }
 
 /* ─── helpers ─── */
@@ -417,7 +418,7 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
 );
 
 /* ─── Main Consultations Page ─── */
-const Consultations = () => {
+const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' } = {}) => {
   const { user, effectiveRole } = useAuth();
   const isNurse = effectiveRole === UserRole.INFIRMIER;
   const canEdit = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
@@ -455,6 +456,7 @@ const Consultations = () => {
         traitement: c.traitement,
         patient: c.patient,
         personnelId: c.personnel?.id ?? null,
+        consultationType: c.consultationType || 'GENERAL',
       }));
       setConsultations(rows);
     } catch (e) {
@@ -498,7 +500,8 @@ const Consultations = () => {
       c.doctorName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
     const matchesDate = !dateFilter || (c.consultationDate || '').slice(0, 10) === dateFilter;
-    return matchesSearch && matchesStatus && matchesDate;
+    const matchesType = !typeFilter || (c.consultationType || 'GENERAL') === typeFilter;
+    return matchesSearch && matchesStatus && matchesDate && matchesType;
   });
 
   const readErrorText = async (res: Response) => {
@@ -518,6 +521,7 @@ const Consultations = () => {
         motif: payload.motif,
         diagnostic: payload.diagnostic,
         traitement: payload.traitement || '',
+        consultationType: payload.consultationType || typeFilter || 'GENERAL',
       };
       const res = await fetch('https://hc.aui.ma/api/consultations', {
         method: 'POST',
@@ -576,7 +580,9 @@ const Consultations = () => {
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Consultations</h1>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            {typeFilter === 'PSYCHIATRIE' ? '🧠 Consultations Psychiatrie' : 'Consultations'}
+          </h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestion des consultations médicales</p>
         </div>
         <button

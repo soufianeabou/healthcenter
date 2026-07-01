@@ -38,6 +38,9 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
 
   const [date, setDate] = useState<string>(() => initial?.dateConsultation?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState<string>(() => initial?.dateConsultation ? new Date(initial.dateConsultation).toTimeString().slice(0, 5) : new Date().toTimeString().slice(0, 5));
+  const [consultationType, setConsultationType] = useState<'GENERAL' | 'PSYCHIATRIE'>(
+    (initial as any)?.consultationType || 'GENERAL'
+  );
   const [motif, setMotif] = useState<string>(initial?.motif || '');
   const [diagnostic, setDiagnostic] = useState<string>(initial?.diagnostic || '');
   const [traitement, setTraitement] = useState<string>(initial?.traitement || '');
@@ -317,7 +320,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       dateConsultation: dateString,
       motif,
       diagnostic: finalDiagnostic,
-      traitement
+      traitement,
+      consultationType
     };
 
     // If this is an external/non-AUI consultation, store it locally and skip backend call
@@ -555,6 +559,29 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       <div className="hidden">
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+      </div>
+
+      {/* Type de consultation */}
+      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+        <label className="block text-sm font-semibold text-gray-800 mb-2">Type de consultation</label>
+        <div className="flex gap-3">
+          {(['GENERAL', 'PSYCHIATRIE'] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setConsultationType(t)}
+              className={`flex-1 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                consultationType === t
+                  ? t === 'PSYCHIATRIE'
+                    ? 'border-purple-500 bg-purple-50 text-purple-700'
+                    : 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              {t === 'GENERAL' ? '🏥 Générale' : '🧠 Psychiatrie'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Motif */}

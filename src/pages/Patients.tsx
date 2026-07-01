@@ -44,24 +44,15 @@ const Patients: React.FC = () => {
     fetchPatients();
   }, []);
 
-  // AUI student emails are purely numeric: 10981@aui.ma
-  // Faculty/staff have named emails: m.aslaf@aui.ma
-  const inferCategory = (email: string): string => {
-    if (!email) return '';
-    if (/^\d+@/i.test(email)) return 'Student';
-    if (/@aui\.ma$/i.test(email)) return 'Faculty';
-    return '';
-  };
-
-  const mapPatient = (r: any): Patient => ({
+  const mapPatient = (r: any, defaultCategory?: string): Patient => ({
     id: r.id,
     nom: r.nom || '',
     prenom: r.prenom || '',
     idNum: r.idNum,
     telephone: r.telephone || '',
     email: r.email || '',
-    // Manual override from localStorage takes priority; fall back to email heuristic
-    category: patientCategories[r.idNum] || inferCategory(r.email || '')
+    // Manual override from localStorage takes priority; fall back to API-derived type
+    category: patientCategories[r.idNum] || defaultCategory || '',
   });
 
   // No separate effect needed for searchId — filtered inline below
@@ -69,14 +60,17 @@ const Patients: React.FC = () => {
   const fetchPatients = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://hc.aui.ma/api/patients');
-      if (response.ok) {
-        const data = await response.json();
-        const mapped: Patient[] = data.map((p: any) => mapPatient(p));
-        setPatients(mapped);
-      } else {
-        message.error('Erreur lors du chargement des patients');
-      }
+      const [studentsRes, facultyRes] = await Promise.all([
+        fetch('https://hc.aui.ma/api/patients/students'),
+        fetch('https://hc.aui.ma/api/patients/faculty'),
+      ]);
+      const students: any[] = studentsRes.ok ? await studentsRes.json() : [];
+      const faculty: any[] = facultyRes.ok ? await facultyRes.json() : [];
+      const mapped: Patient[] = [
+        ...students.map(p => mapPatient(p, 'Student')),
+        ...faculty.map(p => mapPatient(p, 'Faculty')),
+      ];
+      setPatients(mapped);
     } catch (error) {
       console.error('Error fetching patients:', error);
       message.error('Erreur lors du chargement des patients');

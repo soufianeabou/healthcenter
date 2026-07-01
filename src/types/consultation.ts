@@ -6,6 +6,7 @@ export interface ConsultationDTO {
   motif: string;
   diagnostic: string;
   traitement: string;
+  consultationType?: 'GENERAL' | 'PSYCHIATRIE';
 }
 
 export interface ConsultationView extends ConsultationDTO {
