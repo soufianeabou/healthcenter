@@ -64,13 +64,22 @@ const Patients: React.FC = () => {
         fetch('https://hc.aui.ma/api/patients/students'),
         fetch('https://hc.aui.ma/api/patients/faculty'),
       ]);
-      const students: any[] = studentsRes.ok ? await studentsRes.json() : [];
-      const faculty: any[] = facultyRes.ok ? await facultyRes.json() : [];
-      const mapped: Patient[] = [
-        ...students.map(p => mapPatient(p, 'Student')),
-        ...faculty.map(p => mapPatient(p, 'Faculty')),
-      ];
-      setPatients(mapped);
+
+      // If both dedicated endpoints are available, use them for category tagging
+      if (studentsRes.ok || facultyRes.ok) {
+        const students: any[] = studentsRes.ok ? await studentsRes.json() : [];
+        const faculty: any[] = facultyRes.ok ? await facultyRes.json() : [];
+        const mapped: Patient[] = [
+          ...students.map(p => mapPatient(p, 'Student')),
+          ...faculty.map(p => mapPatient(p, 'Faculty')),
+        ];
+        setPatients(mapped);
+      } else {
+        // Fallback: original single endpoint (no category distinction)
+        const res = await fetch('https://hc.aui.ma/api/patients');
+        const data: any[] = res.ok ? await res.json() : [];
+        setPatients(data.map(p => mapPatient(p, 'Student')));
+      }
     } catch (error) {
       console.error('Error fetching patients:', error);
       message.error('Erreur lors du chargement des patients');
