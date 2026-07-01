@@ -32,6 +32,7 @@ interface ConsultationRow {
   motif?: string;
   diagnostic?: string;
   traitement?: string;
+  infirmierTraitement?: string;
   patient?: any;
   personnelId?: number;
   consultationType?: string;
@@ -294,6 +295,14 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               )
             )}
 
+            {/* Traitement infirmier (case 2: closed without médecin) */}
+            {consultation.infirmierTraitement && (
+              <section>
+                <h4 className="text-xs font-bold text-orange-700 uppercase tracking-wide mb-1.5">Traitement infirmier (sans médecin)</h4>
+                <p className="text-sm text-orange-900 whitespace-pre-wrap bg-orange-50 rounded-lg p-3 border border-orange-200">{consultation.infirmierTraitement}</p>
+              </section>
+            )}
+
             {/* Psychiatrie notes */}
             {(consultation as any).psyNotes && (
               <section>
@@ -472,12 +481,12 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
         doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
         consultationDate: c.dateConsultation,
         notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
-        // PENDING when traitement is absent — infirmier-only stage
-        status: c.traitement?.trim() ? 'COMPLETED' : 'PENDING',
+        status: (c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'COMPLETED' : 'PENDING',
         prescriptionItems: [],
         motif: c.motif,
         diagnostic: c.diagnostic,
         traitement: c.traitement,
+        infirmierTraitement: c.infirmierTraitement,
         patient: c.patient,
         personnelId: c.personnel?.id ?? null,
         consultationType: c.consultationType || 'GENERAL',
@@ -500,7 +509,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
         doctorName: c.personnelName || 'Médecin',
         consultationDate: c.consultationDate,
         notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
-        status: c.traitement?.trim() ? 'COMPLETED' : 'PENDING',
+        status: (c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'COMPLETED' : 'PENDING',
         prescriptionItems: [],
         isExternal: true,
         externalCategory: c.external?.category,
@@ -545,7 +554,17 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
         motif: payload.motif,
         diagnostic: payload.diagnostic,
         traitement: payload.traitement || '',
+        infirmierTraitement: payload.infirmierTraitement || undefined,
         consultationType: payload.consultationType || typeFilter || 'GENERAL',
+        temperature: payload.temperature,
+        tension: payload.tension,
+        pouls: payload.pouls,
+        saturation: payload.saturation,
+        gaj: payload.gaj,
+        frequenceRespiratoire: payload.frequenceRespiratoire,
+        poids: payload.poids,
+        taille: payload.taille,
+        psyNotes: payload.psyNotes,
       };
       const res = await fetch('https://hc.aui.ma/api/consultations', {
         method: 'POST',

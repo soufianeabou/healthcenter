@@ -27,7 +27,8 @@ interface MaterialLine {
 
 const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel }) => {
   const { user, effectiveRole } = useAuth();
-  const isNurse = effectiveRole === UserRole.INFIRMIER;
+  const isNurse   = effectiveRole === UserRole.INFIRMIER;
+  const isMedecin = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
@@ -63,6 +64,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [poids, setPoids] = useState((initial as any)?.poids || '');
   const [taille, setTaille] = useState((initial as any)?.taille || '');
   const [psyNotes, setPsyNotes] = useState((initial as any)?.psyNotes || '');
+
+  // Case 2: infirmier closes consultation without médecin (weekends etc.)
+  const [closeWithoutMedecin, setCloseWithoutMedecin] = useState(false);
+  const [infirmierTraitement, setInfirmierTraitement] = useState('');
   
   // Materials
   const [materiels, setMateriels] = useState<Materiel[]>([]);
@@ -271,8 +276,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       if (!externalCategory.trim()) e.externalCategory = 'Catégorie requise (Famille, Staff, ASI, Guest...)';
     }
     if (!motif.trim()) e.motif = 'Motif requis';
+    const nurseClosingAlone = isNurse && closeWithoutMedecin;
     if (!diagnostic.trim() && !isNurse) e.diagnostic = 'Diagnostic requis';
     if (!traitement.trim() && !isNurse) e.traitement = 'Traitement requis';
+    if (nurseClosingAlone && !infirmierTraitement.trim()) e.infirmierTraitement = 'Traitement infirmier requis';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -317,6 +324,9 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       poids: poids || undefined,
       taille: taille || undefined,
       psyNotes: psyNotes || undefined,
+      infirmierTraitement: (isNurse && closeWithoutMedecin && infirmierTraitement.trim())
+        ? infirmierTraitement
+        : undefined,
     };
 
     // If this is an external/non-AUI consultation, store it locally and skip backend call
@@ -593,9 +603,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         {errors.motif && <p className="text-red-600 text-sm mt-2 font-medium">{errors.motif}</p>}
       </div>
 
-      {/* Constantes section for nurses (Temperature, TA, P, Sat, GàJ) */}
-      {isNurse && (
-        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border-2 border-purple-200 shadow-sm">
+      {/* Constantes section — visible to ALL roles (infirmier for cases 1 & 2, médecin for case 3 direct flow) */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border-2 border-purple-200 shadow-sm">
           <h3 className="text-sm font-bold text-purple-900 mb-3 flex items-center">
             <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">❤</span>
             Constantes vitales
@@ -685,7 +694,6 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             </div>
           </div>
         </div>
-      )}
 
       {/* Diagnostic/Notes */}
       <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
@@ -717,9 +725,38 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         </div>
       )}
       {isNurse && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 flex items-start gap-2">
-          <span className="mt-0.5">ℹ️</span>
-          <span>Le traitement sera complété par le médecin. La consultation sera enregistrée en statut <strong>En attente médecin</strong>.</span>
+        <div className="space-y-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 flex items-start gap-2">
+            <span className="mt-0.5">ℹ️</span>
+            <span>Le traitement sera complété par le médecin. La consultation sera enregistrée en statut <strong>En attente médecin</strong>.</span>
+          </div>
+          {/* Case 2: infirmier closes without médecin (weekends) */}
+          <label className="flex items-center gap-3 cursor-pointer select-none bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <input
+              type="checkbox"
+              checked={closeWithoutMedecin}
+              onChange={(e) => setCloseWithoutMedecin(e.target.checked)}
+              className="w-4 h-4 accent-orange-500"
+            />
+            <span className="text-sm font-medium text-orange-800">
+              Fermer la consultation sans médecin (week-end / urgence)
+            </span>
+          </label>
+          {closeWithoutMedecin && (
+            <div className="bg-orange-50 p-4 rounded-lg border-2 border-orange-300 shadow-sm">
+              <label className="block text-sm font-semibold text-orange-800 mb-2">Traitement infirmier *</label>
+              <textarea
+                value={infirmierTraitement}
+                onChange={(e) => setInfirmierTraitement(e.target.value)}
+                rows={4}
+                placeholder="Médicaments donnés, soins effectués, conseils..."
+                className="w-full px-4 py-3 border-2 border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-400 resize-none"
+              />
+              {errors.infirmierTraitement && (
+                <p className="text-red-600 text-sm mt-2 font-medium">{errors.infirmierTraitement}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
