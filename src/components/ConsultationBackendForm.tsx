@@ -389,8 +389,48 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       return;
     }
 
+    // If the selected patient is a staff member (from localStorage), register them as
+    // ExternalPatient in the backend first so resolvePatient(-id) can find them.
+    let finalPayload = { ...consultationPayload };
+    if (!isExternalPatient && selectedPatientId) {
+      try {
+        const staffRaw = localStorage.getItem('staffPatients');
+        const staffList: any[] = staffRaw ? JSON.parse(staffRaw) : [];
+        const staffMember = staffList.find(s => s.idNum === selectedPatientId);
+        if (staffMember) {
+          const idsRaw = localStorage.getItem('staffExternalIds');
+          const idsMap: Record<string, number> = idsRaw ? JSON.parse(idsRaw) : {};
+          const key = String(selectedPatientId);
+          let externalId: number;
+          if (idsMap[key]) {
+            externalId = idsMap[key];
+          } else {
+            const regRes = await fetch('https://hc.aui.ma/api/consultations/patients/external', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                nom: staffMember.nom,
+                prenom: staffMember.prenom,
+                email: staffMember.email || '',
+                telephone: staffMember.telephone || '',
+                typePatient: 1, // STAFF ordinal
+              }),
+            });
+            if (!regRes.ok) throw new Error('ExternalPatient registration failed');
+            const ep = await regRes.json();
+            externalId = ep.id;
+            idsMap[key] = externalId;
+            localStorage.setItem('staffExternalIds', JSON.stringify(idsMap));
+          }
+          finalPayload = { ...consultationPayload, patient: { id: -externalId } };
+        }
+      } catch (e) {
+        console.error('Staff ExternalPatient registration error:', e);
+      }
+    }
+
     // Submit consultation to backend for AUI patients
-    onSubmit(consultationPayload);
+    onSubmit(finalPayload);
     
     // If there are materials to assign, use the new assign API
     if (materialLines.length > 0 && selectedPatientId) {

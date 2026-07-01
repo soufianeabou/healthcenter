@@ -117,9 +117,23 @@ const Patients: React.FC = () => {
       const res = await fetch('https://hc.aui.ma/api/consultations');
       if (res.ok) {
         const all: any[] = await res.json();
-        const patientConsultations = all.filter(
-          c => c.patient?.idNum === patient.idNum || c.patientId === patient.idNum
-        );
+
+        // Determine effective patient IDs to match against consultations.
+        // Staff patients are stored with a negative ExternalPatient ID in the backend.
+        const matchIds = new Set<number>([patient.idNum]);
+        if (patient.category === 'Staff') {
+          try {
+            const idsRaw = localStorage.getItem('staffExternalIds');
+            const idsMap: Record<string, number> = idsRaw ? JSON.parse(idsRaw) : {};
+            const externalId = idsMap[String(patient.idNum)];
+            if (externalId) matchIds.add(-externalId);
+          } catch { /* ignore */ }
+        }
+
+        const patientConsultations = all.filter(c => {
+          const cId: number = c.patient?.idNum ?? c.patientId;
+          return matchIds.has(cId);
+        });
         patientConsultations.sort((a, b) =>
           new Date(b.dateConsultation).getTime() - new Date(a.dateConsultation).getTime()
         );
