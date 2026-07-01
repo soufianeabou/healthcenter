@@ -61,8 +61,8 @@ const Patients: React.FC = () => {
     try {
       setLoading(true);
       const [studentsRes, facultyRes] = await Promise.all([
-        fetch('https://hc.aui.ma/api/patient-categories/students'),
-        fetch('https://hc.aui.ma/api/patient-categories/faculty'),
+        fetch('https://hc.aui.ma/api/patients/by-type/students'),
+        fetch('https://hc.aui.ma/api/patients/by-type/faculty'),
       ]);
 
       const isJson = (res: Response) => res.ok && res.headers.get('content-type')?.includes('application/json');
