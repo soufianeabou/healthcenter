@@ -216,24 +216,41 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               <InfoRow label="Motif" value={consultation.motif || consultation.notes} />
             </div>
 
-            {/* Constantes */}
-            {constantes && (
+            {/* Constantes vitales (from dedicated fields) */}
+            {(() => {
+              const c = consultation as any;
+              const rows = [
+                ['Température', c.temperature ? `${c.temperature}°C` : null],
+                ['TA', c.tension],
+                ['Pouls', c.pouls ? `${c.pouls} bpm` : null],
+                ['Saturation', c.saturation ? `${c.saturation}%` : null],
+                ['GàJ', c.gaj],
+                ['FR', c.frequenceRespiratoire ? `${c.frequenceRespiratoire}/min` : null],
+                ['Poids', c.poids ? `${c.poids} kg` : null],
+                ['Taille', c.taille ? `${c.taille} cm` : null],
+              ].filter(([, v]) => v);
+              // Fallback: parse from old diagnostic format for legacy records
+              const legacy = !rows.length && constantes ? constantes.map((line: string) => {
+                const [label, value] = line.split(': ');
+                return [label, value];
+              }) : [];
+              const display = rows.length ? rows : legacy;
+              return display.length ? (
               <section>
                 <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5" /> Constantes vitales
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {constantes.map((line, i) => {
-                    const [label, value] = line.split(': ');
-                    return (
-                      <div key={i} className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
-                        <p className="text-xs text-purple-500 font-medium">{label}</p>
-                        <p className="text-sm font-semibold text-purple-900">{value}</p>
-                      </div>
-                    );
-                  })}
+                  {display.map(([label, value], i) => (
+                    <div key={i} className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
+                      <p className="text-xs text-purple-500 font-medium">{label}</p>
+                      <p className="text-sm font-semibold text-purple-900">{value}</p>
+                    </div>
+                  ))}
                 </div>
               </section>
+              ) : null;
+            })()}
             )}
 
             {/* Diagnostic / Notes */}
@@ -276,6 +293,14 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
                   <p className="text-sm text-gray-800 whitespace-pre-wrap bg-green-50 rounded-lg p-3 border border-green-200">{consultation.traitement}</p>
                 </section>
               )
+            )}
+
+            {/* Psychiatrie notes */}
+            {(consultation as any).psyNotes && (
+              <section>
+                <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1.5">🧠 Notes psychiatriques</h4>
+                <p className="text-sm text-purple-900 whitespace-pre-wrap bg-purple-50 rounded-lg p-3 border border-purple-200">{(consultation as any).psyNotes}</p>
+              </section>
             )}
 
             {/* Prochain RDV */}

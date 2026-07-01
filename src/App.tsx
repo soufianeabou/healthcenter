@@ -99,14 +99,12 @@ function AppContent() {
                 <Route path="/patients" element={<Patients />} />
                 <Route path="/materiels-list" element={<MaterielsList />} />
                 <Route path="/materiels/:id" element={<MaterielDetails />} />
-                <Route path="/medicines" element={<MedicinesList />} />
               </>
             )}
 
             {/* Admin only */}
             {isAdmin && (
               <>
-                <Route path="/medicines/manage" element={<Medicines />} />
                 <Route path="/materiels" element={<Materiels />} />
                 <Route path="/entry-stock" element={<EntryStock />} />
                 <Route path="/exit-stock" element={<ExitStock />} />

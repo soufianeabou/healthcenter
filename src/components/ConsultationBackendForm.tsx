@@ -53,15 +53,16 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [externalCategory, setExternalCategory] = useState('');
   const [externalPhone, setExternalPhone] = useState('');
 
-  // Constantes for nurses (Temperature, TA, P, Sat, GàJ + optional extras)
-  const [temperature, setTemperature] = useState('');
-  const [tension, setTension] = useState('');
-  const [pouls, setPouls] = useState('');
-  const [saturation, setSaturation] = useState('');
-  const [gaj, setGaj] = useState('');
-  const [frequenceRespiratoire, setFrequenceRespiratoire] = useState('');
-  const [poids, setPoids] = useState('');
-  const [taille, setTaille] = useState('');
+  // Constantes vitales (both GENERAL and PSYCHIATRIE)
+  const [temperature, setTemperature] = useState((initial as any)?.temperature || '');
+  const [tension, setTension] = useState((initial as any)?.tension || '');
+  const [pouls, setPouls] = useState((initial as any)?.pouls || '');
+  const [saturation, setSaturation] = useState((initial as any)?.saturation || '');
+  const [gaj, setGaj] = useState((initial as any)?.gaj || '');
+  const [frequenceRespiratoire, setFrequenceRespiratoire] = useState((initial as any)?.frequenceRespiratoire || '');
+  const [poids, setPoids] = useState((initial as any)?.poids || '');
+  const [taille, setTaille] = useState((initial as any)?.taille || '');
+  const [psyNotes, setPsyNotes] = useState((initial as any)?.psyNotes || '');
   
   // Materials
   const [materiels, setMateriels] = useState<Materiel[]>([]);
@@ -285,23 +286,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     console.log('Is Editing:', !!initial);
     console.log('Initial Patient:', initial?.patient);
     
-    // Build diagnostic with constantes for nurses
-    let finalDiagnostic = diagnostic;
-    if (isNurse) {
-      const constantes = [];
-      if (temperature) constantes.push(`Température: ${temperature}°C`);
-      if (tension) constantes.push(`TA: ${tension}`);
-      if (pouls) constantes.push(`P: ${pouls} bpm`);
-      if (saturation) constantes.push(`Sat: ${saturation}%`);
-      if (gaj) constantes.push(`GàJ: ${gaj}`);
-      if (frequenceRespiratoire) constantes.push(`FR: ${frequenceRespiratoire}/min`);
-      if (poids) constantes.push(`Poids: ${poids} kg`);
-      if (taille) constantes.push(`Taille: ${taille} cm`);
-      
-      if (constantes.length > 0) {
-        finalDiagnostic = `CONSTANTES:\n${constantes.join('\n')}${diagnostic ? '\n\nNOTES:\n' + diagnostic : ''}`;
-      }
-    }
+    // Constantes now stored as dedicated fields, not embedded in diagnostic
+    const finalDiagnostic = diagnostic;
     
     // Always use current date/time when saving
     // Format date for backend LocalDateTime (ISO-8601 format)
@@ -321,7 +307,16 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       motif,
       diagnostic: finalDiagnostic,
       traitement,
-      consultationType
+      consultationType,
+      temperature: temperature || undefined,
+      tension: tension || undefined,
+      pouls: pouls || undefined,
+      saturation: saturation || undefined,
+      gaj: gaj || undefined,
+      frequenceRespiratoire: frequenceRespiratoire || undefined,
+      poids: poids || undefined,
+      taille: taille || undefined,
+      psyNotes: psyNotes || undefined,
     };
 
     // If this is an external/non-AUI consultation, store it locally and skip backend call
@@ -725,6 +720,20 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800 flex items-start gap-2">
           <span className="mt-0.5">ℹ️</span>
           <span>Le traitement sera complété par le médecin. La consultation sera enregistrée en statut <strong>En attente médecin</strong>.</span>
+        </div>
+      )}
+
+      {/* Psychiatrie: notes spécifiques */}
+      {consultationType === 'PSYCHIATRIE' && (
+        <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-200 shadow-sm">
+          <label className="block text-sm font-semibold text-purple-800 mb-2">🧠 Notes psychiatriques</label>
+          <textarea
+            value={psyNotes}
+            onChange={(e) => setPsyNotes(e.target.value)}
+            rows={5}
+            placeholder="Observations psychiatriques, antécédents, humeur, comportement, plan thérapeutique..."
+            className="w-full px-4 py-3 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 resize-none"
+          />
         </div>
       )}
 

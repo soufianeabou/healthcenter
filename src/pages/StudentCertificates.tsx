@@ -81,6 +81,7 @@ const StudentCertificates: React.FC = () => {
       form.append('file', selectedFile);
       form.append('studentName', `${user.prenom} ${user.nom}`);
       form.append('studentEmail', user.email);
+      if ((user as any).idNum) form.append('studentIdNum', String((user as any).idNum));
       const res = await fetch(API, { method: 'POST', body: form });
       if (!res.ok) throw new Error('Submission failed');
       setShowForm(false);

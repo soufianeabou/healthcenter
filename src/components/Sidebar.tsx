@@ -40,7 +40,6 @@ const Sidebar = () => {
     { icon: Brain,           label: 'Psychiatrie',            path: '/psychiatrie' },
     { icon: Users,           label: 'Patients',               path: '/patients' },
     { icon: Package,         label: 'Matériels',              path: '/materiels' },
-    { icon: Pill,            label: 'Médicaments',            path: '/medicines/manage' },
     { icon: PackagePlus,     label: 'Entrées stock',          path: '/entry-stock' },
     { icon: PackageMinus,    label: 'Sorties stock',          path: '/exit-stock' },
     { icon: UserCog,         label: 'Personnel',              path: '/personnel' },
@@ -49,10 +48,16 @@ const Sidebar = () => {
     { icon: FileCheck,       label: 'Revue des certificats',  path: '/certificate-review' },
   ];
 
-  const medecinNavItems = [
+  const isPsychiatre = user?.specialite?.toLowerCase().includes('psychiatr');
+
+  const medecinNavItems = isPsychiatre ? [
+    { icon: LayoutDashboard, label: 'Tableau de bord',       path: '/dashboard' },
+    { icon: Brain,           label: 'Psychiatrie',            path: '/psychiatrie' },
+    { icon: Users,           label: 'Patients',               path: '/patients' },
+    { icon: FileCheck,       label: 'Revue des certificats',  path: '/certificate-review' },
+  ] : [
     { icon: LayoutDashboard, label: 'Tableau de bord',       path: '/dashboard' },
     { icon: Stethoscope,     label: 'Consultations',          path: '/consultations' },
-    { icon: Brain,           label: 'Psychiatrie',            path: '/psychiatrie' },
     { icon: Users,           label: 'Patients',               path: '/patients' },
     { icon: Package,         label: 'Matériels',              path: '/materiels-list' },
     { icon: FileCheck,       label: 'Revue des certificats',  path: '/certificate-review' },
