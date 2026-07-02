@@ -111,12 +111,33 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
     refreshMaterielsCatalog();
   }, []);
 
-  // Édition : aligner sur idNum (pas sur patient.id / appid)
+  // Édition / suivi : aligner sur idNum (pas sur patient.id / appid)
   useEffect(() => {
     const init = initial as any;
     const n = init?.patient?.idNum ?? init?.patientIdNum;
     if (n != null) setSelectedPatientId(Number(n));
   }, [initial]);
+
+  // Suivi pre-fill: populate the patients list so the selected patient shows immediately
+  useEffect(() => {
+    const init = initial as any;
+    const p = init?.patient;
+    if (p?.idNum && !init?.id) {
+      // Only pre-fill for new consultations (no id = not editing an existing one)
+      setPatients([{
+        id: p.idNum,
+        nom: p.nom || '',
+        prenom: p.prenom || '',
+        cne: p.cne || '',
+        dateNaissance: p.dateNaissance || '',
+        sexe: p.sexe || '',
+        telephone: p.telephone || '',
+        email: p.email || '',
+      }]);
+      setPatientSearch(String(Math.abs(p.idNum)));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch assigned materials when editing (using patient idNum)
   useEffect(() => {

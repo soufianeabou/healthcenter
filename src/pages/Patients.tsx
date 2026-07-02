@@ -515,42 +515,124 @@ const Patients: React.FC = () => {
       )}
 
       <Modal
-        title={historyPatient ? `Historique de ${historyPatient.prenom} ${historyPatient.nom} (#${historyPatient.idNum})` : 'Historique'}
+        title={historyPatient ? `Historique — ${historyPatient.prenom} ${historyPatient.nom} (#${historyPatient.idNum})` : 'Historique'}
         open={!!historyPatient}
         onCancel={() => setHistoryPatient(null)}
         footer={null}
-        width={800}
+        width={860}
       >
         {historyLoading ? (
           <div className="flex justify-center py-8"><Spin /></div>
         ) : historyConsultations.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#999', padding: 24 }}>Aucune consultation enregistrée pour ce patient.</p>
         ) : (
-          <div style={{ maxHeight: 500, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {historyConsultations.map((c: any) => (
-              <div key={c.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 600, fontSize: 14 }}>
-                    {new Date(c.dateConsultation).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </span>
-                  <span style={{ fontSize: 12, color: '#6b7280' }}>
-                    Dr. {c.personnel?.prenom} {c.personnel?.nom}
-                  </span>
-                  <Tag color={(c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'green' : 'orange'}>
-                    {(c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'Terminée' : 'En attente'}
-                  </Tag>
+          <div style={{ maxHeight: 560, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {historyConsultations.map((c: any) => {
+              const prochainRdv = localStorage.getItem(`prochainRdv_${c.id}`) || '';
+              const rdvDate = prochainRdv ? new Date(prochainRdv) : null;
+              const rdvPast = rdvDate ? rdvDate < new Date() : false;
+              const isSuivi = !!localStorage.getItem(`suiviOf_${c.id}`);
+              const parentId = localStorage.getItem(`suiviOf_${c.id}`);
+              const constantes = [
+                c.temperature && { label: 'T°', value: `${c.temperature}°C` },
+                c.tension && { label: 'TA', value: c.tension },
+                c.pouls && { label: 'Pouls', value: `${c.pouls} bpm` },
+                c.saturation && { label: 'Sat.', value: `${c.saturation}%` },
+                c.gaj && { label: 'GàJ', value: c.gaj },
+                c.frequenceRespiratoire && { label: 'FR', value: `${c.frequenceRespiratoire}/min` },
+                c.poids && { label: 'Poids', value: `${c.poids} kg` },
+                c.taille && { label: 'Taille', value: `${c.taille} cm` },
+              ].filter(Boolean) as { label: string; value: string }[];
+              const isCompleted = !!(c.traitement?.trim() || c.infirmierTraitement?.trim());
+              return (
+                <div key={c.id} style={{ border: `1.5px solid ${isSuivi ? '#bfdbfe' : '#e5e7eb'}`, borderRadius: 10, padding: 16, background: isSuivi ? '#f0f7ff' : '#fff' }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                    {isSuivi && (
+                      <Tag color="blue" style={{ fontSize: 11 }}>Suivi #{parentId}</Tag>
+                    )}
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>
+                      {new Date(c.dateConsultation).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
+                    </span>
+                    <span style={{ fontSize: 13, color: '#6b7280' }}>
+                      {new Date(c.dateConsultation).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ fontSize: 12, color: '#6b7280' }}>
+                      {c.personnel?.prenom} {c.personnel?.nom}
+                    </span>
+                    <Tag color={isCompleted ? 'green' : 'orange'} style={{ marginLeft: 4 }}>
+                      {isCompleted ? 'Terminée' : 'En attente'}
+                    </Tag>
+                    {c.consultationType === 'PSYCHIATRIE' && <Tag color="purple">Psychiatrie</Tag>}
+                  </div>
+
+                  {/* Motif + Diagnostic */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: constantes.length ? 10 : 0 }}>
+                    {c.motif && (
+                      <div style={{ background: '#f9fafb', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}>
+                        <span style={{ fontSize: 11, color: '#6b7280', display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Motif</span>
+                        {c.motif}
+                      </div>
+                    )}
+                    {c.diagnostic && (
+                      <div style={{ background: '#f9fafb', borderRadius: 6, padding: '6px 10px', fontSize: 13 }}>
+                        <span style={{ fontSize: 11, color: '#6b7280', display: 'block', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Diagnostic</span>
+                        {c.diagnostic}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Constantes vitales */}
+                  {constantes.length > 0 && (
+                    <div style={{ marginBottom: 10 }}>
+                      <p style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Constantes vitales</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {constantes.map(({ label, value }) => (
+                          <div key={label} style={{ background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 6, padding: '4px 10px', fontSize: 12 }}>
+                            <span style={{ color: '#7c3aed', fontWeight: 600 }}>{label}</span>
+                            <span style={{ marginLeft: 4, color: '#1e1b4b' }}>{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Traitement */}
+                  {c.traitement && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '6px 10px', fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Traitement</span>
+                      {c.traitement}
+                    </div>
+                  )}
+                  {c.infirmierTraitement && (
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '6px 10px', fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: '#d97706', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Traitement infirmier</span>
+                      {c.infirmierTraitement}
+                    </div>
+                  )}
+                  {c.psyNotes && (
+                    <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 6, padding: '6px 10px', fontSize: 13, marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Notes psychiatriques</span>
+                      {c.psyNotes}
+                    </div>
+                  )}
+
+                  {/* Prochain RDV */}
+                  {prochainRdv && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '5px 10px', background: rdvPast ? '#fff7ed' : '#eff6ff', border: `1px solid ${rdvPast ? '#fed7aa' : '#bfdbfe'}`, borderRadius: 6, fontSize: 12 }}>
+                      <span style={{ fontSize: 14 }}>{rdvPast ? '⚠️' : '📅'}</span>
+                      <span style={{ fontWeight: 600, color: rdvPast ? '#c2410c' : '#1d4ed8' }}>
+                        {rdvPast ? 'RDV dépassé' : 'Prochain RDV'} :
+                      </span>
+                      <span style={{ color: rdvPast ? '#9a3412' : '#1e40af' }}>
+                        {rdvDate!.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {c.motif && <p style={{ margin: '4px 0', fontSize: 13 }}><strong>Motif :</strong> {c.motif}</p>}
-                {c.diagnostic && <p style={{ margin: '4px 0', fontSize: 13 }}><strong>Diagnostic :</strong> {c.diagnostic}</p>}
-                {c.traitement && <p style={{ margin: '4px 0', fontSize: 13, color: '#059669' }}><strong>Traitement :</strong> {c.traitement}</p>}
-                {c.infirmierTraitement && <p style={{ margin: '4px 0', fontSize: 13, color: '#d97706' }}><strong>Traitement infirmier :</strong> {c.infirmierTraitement}</p>}
-                {(c.temperature || c.tension || c.pouls || c.saturation) && (
-                  <p style={{ margin: '4px 0', fontSize: 12, color: '#6b7280' }}>
-                    Constantes : {[c.temperature && `T° ${c.temperature}`, c.tension && `TA ${c.tension}`, c.pouls && `P ${c.pouls}bpm`, c.saturation && `Sat ${c.saturation}%`].filter(Boolean).join(' · ')}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Modal>

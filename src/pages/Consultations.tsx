@@ -36,6 +36,16 @@ interface ConsultationRow {
   patient?: any;
   personnelId?: number;
   consultationType?: string;
+  temperature?: string;
+  tension?: string;
+  pouls?: string;
+  saturation?: string;
+  gaj?: string;
+  frequenceRespiratoire?: string;
+  poids?: string;
+  taille?: string;
+  psyNotes?: string;
+  suiviOf?: number;
 }
 
 /* ─── helpers ─── */
@@ -61,10 +71,11 @@ interface DetailsModalProps {
   onClose: () => void;
   onDeleted: () => void;
   onSaved: (id: number, diagnostic: string, traitement: string) => void;
+  onCreateSuivi?: (patient: any, motif: string, parentId: number) => void;
 }
 
 const DetailsModal: React.FC<DetailsModalProps> = ({
-  consultation, canEdit, onClose, onDeleted, onSaved,
+  consultation, canEdit, onClose, onDeleted, onSaved, onCreateSuivi,
 }) => {
   const [tab, setTab] = useState<'info' | 'materiels'>('info');
   const [editing, setEditing] = useState(false);
@@ -73,6 +84,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [prochainRdv, setProchainRdv] = useState(() => getProchainRdv(consultation.id));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [rdvSaved, setRdvSaved] = useState(false);
 
   const [materials, setMaterials] = useState<any[]>([]);
   const [allMaterials, setAllMaterials] = useState<any[]>([]);
@@ -136,8 +148,14 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   };
 
   const handleSaveRdvOnly = () => {
+    if (!prochainRdv) return;
     saveProchainRdv(consultation.id, prochainRdv);
+    setRdvSaved(true);
+    setTimeout(() => setRdvSaved(false), 3000);
   };
+
+  const rdvDate = prochainRdv ? new Date(prochainRdv) : null;
+  const rdvHasArrived = rdvDate ? rdvDate <= new Date() : false;
 
   const handleDelete = async () => {
     if (!confirm('Supprimer cette consultation ?')) return;
@@ -316,26 +334,58 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
                 <CalendarClock className="w-3.5 h-3.5" /> Prochain rendez-vous
               </h4>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <input
                   type="date"
                   value={prochainRdv}
-                  onChange={e => setProchainRdv(e.target.value)}
+                  onChange={e => { setProchainRdv(e.target.value); setRdvSaved(false); }}
                   className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={handleSaveRdvOnly}
-                  className="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                  disabled={!prochainRdv}
+                  className="px-3 py-2 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium disabled:opacity-40"
                 >
                   Enregistrer RDV
                 </button>
                 {prochainRdv && (
-                  <button onClick={() => { setProchainRdv(''); saveProchainRdv(consultation.id, ''); }} className="text-gray-400 hover:text-gray-600">
+                  <button onClick={() => { setProchainRdv(''); saveProchainRdv(consultation.id, ''); setRdvSaved(false); }} className="text-gray-400 hover:text-gray-600">
                     <X className="w-4 h-4" />
                   </button>
                 )}
+                {rdvSaved && (
+                  <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+                    ✓ RDV enregistré avec succès
+                  </span>
+                )}
               </div>
+              {prochainRdv && !rdvHasArrived && (
+                <p className="mt-1.5 text-xs text-blue-600 font-medium">
+                  RDV prévu le {new Date(prochainRdv).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+              )}
             </section>
+
+            {/* Suivi — appears when RDV date has arrived */}
+            {rdvHasArrived && onCreateSuivi && (
+              <section className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <CalendarClock className="w-4 h-4 text-blue-600" />
+                  <h4 className="text-sm font-semibold text-blue-800">
+                    RDV du {new Date(prochainRdv!).toLocaleDateString('fr-FR')} — Prêt pour le suivi
+                  </h4>
+                </div>
+                <p className="text-xs text-blue-600 mb-3">
+                  La date du rendez-vous est arrivée. Enregistrez la consultation de suivi pour ce patient.
+                </p>
+                <button
+                  onClick={() => onCreateSuivi(consultation.patient, consultation.motif || '', consultation.id)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  <Plus className="w-4 h-4" /> Créer une consultation de suivi
+                </button>
+              </section>
+            )}
 
             {saveError && (
               <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2 border border-red-200">{saveError}</p>
@@ -465,6 +515,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
   const [selectedConsultation, setSelectedConsultation] = useState<ConsultationRow | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [error, setError] = useState('');
+  const [suiviInitial, setSuiviInitial] = useState<any>(null);
 
   const fetchConsultations = async () => {
     try {
@@ -482,25 +533,38 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
       const resolveDisplayId = (idNum: number): number =>
         idNum < 0 ? (reverseStaffIds[-idNum] ?? idNum) : idNum;
 
-      const rows: ConsultationRow[] = data.map((c: any) => ({
-        id: c.id,
-        patientId: c.patient?.idNum || c.patientId,
-        patientName: c.patient
-          ? `${c.patient.prenom || ''} ${c.patient.nom || ''} #${resolveDisplayId(c.patient.idNum)}`.trim()
-          : `#${c.patientId}`,
-        doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
-        consultationDate: c.dateConsultation,
-        notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
-        status: (c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'COMPLETED' : 'PENDING',
-        prescriptionItems: [],
-        motif: c.motif,
-        diagnostic: c.diagnostic,
-        traitement: c.traitement,
-        infirmierTraitement: c.infirmierTraitement,
-        patient: c.patient,
-        personnelId: c.personnel?.id ?? null,
-        consultationType: c.consultationType || 'GENERAL',
-      }));
+      const rows: ConsultationRow[] = data.map((c: any) => {
+        const parentId = localStorage.getItem(`suiviOf_${c.id}`);
+        return {
+          id: c.id,
+          patientId: c.patient?.idNum || c.patientId,
+          patientName: c.patient
+            ? `${c.patient.prenom || ''} ${c.patient.nom || ''} #${resolveDisplayId(c.patient.idNum)}`.trim()
+            : `#${c.patientId}`,
+          doctorName: `${c.personnel?.prenom || ''} ${c.personnel?.nom || ''}`.trim() || 'Médecin',
+          consultationDate: c.dateConsultation,
+          notes: [c.motif, c.diagnostic, c.traitement].filter(Boolean).join(' | '),
+          status: (c.traitement?.trim() || c.infirmierTraitement?.trim()) ? 'COMPLETED' : 'PENDING',
+          prescriptionItems: [],
+          motif: c.motif,
+          diagnostic: c.diagnostic,
+          traitement: c.traitement,
+          infirmierTraitement: c.infirmierTraitement,
+          patient: c.patient,
+          personnelId: c.personnel?.id ?? null,
+          consultationType: c.consultationType || 'GENERAL',
+          temperature: c.temperature,
+          tension: c.tension,
+          pouls: c.pouls,
+          saturation: c.saturation,
+          gaj: c.gaj,
+          frequenceRespiratoire: c.frequenceRespiratoire,
+          poids: c.poids,
+          taille: c.taille,
+          psyNotes: c.psyNotes,
+          suiviOf: parentId ? Number(parentId) : undefined,
+        };
+      });
       setConsultations(rows);
     } catch (e) {
       setError('Erreur lors du chargement des consultations');
@@ -582,12 +646,26 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
         body: JSON.stringify(requestBody),
       });
       if (!res.ok) throw new Error(`Create failed (${res.status}): ${await readErrorText(res)}`);
+      const created = await res.json().catch(() => null);
+      // If this consultation is a suivi, store the parent link and clear the parent's RDV
+      if (created?.id && suiviInitial?._parentConsultationId) {
+        localStorage.setItem(`suiviOf_${created.id}`, String(suiviInitial._parentConsultationId));
+        saveProchainRdv(suiviInitial._parentConsultationId, '');
+      }
+      setSuiviInitial(null);
       setIsModalOpen(false);
       await fetchConsultations();
       loadExternalConsultations();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de la création');
     }
+  };
+
+  const handleOpenSuivi = (patient: any, motif: string, parentId: number) => {
+    setSuiviInitial({ patient, motif: `Suivi : ${motif}`, _parentConsultationId: parentId });
+    setIsDetailsOpen(false);
+    setSelectedConsultation(null);
+    setIsModalOpen(true);
   };
 
   const handleDetailsUpdated = (id: number, diagnostic: string, traitement: string) => {
@@ -761,6 +839,11 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
                               Externe{consultation.externalCategory ? ` · ${consultation.externalCategory}` : ''}
                             </span>
                           )}
+                          {consultation.suiviOf && (
+                            <span className="text-xs inline-flex items-center px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 mt-0.5">
+                              Suivi #{consultation.suiviOf}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -825,13 +908,17 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
       </div>
 
       {/* New consultation modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle consultation">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setSuiviInitial(null); }}
+        title={suiviInitial ? `Suivi — ${suiviInitial.patient?.prenom || ''} ${suiviInitial.patient?.nom || ''}`.trim() : 'Nouvelle consultation'}
+      >
         <ConsultationBackendForm
-          key="new-consultation"
+          key={suiviInitial ? `suivi-${suiviInitial._parentConsultationId}` : 'new-consultation'}
           personnelId={user?.id as number}
-          initial={null}
+          initial={suiviInitial}
           onSubmit={handleAddConsultation}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => { setIsModalOpen(false); setSuiviInitial(null); }}
         />
       </Modal>
 
@@ -848,6 +935,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
             onClose={() => { setIsDetailsOpen(false); setSelectedConsultation(null); }}
             onDeleted={fetchConsultations}
             onSaved={handleDetailsUpdated}
+            onCreateSuivi={canEdit ? handleOpenSuivi : undefined}
           />
         </Modal>
       )}
