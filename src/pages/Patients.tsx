@@ -526,7 +526,64 @@ const Patients: React.FC = () => {
         ) : historyConsultations.length === 0 ? (
           <p style={{ textAlign: 'center', color: '#999', padding: 24 }}>Aucune consultation enregistrée pour ce patient.</p>
         ) : (
-          <div style={{ maxHeight: 560, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* ── Suivi de constantes ── */}
+            {(() => {
+              type CRow = { date: string; label: string; temp?: string; tension?: string; pouls?: string; sat?: string; gaj?: string; fr?: string; poids?: string; taille?: string };
+              const rows: CRow[] = [];
+              historyConsultations.forEach((c: any) => {
+                const hasC = c.temperature || c.tension || c.pouls || c.saturation || c.gaj || c.frequenceRespiratoire || c.poids || c.taille;
+                if (hasC) rows.push({ date: c.dateConsultation?.slice(0, 10) || '', label: `Consultation #${c.id}`, temp: c.temperature, tension: c.tension, pouls: c.pouls, sat: c.saturation, gaj: c.gaj, fr: c.frequenceRespiratoire, poids: c.poids, taille: c.taille });
+                (c.rdvList ?? []).forEach((r: any) => {
+                  const hasR = r.temperature || r.tension || r.pouls || r.saturation || r.gaj || r.frequenceRespiratoire || r.poids || r.taille;
+                  if (hasR) rows.push({ date: r.rdvDate || '', label: `RDV du ${new Date(r.rdvDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}`, temp: r.temperature, tension: r.tension, pouls: r.pouls, sat: r.saturation, gaj: r.gaj, fr: r.frequenceRespiratoire, poids: r.poids, taille: r.taille });
+                });
+              });
+              rows.sort((a, b) => a.date.localeCompare(b.date));
+              if (!rows.length) return null;
+              const cols: { key: keyof CRow; head: string }[] = [
+                { key: 'temp', head: 'T° (°C)' }, { key: 'tension', head: 'TA' }, { key: 'pouls', head: 'Pouls' },
+                { key: 'sat', head: 'Sat. %' }, { key: 'gaj', head: 'GàJ' }, { key: 'fr', head: 'FR' },
+                { key: 'poids', head: 'Poids' }, { key: 'taille', head: 'Taille' },
+              ];
+              return (
+                <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: 10, padding: '12px 14px' }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    📈 Suivi des constantes vitales
+                  </p>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                      <thead>
+                        <tr style={{ background: '#ede9fe' }}>
+                          <th style={{ textAlign: 'left', padding: '5px 10px', color: '#5b21b6', fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 4 }}>Date</th>
+                          {cols.map(col => (
+                            <th key={col.key} style={{ textAlign: 'center', padding: '5px 8px', color: '#5b21b6', fontWeight: 700, whiteSpace: 'nowrap' }}>{col.head}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => (
+                          <tr key={i} style={{ borderTop: '1px solid #ede9fe', background: i % 2 === 0 ? '#fff' : '#faf5ff' }}>
+                            <td style={{ padding: '5px 10px', whiteSpace: 'nowrap', color: '#374151' }}>
+                              <div style={{ fontWeight: 600 }}>{new Date(r.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })}</div>
+                              <div style={{ fontSize: 10, color: '#9ca3af' }}>{r.label}</div>
+                            </td>
+                            {cols.map(col => (
+                              <td key={col.key} style={{ textAlign: 'center', padding: '5px 8px', color: r[col.key] ? '#1e1b4b' : '#d1d5db', fontWeight: r[col.key] ? 600 : 400 }}>
+                                {r[col.key] || '—'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── Consultations ── */}
+            <div style={{ maxHeight: 480, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {historyConsultations.map((c: any) => {
               // Prefer backend field; fallback to localStorage for records saved before the migration
               const prochainRdv: string = c.prochainRdv || localStorage.getItem(`prochainRdv_${c.id}`) || '';
@@ -652,6 +709,7 @@ const Patients: React.FC = () => {
                 </div>
               );
             })}
+            </div>{/* end consultations scroll */}
           </div>
         )}
       </Modal>

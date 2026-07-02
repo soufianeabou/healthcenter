@@ -83,6 +83,15 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [editing, setEditing] = useState(false);
   const [diagnostic, setDiagnostic] = useState(consultation.diagnostic || '');
   const [traitement, setTraitement] = useState(consultation.traitement || '');
+  const c0 = consultation as any;
+  const [editTemp, setEditTemp] = useState(c0.temperature || '');
+  const [editTension, setEditTension] = useState(c0.tension || '');
+  const [editPouls, setEditPouls] = useState(c0.pouls || '');
+  const [editSat, setEditSat] = useState(c0.saturation || '');
+  const [editGaj, setEditGaj] = useState(c0.gaj || '');
+  const [editFr, setEditFr] = useState(c0.frequenceRespiratoire || '');
+  const [editPoids, setEditPoids] = useState(c0.poids || '');
+  const [editTaille, setEditTaille] = useState(c0.taille || '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [rdvList, setRdvList] = useState<Array<{
@@ -151,15 +160,15 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           traitement,
           infirmierTraitement: consultation.infirmierTraitement,
           consultationType: consultation.consultationType,
-          temperature: (consultation as any).temperature,
-          tension: (consultation as any).tension,
-          pouls: (consultation as any).pouls,
-          saturation: (consultation as any).saturation,
-          gaj: (consultation as any).gaj,
-          frequenceRespiratoire: (consultation as any).frequenceRespiratoire,
-          poids: (consultation as any).poids,
-          taille: (consultation as any).taille,
-          psyNotes: (consultation as any).psyNotes,
+          temperature: editTemp || null,
+          tension: editTension || null,
+          pouls: editPouls || null,
+          saturation: editSat || null,
+          gaj: editGaj || null,
+          frequenceRespiratoire: editFr || null,
+          poids: editPoids || null,
+          taille: editTaille || null,
+          psyNotes: c0.psyNotes,
           prochainRdv: consultation.prochainRdv || null,
           parentConsultationId: consultation.suiviOf ?? null,
         }),
@@ -326,41 +335,68 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               <InfoRow label="Motif" value={consultation.motif || consultation.notes} />
             </div>
 
-            {/* Constantes vitales (from dedicated fields) */}
-            {(() => {
-              const c = consultation as any;
-              const rows = [
-                ['Température', c.temperature ? `${c.temperature}°C` : null],
-                ['TA', c.tension],
-                ['Pouls', c.pouls ? `${c.pouls} bpm` : null],
-                ['Saturation', c.saturation ? `${c.saturation}%` : null],
-                ['GàJ', c.gaj],
-                ['FR', c.frequenceRespiratoire ? `${c.frequenceRespiratoire}/min` : null],
-                ['Poids', c.poids ? `${c.poids} kg` : null],
-                ['Taille', c.taille ? `${c.taille} cm` : null],
-              ].filter(([, v]) => v);
-              // Fallback: parse from old diagnostic format for legacy records
-              const legacy = !rows.length && constantes ? constantes.map((line: string) => {
-                const [label, value] = line.split(': ');
-                return [label, value];
-              }) : [];
-              const display = rows.length ? rows : legacy;
-              return display.length ? (
-              <section>
-                <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5" /> Constantes vitales
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {display.map(([label, value], i) => (
-                    <div key={i} className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
-                      <p className="text-xs text-purple-500 font-medium">{label}</p>
-                      <p className="text-sm font-semibold text-purple-900">{value}</p>
+            {/* Constantes vitales */}
+            <section>
+              <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5" /> Constantes vitales
+              </h4>
+              {editing ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { label: 'T° (°C)', value: editTemp, set: setEditTemp, placeholder: '37.0' },
+                    { label: 'TA', value: editTension, set: setEditTension, placeholder: '120/80' },
+                    { label: 'Pouls (bpm)', value: editPouls, set: setEditPouls, placeholder: '72' },
+                    { label: 'Sat. (%)', value: editSat, set: setEditSat, placeholder: '98' },
+                    { label: 'GàJ', value: editGaj, set: setEditGaj, placeholder: '1.0 g/L' },
+                    { label: 'FR (/min)', value: editFr, set: setEditFr, placeholder: '16' },
+                    { label: 'Poids (kg)', value: editPoids, set: setEditPoids, placeholder: '70' },
+                    { label: 'Taille (cm)', value: editTaille, set: setEditTaille, placeholder: '175' },
+                  ].map(({ label, value, set, placeholder }) => (
+                    <div key={label}>
+                      <label className="block text-xs text-purple-600 font-medium mb-0.5">{label}</label>
+                      <input
+                        type="text"
+                        value={value}
+                        onChange={e => set(e.target.value)}
+                        placeholder={placeholder}
+                        className="w-full px-2 py-1.5 text-sm border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400"
+                      />
                     </div>
                   ))}
                 </div>
-              </section>
-              ) : null;
-            })()}
+              ) : (
+                (() => {
+                  const c = consultation as any;
+                  const rows = [
+                    ['Température', c.temperature ? `${c.temperature}°C` : null],
+                    ['TA', c.tension],
+                    ['Pouls', c.pouls ? `${c.pouls} bpm` : null],
+                    ['Saturation', c.saturation ? `${c.saturation}%` : null],
+                    ['GàJ', c.gaj],
+                    ['FR', c.frequenceRespiratoire ? `${c.frequenceRespiratoire}/min` : null],
+                    ['Poids', c.poids ? `${c.poids} kg` : null],
+                    ['Taille', c.taille ? `${c.taille} cm` : null],
+                  ].filter(([, v]) => v);
+                  const legacy = !rows.length && constantes ? constantes.map((line: string) => {
+                    const [label, value] = line.split(': ');
+                    return [label, value];
+                  }) : [];
+                  const display = rows.length ? rows : legacy;
+                  return display.length ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {display.map(([label, value], i) => (
+                        <div key={i} className="bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
+                          <p className="text-xs text-purple-500 font-medium">{label}</p>
+                          <p className="text-sm font-semibold text-purple-900">{value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-400 italic">Aucune constante enregistrée.</p>
+                  );
+                })()
+              )}
+            </section>
 
             {/* Diagnostic / Notes */}
             {editing ? (
