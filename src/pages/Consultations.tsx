@@ -46,6 +46,7 @@ interface ConsultationRow {
   taille?: string;
   psyNotes?: string;
   suiviOf?: number;
+  prochainRdv?: string;
 }
 
 /* ─── helpers ─── */
@@ -134,6 +135,19 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           motif: consultation.motif,
           diagnostic,
           traitement,
+          infirmierTraitement: consultation.infirmierTraitement,
+          consultationType: consultation.consultationType,
+          temperature: (consultation as any).temperature,
+          tension: (consultation as any).tension,
+          pouls: (consultation as any).pouls,
+          saturation: (consultation as any).saturation,
+          gaj: (consultation as any).gaj,
+          frequenceRespiratoire: (consultation as any).frequenceRespiratoire,
+          poids: (consultation as any).poids,
+          taille: (consultation as any).taille,
+          psyNotes: (consultation as any).psyNotes,
+          prochainRdv: prochainRdv || null,
+          parentConsultationId: consultation.suiviOf ?? null,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -147,9 +161,35 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
     }
   };
 
-  const handleSaveRdvOnly = () => {
+  const handleSaveRdvOnly = async () => {
     if (!prochainRdv) return;
-    saveProchainRdv(consultation.id, prochainRdv);
+    saveProchainRdv(consultation.id, prochainRdv); // localStorage fallback
+    try {
+      const c = consultation as any;
+      await fetch(`https://hc.aui.ma/api/consultations/${consultation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: consultation.id,
+          patientId: consultation.patientId,
+          personnelId: consultation.personnelId,
+          dateConsultation: consultation.consultationDate,
+          motif: consultation.motif,
+          diagnostic: consultation.diagnostic,
+          traitement: consultation.traitement,
+          infirmierTraitement: consultation.infirmierTraitement,
+          consultationType: consultation.consultationType,
+          temperature: c.temperature, tension: c.tension, pouls: c.pouls,
+          saturation: c.saturation, gaj: c.gaj,
+          frequenceRespiratoire: c.frequenceRespiratoire,
+          poids: c.poids, taille: c.taille, psyNotes: c.psyNotes,
+          prochainRdv,
+          parentConsultationId: consultation.suiviOf ?? null,
+        }),
+      });
+    } catch (e) {
+      console.error('Failed to save RDV to backend:', e);
+    }
     setRdvSaved(true);
     setTimeout(() => setRdvSaved(false), 3000);
   };
@@ -534,7 +574,19 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
         idNum < 0 ? (reverseStaffIds[-idNum] ?? idNum) : idNum;
 
       const rows: ConsultationRow[] = data.map((c: any) => {
-        const parentId = localStorage.getItem(`suiviOf_${c.id}`);
+        // prochainRdv: prefer backend value, fallback to localStorage for records saved before the migration
+        const rdvFromBackend = c.prochainRdv || null;
+        const rdvFromStorage = localStorage.getItem(`prochainRdv_${c.id}`) || '';
+        const resolvedRdv = rdvFromBackend || rdvFromStorage || '';
+        // If backend now has the value, sync it to localStorage so DetailsModal reads consistently
+        if (rdvFromBackend && !rdvFromStorage) {
+          localStorage.setItem(`prochainRdv_${c.id}`, rdvFromBackend);
+        }
+
+        const parentIdFromBackend = c.parentConsultationId ?? null;
+        const parentIdFromStorage = localStorage.getItem(`suiviOf_${c.id}`);
+        const resolvedParentId = parentIdFromBackend ?? (parentIdFromStorage ? Number(parentIdFromStorage) : undefined);
+
         return {
           id: c.id,
           patientId: c.patient?.idNum || c.patientId,
@@ -562,7 +614,8 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
           poids: c.poids,
           taille: c.taille,
           psyNotes: c.psyNotes,
-          suiviOf: parentId ? Number(parentId) : undefined,
+          suiviOf: resolvedParentId,
+          prochainRdv: resolvedRdv,
         };
       });
       setConsultations(rows);
@@ -639,6 +692,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
         poids: payload.poids,
         taille: payload.taille,
         psyNotes: payload.psyNotes,
+        parentConsultationId: suiviInitial?._parentConsultationId ?? null,
       };
       const res = await fetch('https://hc.aui.ma/api/consultations', {
         method: 'POST',
@@ -678,6 +732,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
     );
     setIsDetailsOpen(false);
     setSelectedConsultation(null);
+    fetchConsultations(); // refresh to get updated prochainRdv from backend
   };
 
   const getStatusBadge = (status: string) => {
@@ -820,7 +875,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredConsultations.map(consultation => {
-                const rdv = getProchainRdv(consultation.id);
+                const rdv = consultation.prochainRdv || getProchainRdv(consultation.id);
                 const isPending = consultation.status === 'PENDING';
                 return (
                   <tr

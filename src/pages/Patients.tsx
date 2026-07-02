@@ -528,11 +528,14 @@ const Patients: React.FC = () => {
         ) : (
           <div style={{ maxHeight: 560, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {historyConsultations.map((c: any) => {
-              const prochainRdv = localStorage.getItem(`prochainRdv_${c.id}`) || '';
+              // Prefer backend field; fallback to localStorage for records saved before the migration
+              const prochainRdv: string = c.prochainRdv || localStorage.getItem(`prochainRdv_${c.id}`) || '';
               const rdvDate = prochainRdv ? new Date(prochainRdv) : null;
               const rdvPast = rdvDate ? rdvDate < new Date() : false;
-              const isSuivi = !!localStorage.getItem(`suiviOf_${c.id}`);
-              const parentId = localStorage.getItem(`suiviOf_${c.id}`);
+              const parentId: string | null = c.parentConsultationId
+                ? String(c.parentConsultationId)
+                : localStorage.getItem(`suiviOf_${c.id}`);
+              const isSuivi = !!parentId;
               const constantes = [
                 c.temperature && { label: 'T°', value: `${c.temperature}°C` },
                 c.tension && { label: 'TA', value: c.tension },
