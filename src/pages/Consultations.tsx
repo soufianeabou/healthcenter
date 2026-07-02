@@ -85,13 +85,21 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [traitement, setTraitement] = useState(consultation.traitement || '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [rdvList, setRdvList] = useState<Array<{ id: number; rdvDate: string; note?: string; done: boolean }>>(
+  const [rdvList, setRdvList] = useState<Array<{
+    id: number; rdvDate: string; note?: string; done: boolean;
+    diagnostic?: string; traitement?: string;
+    temperature?: string; tension?: string; pouls?: string; saturation?: string;
+    gaj?: string; frequenceRespiratoire?: string; poids?: string; taille?: string;
+  }>>(
     () => (consultation.rdvList ?? []).slice().sort((a, b) => a.rdvDate.localeCompare(b.rdvDate))
   );
   const [showAddRdv, setShowAddRdv] = useState(false);
   const [newRdvDate, setNewRdvDate] = useState('');
   const [newRdvNote, setNewRdvNote] = useState('');
   const [rdvError, setRdvError] = useState('');
+  // Which RDV id is currently open for documentation
+  const [documentingRdvId, setDocumentingRdvId] = useState<number | null>(null);
+  const [suiviFields, setSuiviFields] = useState<Record<string, string>>({});
 
   const [materials, setMaterials] = useState<any[]>([]);
   const [allMaterials, setAllMaterials] = useState<any[]>([]);
@@ -207,6 +215,32 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
       await fetch(`${RDV_API}/${id}`, { method: 'DELETE' });
       await refreshRdvList();
     } catch { /* silent */ }
+  };
+
+  const handleSaveSuiviNotes = async (rdv: typeof rdvList[0]) => {
+    try {
+      await fetch(`${RDV_API}/${rdv.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...rdv,
+          done: true,
+          diagnostic:           suiviFields.diagnostic           || null,
+          traitement:           suiviFields.traitement           || null,
+          temperature:          suiviFields.temperature          || null,
+          tension:              suiviFields.tension              || null,
+          pouls:                suiviFields.pouls                || null,
+          saturation:           suiviFields.saturation           || null,
+          gaj:                  suiviFields.gaj                  || null,
+          frequenceRespiratoire:suiviFields.frequenceRespiratoire|| null,
+          poids:                suiviFields.poids                || null,
+          taille:               suiviFields.taille               || null,
+        }),
+      });
+      setDocumentingRdvId(null);
+      setSuiviFields({});
+      await refreshRdvList();
+    } catch (e: any) { setRdvError(e.message || 'Erreur lors de la sauvegarde'); }
   };
 
   const nextPendingRdv = rdvList.filter(r => !r.done).sort((a, b) => a.rdvDate.localeCompare(b.rdvDate))[0];
@@ -435,39 +469,142 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               {rdvList.length === 0 ? (
                 <p className="text-xs text-gray-400 italic">Aucun rendez-vous planifié.</p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {rdvList.map(r => {
                     const isPast = r.rdvDate < new Date().toISOString().slice(0, 10);
+                    const isDocumenting = documentingRdvId === r.id;
+                    const sf = (k: string) => suiviFields[k] || '';
+                    const setSf = (k: string, v: string) => setSuiviFields(prev => ({ ...prev, [k]: v }));
+
+                    const constantes = [
+                      r.temperature && `T° ${r.temperature}°C`,
+                      r.tension && `TA ${r.tension}`,
+                      r.pouls && `P ${r.pouls} bpm`,
+                      r.saturation && `Sat ${r.saturation}%`,
+                      r.gaj && `GàJ ${r.gaj}`,
+                      r.frequenceRespiratoire && `FR ${r.frequenceRespiratoire}/min`,
+                      r.poids && `${r.poids} kg`,
+                      r.taille && `${r.taille} cm`,
+                    ].filter(Boolean);
+
                     return (
-                      <div
-                        key={r.id}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg border text-sm ${
-                          r.done
-                            ? 'bg-gray-50 border-gray-200 text-gray-400'
-                            : isPast
-                            ? 'bg-orange-50 border-orange-200 text-orange-800'
-                            : 'bg-blue-50 border-blue-200 text-blue-800'
-                        }`}
-                      >
-                        <span className="text-base">{r.done ? '✅' : isPast ? '⚠️' : '📅'}</span>
-                        <span className={`font-semibold ${r.done ? 'line-through' : ''}`}>
-                          {new Date(r.rdvDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
-                        </span>
-                        {r.note && <span className="text-xs opacity-75 flex-1 truncate">{r.note}</span>}
-                        <span className="flex-1" />
-                        <button
-                          onClick={() => handleToggleDone(r)}
-                          title={r.done ? 'Marquer comme à venir' : 'Marquer comme effectué'}
-                          className="text-xs px-2 py-0.5 rounded border border-current opacity-70 hover:opacity-100 transition-opacity"
-                        >
-                          {r.done ? 'Rouvrir' : 'Effectué'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRdv(r.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                      <div key={r.id} className={`rounded-xl border overflow-hidden ${
+                        r.done ? 'border-green-200' : isPast ? 'border-orange-200' : 'border-blue-200'
+                      }`}>
+                        {/* Row header */}
+                        <div className={`flex items-center gap-3 px-3 py-2 text-sm ${
+                          r.done ? 'bg-green-50 text-green-800' : isPast ? 'bg-orange-50 text-orange-800' : 'bg-blue-50 text-blue-800'
+                        }`}>
+                          <span className="text-base flex-shrink-0">{r.done ? '✅' : isPast ? '⚠️' : '📅'}</span>
+                          <span className={`font-semibold ${r.done ? '' : ''}`}>
+                            {new Date(r.rdvDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
+                          </span>
+                          {r.note && <span className="text-xs opacity-70 truncate">{r.note}</span>}
+                          <span className="flex-1" />
+                          {/* Documenter button — only if not yet done and canEdit */}
+                          {!r.done && canEdit && (
+                            <button
+                              onClick={() => {
+                                setDocumentingRdvId(isDocumenting ? null : r.id);
+                                setSuiviFields({});
+                              }}
+                              className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${
+                                isDocumenting
+                                  ? 'bg-white border-current opacity-60'
+                                  : 'bg-white border-current hover:bg-opacity-80'
+                              }`}
+                            >
+                              {isDocumenting ? 'Annuler' : 'Ajouter les notes du RDV'}
+                            </button>
+                          )}
+                          <button onClick={() => handleDeleteRdv(r.id)} className="text-current opacity-40 hover:opacity-80 transition-opacity flex-shrink-0">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Documented suivi notes (read-only) */}
+                        {r.done && (r.diagnostic || r.traitement || constantes.length > 0) && (
+                          <div className="px-4 py-3 bg-white space-y-2 border-t border-green-100">
+                            {constantes.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {constantes.map(c => (
+                                  <span key={c} className="text-xs bg-purple-50 border border-purple-100 text-purple-700 rounded px-2 py-0.5 font-medium">{c}</span>
+                                ))}
+                              </div>
+                            )}
+                            {r.diagnostic && (
+                              <p className="text-xs text-gray-700"><span className="font-semibold text-gray-500 uppercase tracking-wide">Diagnostic : </span>{r.diagnostic}</p>
+                            )}
+                            {r.traitement && (
+                              <p className="text-xs text-green-800 bg-green-50 rounded px-2 py-1 border border-green-100"><span className="font-semibold uppercase tracking-wide">Traitement : </span>{r.traitement}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Inline documentation form */}
+                        {isDocumenting && (
+                          <div className="px-4 py-4 bg-white border-t border-blue-100 space-y-3">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Constantes vitales</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {[
+                                { key: 'temperature', label: 'T° (°C)', placeholder: '37.2' },
+                                { key: 'tension', label: 'TA', placeholder: '120/80' },
+                                { key: 'pouls', label: 'Pouls (bpm)', placeholder: '72' },
+                                { key: 'saturation', label: 'Sat. (%)', placeholder: '98' },
+                                { key: 'gaj', label: 'GàJ', placeholder: '0.9' },
+                                { key: 'frequenceRespiratoire', label: 'FR (/min)', placeholder: '16' },
+                                { key: 'poids', label: 'Poids (kg)', placeholder: '70' },
+                                { key: 'taille', label: 'Taille (cm)', placeholder: '175' },
+                              ].map(({ key, label, placeholder }) => (
+                                <div key={key}>
+                                  <label className="block text-xs text-gray-500 mb-0.5">{label}</label>
+                                  <input
+                                    type="text"
+                                    placeholder={placeholder}
+                                    value={sf(key)}
+                                    onChange={e => setSf(key, e.target.value)}
+                                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-600 mb-1">Diagnostic</label>
+                              <textarea
+                                rows={2}
+                                placeholder="Observations et diagnostic…"
+                                value={sf('diagnostic')}
+                                onChange={e => setSf('diagnostic', e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-400 resize-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-600 mb-1">Traitement</label>
+                              <textarea
+                                rows={2}
+                                placeholder="Prescription et traitement…"
+                                value={sf('traitement')}
+                                onChange={e => setSf('traitement', e.target.value)}
+                                className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg focus:ring-2 focus:ring-green-400 resize-none"
+                              />
+                            </div>
+                            {rdvError && <p className="text-red-600 text-xs">{rdvError}</p>}
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => { setDocumentingRdvId(null); setSuiviFields({}); }}
+                                className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50"
+                              >
+                                Annuler
+                              </button>
+                              <button
+                                onClick={() => handleSaveSuiviNotes(r)}
+                                className="px-4 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                              >
+                                Enregistrer les notes
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
