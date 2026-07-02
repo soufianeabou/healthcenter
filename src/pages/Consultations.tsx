@@ -174,7 +174,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
         }),
       });
       if (!res.ok) throw new Error(await res.text());
-      saveProchainRdv(consultation.id, prochainRdv);
+      saveProchainRdv(consultation.id, consultation.prochainRdv || '');
       onSaved(consultation.id, diagnostic, traitement);
       setEditing(false);
     } catch (e: any) {
