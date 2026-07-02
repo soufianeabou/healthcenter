@@ -47,6 +47,7 @@ interface ConsultationRow {
   psyNotes?: string;
   suiviOf?: number;
   prochainRdv?: string;
+  rdvList?: Array<{ id: number; rdvDate: string; note?: string; done: boolean }>;
 }
 
 /* ─── helpers ─── */
@@ -82,10 +83,15 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [editing, setEditing] = useState(false);
   const [diagnostic, setDiagnostic] = useState(consultation.diagnostic || '');
   const [traitement, setTraitement] = useState(consultation.traitement || '');
-  const [prochainRdv, setProchainRdv] = useState(() => getProchainRdv(consultation.id));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-  const [rdvSaved, setRdvSaved] = useState(false);
+  const [rdvList, setRdvList] = useState<Array<{ id: number; rdvDate: string; note?: string; done: boolean }>>(
+    () => (consultation.rdvList ?? []).slice().sort((a, b) => a.rdvDate.localeCompare(b.rdvDate))
+  );
+  const [showAddRdv, setShowAddRdv] = useState(false);
+  const [newRdvDate, setNewRdvDate] = useState('');
+  const [newRdvNote, setNewRdvNote] = useState('');
+  const [rdvError, setRdvError] = useState('');
 
   const [materials, setMaterials] = useState<any[]>([]);
   const [allMaterials, setAllMaterials] = useState<any[]>([]);
@@ -146,7 +152,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           poids: (consultation as any).poids,
           taille: (consultation as any).taille,
           psyNotes: (consultation as any).psyNotes,
-          prochainRdv: prochainRdv || null,
+          prochainRdv: consultation.prochainRdv || null,
           parentConsultationId: consultation.suiviOf ?? null,
         }),
       });
@@ -161,41 +167,52 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
     }
   };
 
-  const handleSaveRdvOnly = async () => {
-    if (!prochainRdv) return;
-    saveProchainRdv(consultation.id, prochainRdv); // localStorage fallback
+  const RDV_API = `https://hc.aui.ma/api/consultations/${consultation.id}/rdvs`;
+
+  const refreshRdvList = async () => {
     try {
-      const c = consultation as any;
-      await fetch(`https://hc.aui.ma/api/consultations/${consultation.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: consultation.id,
-          patientId: consultation.patientId,
-          personnelId: consultation.personnelId,
-          dateConsultation: consultation.consultationDate,
-          motif: consultation.motif,
-          diagnostic: consultation.diagnostic,
-          traitement: consultation.traitement,
-          infirmierTraitement: consultation.infirmierTraitement,
-          consultationType: consultation.consultationType,
-          temperature: c.temperature, tension: c.tension, pouls: c.pouls,
-          saturation: c.saturation, gaj: c.gaj,
-          frequenceRespiratoire: c.frequenceRespiratoire,
-          poids: c.poids, taille: c.taille, psyNotes: c.psyNotes,
-          prochainRdv,
-          parentConsultationId: consultation.suiviOf ?? null,
-        }),
-      });
-    } catch (e) {
-      console.error('Failed to save RDV to backend:', e);
-    }
-    setRdvSaved(true);
-    setTimeout(() => setRdvSaved(false), 3000);
+      const res = await fetch(RDV_API);
+      if (res.ok) setRdvList(await res.json());
+    } catch { /* silent */ }
   };
 
-  const rdvDate = prochainRdv ? new Date(prochainRdv) : null;
-  const rdvHasArrived = rdvDate ? rdvDate <= new Date() : false;
+  const handleAddRdv = async () => {
+    if (!newRdvDate) { setRdvError('Date requise'); return; }
+    setRdvError('');
+    try {
+      const res = await fetch(RDV_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rdvDate: newRdvDate, note: newRdvNote || null, done: false }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setNewRdvDate(''); setNewRdvNote(''); setShowAddRdv(false);
+      await refreshRdvList();
+    } catch (e: any) { setRdvError(e.message || 'Erreur'); }
+  };
+
+  const handleToggleDone = async (r: { id: number; rdvDate: string; note?: string; done: boolean }) => {
+    try {
+      await fetch(`${RDV_API}/${r.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...r, done: !r.done }),
+      });
+      await refreshRdvList();
+    } catch { /* silent */ }
+  };
+
+  const handleDeleteRdv = async (id: number) => {
+    try {
+      await fetch(`${RDV_API}/${id}`, { method: 'DELETE' });
+      await refreshRdvList();
+    } catch { /* silent */ }
+  };
+
+  const nextPendingRdv = rdvList.filter(r => !r.done).sort((a, b) => a.rdvDate.localeCompare(b.rdvDate))[0];
+  const rdvHasArrived = nextPendingRdv
+    ? new Date(nextPendingRdv.rdvDate) <= new Date()
+    : false;
 
   const handleDelete = async () => {
     if (!confirm('Supprimer cette consultation ?')) return;
@@ -369,54 +386,106 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
               </section>
             )}
 
-            {/* Prochain RDV */}
+            {/* Rendez-vous list */}
             <section>
-              <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-                <CalendarClock className="w-3.5 h-3.5" /> Prochain rendez-vous
-              </h4>
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  type="date"
-                  value={prochainRdv}
-                  onChange={e => { setProchainRdv(e.target.value); setRdvSaved(false); }}
-                  className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
+                  <CalendarClock className="w-3.5 h-3.5" /> Rendez-vous
+                </h4>
                 <button
-                  onClick={handleSaveRdvOnly}
-                  disabled={!prochainRdv}
-                  className="px-3 py-2 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors font-medium disabled:opacity-40"
+                  onClick={() => { setShowAddRdv(v => !v); setRdvError(''); }}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                 >
-                  Enregistrer RDV
+                  <Plus className="w-3 h-3" /> Ajouter un RDV
                 </button>
-                {prochainRdv && (
-                  <button onClick={() => { setProchainRdv(''); saveProchainRdv(consultation.id, ''); setRdvSaved(false); }} className="text-gray-400 hover:text-gray-600">
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-                {rdvSaved && (
-                  <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
-                    ✓ RDV enregistré avec succès
-                  </span>
-                )}
               </div>
-              {prochainRdv && !rdvHasArrived && (
-                <p className="mt-1.5 text-xs text-blue-600 font-medium">
-                  RDV prévu le {new Date(prochainRdv).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
+
+              {/* Add-RDV inline form */}
+              {showAddRdv && (
+                <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="date"
+                      value={newRdvDate}
+                      onChange={e => setNewRdvDate(e.target.value)}
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Note (optionnelle)"
+                      value={newRdvNote}
+                      onChange={e => setNewRdvNote(e.target.value)}
+                      className="flex-1 min-w-[140px] px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={handleAddRdv}
+                      className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                    >
+                      Enregistrer
+                    </button>
+                    <button onClick={() => setShowAddRdv(false)} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {rdvError && <p className="text-red-600 text-xs">{rdvError}</p>}
+                </div>
+              )}
+
+              {/* RDV list */}
+              {rdvList.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">Aucun rendez-vous planifié.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {rdvList.map(r => {
+                    const isPast = r.rdvDate < new Date().toISOString().slice(0, 10);
+                    return (
+                      <div
+                        key={r.id}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg border text-sm ${
+                          r.done
+                            ? 'bg-gray-50 border-gray-200 text-gray-400'
+                            : isPast
+                            ? 'bg-orange-50 border-orange-200 text-orange-800'
+                            : 'bg-blue-50 border-blue-200 text-blue-800'
+                        }`}
+                      >
+                        <span className="text-base">{r.done ? '✅' : isPast ? '⚠️' : '📅'}</span>
+                        <span className={`font-semibold ${r.done ? 'line-through' : ''}`}>
+                          {new Date(r.rdvDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
+                        </span>
+                        {r.note && <span className="text-xs opacity-75 flex-1 truncate">{r.note}</span>}
+                        <span className="flex-1" />
+                        <button
+                          onClick={() => handleToggleDone(r)}
+                          title={r.done ? 'Marquer comme à venir' : 'Marquer comme effectué'}
+                          className="text-xs px-2 py-0.5 rounded border border-current opacity-70 hover:opacity-100 transition-opacity"
+                        >
+                          {r.done ? 'Rouvrir' : 'Effectué'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteRdv(r.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </section>
 
-            {/* Suivi — appears when RDV date has arrived */}
+            {/* Suivi banner — shown when the earliest pending RDV date has arrived */}
             {rdvHasArrived && onCreateSuivi && (
               <section className="bg-blue-50 border border-blue-200 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-1.5">
                   <CalendarClock className="w-4 h-4 text-blue-600" />
                   <h4 className="text-sm font-semibold text-blue-800">
-                    RDV du {new Date(prochainRdv!).toLocaleDateString('fr-FR')} — Prêt pour le suivi
+                    RDV du {new Date(nextPendingRdv!.rdvDate + 'T00:00:00').toLocaleDateString('fr-FR')} — Prêt pour le suivi
                   </h4>
                 </div>
                 <p className="text-xs text-blue-600 mb-3">
-                  La date du rendez-vous est arrivée. Enregistrez la consultation de suivi pour ce patient.
+                  La date du rendez-vous est arrivée. Enregistrez la consultation de suivi.
                 </p>
                 <button
                   onClick={() => onCreateSuivi(consultation.patient, consultation.motif || '', consultation.id)}
@@ -616,6 +685,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
           psyNotes: c.psyNotes,
           suiviOf: resolvedParentId,
           prochainRdv: resolvedRdv,
+          rdvList: c.rdvList ?? [],
         };
       });
       setConsultations(rows);
@@ -875,7 +945,11 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredConsultations.map(consultation => {
-                const rdv = consultation.prochainRdv || getProchainRdv(consultation.id);
+                const today = new Date().toISOString().slice(0, 10);
+                const nextRdvEntry = (consultation.rdvList ?? [])
+                  .filter(r => !r.done && r.rdvDate >= today)
+                  .sort((a, b) => a.rdvDate.localeCompare(b.rdvDate))[0];
+                const rdv = nextRdvEntry?.rdvDate || consultation.prochainRdv || getProchainRdv(consultation.id);
                 const isPending = consultation.status === 'PENDING';
                 return (
                   <tr

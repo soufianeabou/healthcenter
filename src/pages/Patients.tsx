@@ -621,18 +621,34 @@ const Patients: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Prochain RDV */}
-                  {prochainRdv && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, padding: '5px 10px', background: rdvPast ? '#fff7ed' : '#eff6ff', border: `1px solid ${rdvPast ? '#fed7aa' : '#bfdbfe'}`, borderRadius: 6, fontSize: 12 }}>
-                      <span style={{ fontSize: 14 }}>{rdvPast ? '⚠️' : '📅'}</span>
-                      <span style={{ fontWeight: 600, color: rdvPast ? '#c2410c' : '#1d4ed8' }}>
-                        {rdvPast ? 'RDV dépassé' : 'Prochain RDV'} :
-                      </span>
-                      <span style={{ color: rdvPast ? '#9a3412' : '#1e40af' }}>
-                        {rdvDate!.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
-                      </span>
-                    </div>
-                  )}
+                  {/* Rendez-vous list */}
+                  {(() => {
+                    const rdvs: Array<{ id: number; rdvDate: string; note?: string; done: boolean }> =
+                      c.rdvList ?? (prochainRdv ? [{ id: 0, rdvDate: prochainRdv, done: rdvPast }] : []);
+                    if (!rdvs.length) return null;
+                    return (
+                      <div style={{ marginTop: 8 }}>
+                        <p style={{ fontSize: 11, color: '#3b82f6', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 }}>Rendez-vous</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {rdvs.map((r, i) => {
+                            const rPast = r.rdvDate < new Date().toISOString().slice(0, 10);
+                            const bg = r.done ? '#f3f4f6' : rPast ? '#fff7ed' : '#eff6ff';
+                            const border = r.done ? '#e5e7eb' : rPast ? '#fed7aa' : '#bfdbfe';
+                            const color = r.done ? '#9ca3af' : rPast ? '#c2410c' : '#1d4ed8';
+                            return (
+                              <div key={r.id || i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', background: bg, border: `1px solid ${border}`, borderRadius: 6, fontSize: 12 }}>
+                                <span>{r.done ? '✅' : rPast ? '⚠️' : '📅'}</span>
+                                <span style={{ fontWeight: 600, color, textDecoration: r.done ? 'line-through' : 'none' }}>
+                                  {new Date(r.rdvDate + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })}
+                                </span>
+                                {r.note && <span style={{ color: '#6b7280', marginLeft: 4 }}>{r.note}</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
