@@ -81,11 +81,12 @@ interface DetailsModalProps {
   onClose: () => void;
   onDeleted: () => void;
   onSaved: (id: number, diagnostic: string, traitement: string) => void;
+  onRefresh?: () => void;   // silent list refresh (no modal close)
   onCreateSuivi?: (patient: any, motif: string, parentId: number) => void;
 }
 
 const DetailsModal: React.FC<DetailsModalProps> = ({
-  consultation, canEdit, onClose, onDeleted, onSaved, onCreateSuivi,
+  consultation, canEdit, onClose, onDeleted, onSaved, onRefresh, onCreateSuivi,
 }) => {
   const [tab, setTab] = useState<'info' | 'materiels' | 'transferts'>('info');
   const [editing, setEditing] = useState(false);
@@ -352,6 +353,7 @@ const handleDeleteRdv = async (id: number) => {
       }
       setTransfertSaved(true);
       setTimeout(() => setTransfertSaved(false), 3000);
+      onRefresh?.();
     } catch (e: any) {
       console.error('[handleSaveTransferts]', e);
       setSaveError(e.message || 'Erreur lors de la sauvegarde');
@@ -1641,6 +1643,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
             onClose={() => { setIsDetailsOpen(false); setSelectedConsultation(null); }}
             onDeleted={fetchConsultations}
             onSaved={handleDetailsUpdated}
+            onRefresh={fetchConsultations}
             onCreateSuivi={canEdit ? handleOpenSuivi : undefined}
           />
         </Modal>
