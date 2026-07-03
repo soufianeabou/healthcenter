@@ -29,8 +29,7 @@ interface MaterialLine {
 
 const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel, lockedType }) => {
   const { user, effectiveRole } = useAuth();
-  const isNurse   = effectiveRole === UserRole.INFIRMIER;
-  const isMedecin = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
+  const isNurse = effectiveRole === UserRole.INFIRMIER;
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
@@ -650,8 +649,8 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </div>
 
-      {/* Type de consultation — hidden when locked to a single type */}
-      {!lockedType && (
+      {/* Type de consultation — hidden when locked OR when role is not admin */}
+      {!lockedType && (effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN) && (
         <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
           <label className="block text-sm font-semibold text-gray-800 mb-2">Type de consultation</label>
           <div className="flex gap-3">

@@ -11,6 +11,9 @@ const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.ADMIN]:       'Administrateur',
   [UserRole.MEDECIN]:     'Médecin',
   [UserRole.INFIRMIER]:   'Infirmier(e)',
+  [UserRole.STUDENT]:     'Étudiant(e)',
+  [UserRole.DSA]:         'DSA',
+  [UserRole.PSY]:         'Psychiatre',
 };
 
 interface HeaderProps {

@@ -554,6 +554,151 @@ const DSADashboard = () => {
   );
 };
 
+/* ══════════════════════════════════════════════════════
+   PSY (Psychiatre) dashboard
+══════════════════════════════════════════════════════ */
+const PsyDashboard = (_: { user: any }) => {
+  const navigate = useNavigate();
+  const [consultations, setConsultations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API}/api/consultations`).then(r => r.ok ? r.json() : [])
+      .then(d => {
+        const all = Array.isArray(d) ? d : [];
+        setConsultations(all.filter((c: any) => c.consultationType === 'PSYCHIATRIE'));
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const todayList = useMemo(() =>
+    consultations.filter(c => c.dateConsultation && new Date(c.dateConsultation) >= today())
+      .sort((a, b) => new Date(b.dateConsultation).getTime() - new Date(a.dateConsultation).getTime()),
+    [consultations]);
+
+  const pendingList = useMemo(() =>
+    consultations.filter(c => !c.traitement?.trim())
+      .sort((a, b) => new Date(b.dateConsultation || '').getTime() - new Date(a.dateConsultation || '').getTime()),
+    [consultations]);
+
+  const urgentList = useMemo(() =>
+    consultations.filter(c => c.extremeUrgence === true)
+      .sort((a, b) => new Date(b.dateConsultation || '').getTime() - new Date(a.dateConsultation || '').getTime()),
+    [consultations]);
+
+  const monthTotal = useMemo(() =>
+    consultations.filter(c => {
+      const d = new Date(c.dateConsultation || '');
+      const n = new Date();
+      return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
+    }).length, [consultations]);
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Stat label="Consultations aujourd'hui" value={todayList.length} icon={Stethoscope} color="bg-purple-500" />
+        <Stat label="En attente de traitement" value={pendingList.length} icon={Clock} color={pendingList.length > 0 ? 'bg-amber-500' : 'bg-gray-400'} />
+        <Stat label="Extrême urgence" value={urgentList.length} icon={AlertTriangle} color={urgentList.length > 0 ? 'bg-red-500' : 'bg-gray-400'} />
+        <Stat label="Total psychiatrie ce mois" value={monthTotal} icon={Activity} color="bg-indigo-500" />
+      </div>
+
+      {urgentList.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-red-800 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> {urgentList.length} cas d'extrême urgence
+            </h3>
+            <button onClick={() => navigate('/psychiatrie')} className="text-xs text-red-700 hover:underline flex items-center gap-1">
+              Voir <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {urgentList.slice(0, 3).map(c => (
+              <div key={c.id} className="flex items-center gap-3 bg-white rounded-lg px-4 py-2.5 border border-red-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    {c.patient ? `${c.patient.prenom || ''} ${c.patient.nom || ''}`.trim() : 'Patient'}
+                    <span className="ml-2 text-xs text-gray-400">#{c.patient?.idNum}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">{c.motif || '—'} · {c.dateConsultation ? fmtDate(c.dateConsultation) : ''}</p>
+                </div>
+                <button onClick={() => navigate('/psychiatrie')} className="text-xs bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium">
+                  Voir
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pendingList.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-amber-800 flex items-center gap-2">
+              <Clock className="w-4 h-4" /> {pendingList.length} consultation{pendingList.length > 1 ? 's' : ''} en attente
+            </h3>
+            <button onClick={() => navigate('/psychiatrie')} className="text-xs text-amber-700 hover:underline flex items-center gap-1">
+              Voir tout <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {pendingList.slice(0, 3).map(c => (
+              <div key={c.id} className="flex items-center gap-3 bg-white rounded-lg px-4 py-2.5 border border-amber-100">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">
+                    {c.patient ? `${c.patient.prenom || ''} ${c.patient.nom || ''}`.trim() : 'Patient'}
+                    <span className="ml-2 text-xs text-gray-400">#{c.patient?.idNum}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">{c.motif || '—'} · {c.dateConsultation ? fmtDate(c.dateConsultation) : ''}</p>
+                </div>
+                <button onClick={() => navigate('/psychiatrie')} className="text-xs bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium">
+                  Compléter
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-800">Consultations psychiatriques aujourd'hui</h3>
+          </div>
+          {todayList.length === 0 ? (
+            <p className="px-5 py-8 text-sm text-gray-400 text-center">Aucune consultation aujourd'hui.</p>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {todayList.slice(0, 6).map(c => (
+                <div key={c.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className={`w-2 h-2 rounded-full ${c.extremeUrgence ? 'bg-red-500' : c.traitement?.trim() ? 'bg-green-400' : 'bg-amber-400'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {c.patient ? `${c.patient.prenom || ''} ${c.patient.nom || ''}`.trim() : 'Externe'}
+                      {c.extremeUrgence && <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">🚨 Urgent</span>}
+                    </p>
+                    <p className="text-xs text-gray-500">{c.motif || '—'}</p>
+                  </div>
+                  <span className="text-xs text-gray-400">{fmtTime(c.dateConsultation)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <h3 className="font-semibold text-gray-800 px-1">Accès rapide</h3>
+          <Quick icon={Stethoscope} label="Consultations psychiatriques" to="/psychiatrie" color="bg-purple-500" />
+          <Quick icon={Users} label="Patients" to="/patients" color="bg-green-600" />
+          <Quick icon={CheckCircle2} label="Certificats médicaux" to="/certificate-review" color="bg-teal-500" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Loading spinner ── */
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center py-20 gap-2 text-gray-400">
@@ -582,6 +727,7 @@ const Dashboard = () => {
     [UserRole.INFIRMIER]:   'Infirmier(e)',
     [UserRole.STUDENT]:     'Étudiant(e)',
     [UserRole.DSA]:         'DSA',
+    [UserRole.PSY]:         'Psychiatre',
   };
 
   return (
@@ -608,6 +754,7 @@ const Dashboard = () => {
       {effectiveRole === UserRole.INFIRMIER && <InfirmierDashboard />}
       {effectiveRole === UserRole.STUDENT && <StudentDashboard user={user} />}
       {effectiveRole === UserRole.DSA && <DSADashboard />}
+      {effectiveRole === UserRole.PSY && <PsyDashboard user={user} />}
     </div>
   );
 };
