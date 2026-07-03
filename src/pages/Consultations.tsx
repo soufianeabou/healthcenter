@@ -45,6 +45,7 @@ interface ConsultationRow {
   poids?: string;
   taille?: string;
   psyNotes?: string;
+  extremeUrgence?: boolean;
   suiviOf?: number;
   prochainRdv?: string;
   rdvList?: Array<{ id: number; rdvDate: string; note?: string; done: boolean }>;
@@ -169,6 +170,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           poids: editPoids || null,
           taille: editTaille || null,
           psyNotes: c0.psyNotes,
+          extremeUrgence: c0.extremeUrgence ?? null,
           prochainRdv: consultation.prochainRdv || null,
           parentConsultationId: consultation.suiviOf ?? null,
         }),
@@ -292,9 +294,11 @@ const handleDeleteRdv = async (id: number) => {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs — hide Matériels for psychiatry consultations */}
       <div className="flex border-b border-gray-200 px-5">
-        {(['info', 'materiels'] as const).map(t => (
+        {(['info', 'materiels'] as const)
+          .filter(t => t !== 'materiels' || consultation.consultationType !== 'PSYCHIATRIE')
+          .map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -443,6 +447,14 @@ const handleDeleteRdv = async (id: number) => {
                 <h4 className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-1.5">🧠 Notes psychiatriques</h4>
                 <p className="text-sm text-purple-900 whitespace-pre-wrap bg-purple-50 rounded-lg p-3 border border-purple-200">{(consultation as any).psyNotes}</p>
               </section>
+            )}
+
+            {/* Extrême urgence badge (psychiatry only) */}
+            {consultation.consultationType === 'PSYCHIATRIE' && (consultation as any).extremeUrgence && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-300 rounded-lg px-4 py-3">
+                <span className="text-xl">🚨</span>
+                <span className="text-sm font-bold text-red-700">Extrême urgence signalée</span>
+              </div>
             )}
 
             {/* Rendez-vous list */}
@@ -775,7 +787,8 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
 const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' } = {}) => {
   const { user, effectiveRole } = useAuth();
   const isNurse = effectiveRole === UserRole.INFIRMIER;
-  const canEdit = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
+  const isAdmin = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
+  const canEdit = effectiveRole === UserRole.MEDECIN || isAdmin;
 
   const [consultations, setConsultations] = useState<ConsultationRow[]>([]);
   const [externalConsultations, setExternalConsultations] = useState<ConsultationRow[]>([]);
@@ -845,6 +858,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
           poids: c.poids,
           taille: c.taille,
           psyNotes: c.psyNotes,
+          extremeUrgence: c.extremeUrgence === true,
           suiviOf: resolvedParentId,
           prochainRdv: resolvedRdv,
           rdvList: c.rdvList ?? [],
@@ -1003,18 +1017,50 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestion des consultations médicales</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Nouvelle consultation
-        </button>
+        {/* Nurses cannot create psychiatry consultations */}
+        {!(typeFilter === 'PSYCHIATRIE' && isNurse) && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 text-sm font-medium shadow-sm self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            Nouvelle consultation
+          </button>
+        )}
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>
       )}
+
+      {/* Extreme urgence alert — psychiatry page, admin only */}
+      {typeFilter === 'PSYCHIATRIE' && isAdmin && (() => {
+        const urgent = allConsultations.filter(c => (c as any).extremeUrgence === true);
+        if (!urgent.length) return null;
+        return (
+          <div className="bg-red-50 border-2 border-red-400 rounded-xl px-4 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🚨</span>
+              <span className="font-bold text-red-700 text-sm">
+                {urgent.length} consultation{urgent.length > 1 ? 's' : ''} en extrême urgence
+              </span>
+            </div>
+            <div className="space-y-1">
+              {urgent.map(c => (
+                <div
+                  key={c.id}
+                  onClick={() => { setSelectedConsultation(c); setIsDetailsOpen(true); }}
+                  className="flex items-center gap-3 bg-white border border-red-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-red-50 transition-colors"
+                >
+                  <span className="font-semibold text-sm text-red-800">{c.patientName}</span>
+                  <span className="text-xs text-red-500">{new Date(c.consultationDate).toLocaleDateString('fr-FR')}</span>
+                  {c.motif && <span className="text-xs text-gray-500 truncate">{c.motif}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1208,6 +1254,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
           key={suiviInitial ? `suivi-${suiviInitial._parentConsultationId}` : 'new-consultation'}
           personnelId={user?.id as number}
           initial={suiviInitial}
+          lockedType={typeFilter}
           onSubmit={handleAddConsultation}
           onCancel={() => { setIsModalOpen(false); setSuiviInitial(null); }}
         />

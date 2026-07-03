@@ -12,6 +12,7 @@ interface Props {
   initial?: ConsultationDTO | null;
   onSubmit: (payload: ConsultationDTO) => void;
   onCancel: () => void;
+  lockedType?: 'GENERAL' | 'PSYCHIATRIE';
 }
 
 interface Materiel {
@@ -26,7 +27,7 @@ interface MaterialLine {
   quantite: number;
 }
 
-const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel }) => {
+const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubmit, onCancel, lockedType }) => {
   const { user, effectiveRole } = useAuth();
   const isNurse   = effectiveRole === UserRole.INFIRMIER;
   const isMedecin = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
@@ -41,7 +42,10 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   const [date, setDate] = useState<string>(() => initial?.dateConsultation?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState<string>(() => initial?.dateConsultation ? new Date(initial.dateConsultation).toTimeString().slice(0, 5) : new Date().toTimeString().slice(0, 5));
   const [consultationType, setConsultationType] = useState<'GENERAL' | 'PSYCHIATRIE'>(
-    (initial as any)?.consultationType || 'GENERAL'
+    lockedType || (initial as any)?.consultationType || 'GENERAL'
+  );
+  const [extremeUrgence, setExtremeUrgence] = useState<boolean>(
+    (initial as any)?.extremeUrgence === true
   );
   const [motif, setMotif] = useState<string>(initial?.motif || '');
   const [diagnostic, setDiagnostic] = useState<string>(initial?.diagnostic || '');
@@ -364,6 +368,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       poids: poids || undefined,
       taille: taille || undefined,
       psyNotes: psyNotes || undefined,
+      extremeUrgence: consultationType === 'PSYCHIATRIE' ? extremeUrgence : undefined,
       infirmierTraitement: (isNurse && closeWithoutMedecin && infirmierTraitement.trim())
         ? infirmierTraitement
         : undefined,
@@ -645,28 +650,54 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
       </div>
 
-      {/* Type de consultation */}
-      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
-        <label className="block text-sm font-semibold text-gray-800 mb-2">Type de consultation</label>
-        <div className="flex gap-3">
-          {(['GENERAL', 'PSYCHIATRIE'] as const).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setConsultationType(t)}
-              className={`flex-1 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                consultationType === t
-                  ? t === 'PSYCHIATRIE'
-                    ? 'border-purple-500 bg-purple-50 text-purple-700'
-                    : 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-            >
-              {t === 'GENERAL' ? '🏥 Générale' : '🧠 Psychiatrie'}
-            </button>
-          ))}
+      {/* Type de consultation — hidden when locked to a single type */}
+      {!lockedType && (
+        <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+          <label className="block text-sm font-semibold text-gray-800 mb-2">Type de consultation</label>
+          <div className="flex gap-3">
+            {(['GENERAL', 'PSYCHIATRIE'] as const).map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setConsultationType(t)}
+                className={`flex-1 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                  consultationType === t
+                    ? t === 'PSYCHIATRIE'
+                      ? 'border-purple-500 bg-purple-50 text-purple-700'
+                      : 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {t === 'GENERAL' ? '🏥 Générale' : '🧠 Psychiatrie'}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Extrême urgence — psychiatry only */}
+      {consultationType === 'PSYCHIATRIE' && (
+        <div
+          onClick={() => setExtremeUrgence(v => !v)}
+          className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer select-none transition-all ${
+            extremeUrgence
+              ? 'border-red-500 bg-red-50'
+              : 'border-gray-200 bg-white hover:border-red-300'
+          }`}
+        >
+          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+            extremeUrgence ? 'bg-red-500 border-red-500' : 'border-gray-400'
+          }`}>
+            {extremeUrgence && <span className="text-white text-xs font-bold">✓</span>}
+          </div>
+          <div>
+            <p className={`text-sm font-bold ${extremeUrgence ? 'text-red-700' : 'text-gray-700'}`}>
+              🚨 Extrême urgence
+            </p>
+            <p className="text-xs text-gray-500">Signaler cette consultation comme urgence critique</p>
+          </div>
+        </div>
+      )}
 
       {/* Motif */}
       <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">

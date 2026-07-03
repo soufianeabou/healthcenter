@@ -94,12 +94,15 @@ function AppContent() {
             {(isAdmin || isClinical) && (
               <>
                 <Route path="/consultations" element={<Consultations />} />
-                <Route path="/psychiatrie" element={<Consultations typeFilter="PSYCHIATRIE" />} />
                 <Route path="/consultations/:id" element={<ConsultationDetails />} />
                 <Route path="/patients" element={<Patients />} />
                 <Route path="/materiels-list" element={<MaterielsList />} />
                 <Route path="/materiels/:id" element={<MaterielDetails />} />
               </>
+            )}
+            {/* Psychiatry: only medecin/admin, not nurses */}
+            {(isAdmin || (isClinical && effectiveRole !== UserRole.INFIRMIER)) && (
+              <Route path="/psychiatrie" element={<Consultations typeFilter="PSYCHIATRIE" />} />
             )}
 
             {/* Admin only */}
