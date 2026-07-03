@@ -102,6 +102,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [editTaille, setEditTaille] = useState(c0.taille || '');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [transfertSaved, setTransfertSaved] = useState(false);
   const [rdvList, setRdvList] = useState<Array<{
     id: number; rdvDate: string; note?: string; done: boolean;
     diagnostic?: string; traitement?: string;
@@ -307,44 +308,52 @@ const handleDeleteRdv = async (id: number) => {
   };
 
   const handleSaveTransferts = async () => {
-    setSaving(true); setSaveError('');
+    setSaving(true); setSaveError(''); setTransfertSaved(false);
+    const payload = {
+      id: consultation.id,
+      patientId: consultation.patientId,
+      personnelId: consultation.personnelId,
+      dateConsultation: consultation.consultationDate,
+      motif: consultation.motif,
+      diagnostic,
+      traitement,
+      infirmierTraitement: consultation.infirmierTraitement,
+      consultationType: consultation.consultationType,
+      temperature: editTemp || null,
+      tension: editTension || null,
+      pouls: editPouls || null,
+      saturation: editSat || null,
+      gaj: editGaj || null,
+      frequenceRespiratoire: editFr || null,
+      poids: editPoids || null,
+      taille: editTaille || null,
+      psyNotes: c0.psyNotes,
+      extremeUrgence: c0.extremeUrgence ?? null,
+      prochainRdv: consultation.prochainRdv || null,
+      parentConsultationId: consultation.suiviOf ?? null,
+      transfertAvisSpecialise: transfertAvis || null,
+      transfertExamenComplementaire: transfertExamen || null,
+      transfertPriseEnCharge: transfertPec || null,
+      pecNumeroCertifAssurance: pecAssurance || null,
+      pecDescription: pecDescriptionText || null,
+      pecCauses: pecCausesText || null,
+      pecCin: pecCin || null,
+    };
     try {
       const res = await fetch(`https://hc.aui.ma/api/consultations/${consultation.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: consultation.id,
-          patientId: consultation.patientId,
-          personnelId: consultation.personnelId,
-          dateConsultation: consultation.consultationDate,
-          motif: consultation.motif,
-          diagnostic,
-          traitement,
-          infirmierTraitement: consultation.infirmierTraitement,
-          consultationType: consultation.consultationType,
-          temperature: editTemp || null,
-          tension: editTension || null,
-          pouls: editPouls || null,
-          saturation: editSat || null,
-          gaj: editGaj || null,
-          frequenceRespiratoire: editFr || null,
-          poids: editPoids || null,
-          taille: editTaille || null,
-          psyNotes: c0.psyNotes,
-          extremeUrgence: c0.extremeUrgence ?? null,
-          prochainRdv: consultation.prochainRdv || null,
-          parentConsultationId: consultation.suiviOf ?? null,
-          transfertAvisSpecialise: transfertAvis || null,
-          transfertExamenComplementaire: transfertExamen || null,
-          transfertPriseEnCharge: transfertPec || null,
-          pecNumeroCertifAssurance: pecAssurance || null,
-          pecDescription: pecDescriptionText || null,
-          pecCauses: pecCausesText || null,
-          pecCin: pecCin || null,
-        }),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('[handleSaveTransferts] HTTP', res.status, errText);
+        throw new Error(`Erreur ${res.status}: ${errText}`);
+      }
+      setTransfertSaved(true);
+      setTimeout(() => setTransfertSaved(false), 3000);
     } catch (e: any) {
+      console.error('[handleSaveTransferts]', e);
       setSaveError(e.message || 'Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
@@ -1054,12 +1063,18 @@ const handleDeleteRdv = async (id: number) => {
               <button
                 onClick={handleSaveTransferts}
                 disabled={saving}
-                className="w-full py-2.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+                className={`w-full py-2.5 text-sm font-semibold text-white rounded-lg disabled:opacity-50 transition-colors ${
+                  transfertSaved ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
+                }`}
               >
-                {saving ? 'Enregistrement…' : 'Enregistrer les transferts'}
+                {saving ? 'Enregistrement…' : transfertSaved ? '✓ Enregistré avec succès' : 'Enregistrer les transferts'}
               </button>
             )}
-            {saveError && <p className="text-red-600 text-sm">{saveError}</p>}
+            {saveError && (
+              <div className="bg-red-50 border border-red-300 rounded-lg px-4 py-3 text-sm text-red-800">
+                ⚠ {saveError}
+              </div>
+            )}
           </div>
         )}
 
