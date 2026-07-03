@@ -72,6 +72,15 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
   // Case 2: infirmier closes consultation without médecin (weekends etc.)
   const [closeWithoutMedecin, setCloseWithoutMedecin] = useState(false);
   const [infirmierTraitement, setInfirmierTraitement] = useState('');
+
+  // Transferts
+  const [transfertAvis, setTransfertAvis] = useState<boolean>((initial as any)?.transfertAvisSpecialise ?? false);
+  const [transfertExamen, setTransfertExamen] = useState<boolean>((initial as any)?.transfertExamenComplementaire ?? false);
+  const [transfertPec, setTransfertPec] = useState<boolean>((initial as any)?.transfertPriseEnCharge ?? false);
+  const [pecAssurance, setPecAssurance] = useState<string>((initial as any)?.pecNumeroCertifAssurance ?? '');
+  const [pecDescriptionText, setPecDescriptionText] = useState<string>((initial as any)?.pecDescription ?? '');
+  const [pecCausesText, setPecCausesText] = useState<string>((initial as any)?.pecCauses ?? '');
+  const [pecCin, setPecCin] = useState<string>((initial as any)?.pecCin ?? '');
   
   // Materials
   const [materiels, setMateriels] = useState<Materiel[]>([]);
@@ -371,6 +380,13 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       infirmierTraitement: (isNurse && closeWithoutMedecin && infirmierTraitement.trim())
         ? infirmierTraitement
         : undefined,
+      transfertAvisSpecialise: transfertAvis || undefined,
+      transfertExamenComplementaire: transfertExamen || undefined,
+      transfertPriseEnCharge: transfertPec || undefined,
+      pecNumeroCertifAssurance: pecAssurance || undefined,
+      pecDescription: pecDescriptionText || undefined,
+      pecCauses: pecCausesText || undefined,
+      pecCin: pecCin || undefined,
     };
 
     // If this is an external/non-AUI consultation, store it locally and skip backend call
@@ -992,6 +1008,87 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
               <Plus className="w-4 h-4" />
               Ajouter une ligne
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Transferts */}
+      <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm space-y-3">
+        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+          <span>↗</span> Transferts
+        </h3>
+        <div className="space-y-2">
+          {([
+            { key: 'avis', label: 'Avis spécialisé', val: transfertAvis, set: setTransfertAvis },
+            { key: 'examen', label: 'Examen complémentaire', val: transfertExamen, set: setTransfertExamen },
+            { key: 'pec', label: 'Prise en charge', val: transfertPec, set: setTransfertPec },
+          ] as const).map(({ key, label, val, set }) => (
+            <label
+              key={key}
+              className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer select-none transition-all ${
+                val ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+              }`}
+              onClick={() => (set as any)(!val)}
+            >
+              <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                val ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+              }`}>
+                {val && <span className="text-white text-xs font-bold leading-none">✓</span>}
+              </div>
+              <span className={`text-sm font-medium ${val ? 'text-blue-800' : 'text-gray-700'}`}>{label}</span>
+            </label>
+          ))}
+        </div>
+
+        {transfertPec && (
+          <div className="border-2 border-blue-200 rounded-xl bg-blue-50/40 p-4 space-y-3 mt-2">
+            <p className="text-xs font-bold text-blue-900">Formulaire de Prise en Charge</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Carte d'Identité Nationale N° <span className="text-gray-400 font-normal">(personnel)</span>
+                </label>
+                <input
+                  type="text"
+                  value={pecCin}
+                  onChange={e => setPecCin(e.target.value)}
+                  placeholder="N° CIN"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Certificat d'assurance N°
+                </label>
+                <input
+                  type="text"
+                  value={pecAssurance}
+                  onChange={e => setPecAssurance(e.target.value)}
+                  placeholder="N° certificat"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Description du problème médical</label>
+              <textarea
+                value={pecDescriptionText}
+                onChange={e => setPecDescriptionText(e.target.value)}
+                rows={3}
+                placeholder="Brève description…"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">Causes et circonstances (accident)</label>
+              <textarea
+                value={pecCausesText}
+                onChange={e => setPecCausesText(e.target.value)}
+                rows={2}
+                placeholder="Causes et circonstances si applicable…"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+              />
+            </div>
           </div>
         )}
       </div>

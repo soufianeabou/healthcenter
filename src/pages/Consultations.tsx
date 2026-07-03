@@ -53,6 +53,7 @@ interface ConsultationRow {
   pecNumeroCertifAssurance?: string;
   pecDescription?: string;
   pecCauses?: string;
+  pecCin?: string;
   prochainRdv?: string;
   rdvList?: Array<{ id: number; rdvDate: string; note?: string; done: boolean }>;
 }
@@ -131,6 +132,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [pecAssurance, setPecAssurance] = useState<string>(c0.pecNumeroCertifAssurance ?? '');
   const [pecDescriptionText, setPecDescriptionText] = useState<string>(c0.pecDescription ?? '');
   const [pecCausesText, setPecCausesText] = useState<string>(c0.pecCauses ?? '');
+  const [pecCin, setPecCin] = useState<string>(c0.pecCin ?? '');
 
   const { constantes, notes } = parseConstantes(consultation.diagnostic);
   const isPending = consultation.status === 'PENDING';
@@ -193,6 +195,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           pecNumeroCertifAssurance: pecAssurance || null,
           pecDescription: pecDescriptionText || null,
           pecCauses: pecCausesText || null,
+          pecCin: pecCin || null,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -303,10 +306,59 @@ const handleDeleteRdv = async (id: number) => {
     } catch (e: any) { setMatError(e.message); }
   };
 
+  const handleSaveTransferts = async () => {
+    setSaving(true); setSaveError('');
+    try {
+      const res = await fetch(`https://hc.aui.ma/api/consultations/${consultation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: consultation.id,
+          patientId: consultation.patientId,
+          personnelId: consultation.personnelId,
+          dateConsultation: consultation.consultationDate,
+          motif: consultation.motif,
+          diagnostic,
+          traitement,
+          infirmierTraitement: consultation.infirmierTraitement,
+          consultationType: consultation.consultationType,
+          temperature: editTemp || null,
+          tension: editTension || null,
+          pouls: editPouls || null,
+          saturation: editSat || null,
+          gaj: editGaj || null,
+          frequenceRespiratoire: editFr || null,
+          poids: editPoids || null,
+          taille: editTaille || null,
+          psyNotes: c0.psyNotes,
+          extremeUrgence: c0.extremeUrgence ?? null,
+          prochainRdv: consultation.prochainRdv || null,
+          parentConsultationId: consultation.suiviOf ?? null,
+          transfertAvisSpecialise: transfertAvis || null,
+          transfertExamenComplementaire: transfertExamen || null,
+          transfertPriseEnCharge: transfertPec || null,
+          pecNumeroCertifAssurance: pecAssurance || null,
+          pecDescription: pecDescriptionText || null,
+          pecCauses: pecCausesText || null,
+          pecCin: pecCin || null,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e: any) {
+      setSaveError(e.message || 'Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const printPec = () => {
     const isStudent = consultation.patient?.typePatient === 'ETUDIANT';
-    const patientName = consultation.patientName ?? '';
-    const idNum = String(consultation.patient?.idNum ?? '');
+    // Strip "#ID" suffix from patient name (e.g. "John Doe #84451" → "John Doe")
+    const patientName = consultation.patient
+      ? `${consultation.patient.prenom || ''} ${consultation.patient.nom || ''}`.trim()
+      : (consultation.patientName ?? '').replace(/\s*#[\d-]+\s*$/, '').trim();
+    // For student: auto idNum (positive); for staff: manual CIN entered by doctor
+    const idValueForDoc = isStudent ? String(consultation.patient?.idNum ?? '') : pecCin;
     const doctorName = consultation.doctorName ?? '';
     const now = new Date();
     const dateStr = now.toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -388,7 +440,7 @@ const handleDeleteRdv = async (id: number) => {
 
   <div class="row2">
     <div class="field-block" style="flex:1">
-      <div class="field-label">${esc(idLabel)} : <span class="field-value">${esc(idNum)}</span></div>
+      <div class="field-label">${esc(idLabel)} : <span class="field-value">${esc(idValueForDoc)}</span></div>
       <div class="field-sublabel">${esc(idLabelEn)}</div>
     </div>
     <div class="field-block" style="flex:1">
@@ -921,14 +973,35 @@ const handleDeleteRdv = async (id: number) => {
                 {/* Patient type indicator */}
                 <div className="text-xs font-medium text-blue-700 bg-blue-100 rounded-lg px-3 py-2">
                   {consultation.patient?.typePatient === 'ETUDIANT'
-                    ? '🎓 Formulaire étudiant(e) — Carte d\'étudiant(e) N°'
-                    : '👤 Formulaire employé(e) / personnel — Carte d\'Identité Nationale N°'}
-                  {consultation.patient?.idNum && (
-                    <span className="ml-2 font-bold">{consultation.patient.idNum}</span>
-                  )}
+                    ? `🎓 Formulaire étudiant(e)`
+                    : '👤 Formulaire employé(e) / personnel'}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  {/* ID field: auto for student, manual CIN for staff */}
+                  {consultation.patient?.typePatient === 'ETUDIANT' ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Carte d'étudiant(e) N° <span className="text-gray-400 font-normal">(auto)</span>
+                      </label>
+                      <div className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-medium">
+                        {consultation.patient?.idNum ?? '—'}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Carte d'Identité Nationale N°
+                      </label>
+                      <input
+                        type="text"
+                        value={pecCin}
+                        onChange={e => setPecCin(e.target.value)}
+                        placeholder="N° CIN du patient"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 mb-1">
                       Certificat d'assurance N°
@@ -979,7 +1052,7 @@ const handleDeleteRdv = async (id: number) => {
 
             {canEdit && (
               <button
-                onClick={handleSave}
+                onClick={handleSaveTransferts}
                 disabled={saving}
                 className="w-full py-2.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
               >
