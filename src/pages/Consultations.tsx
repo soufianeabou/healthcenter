@@ -1240,6 +1240,13 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
           suiviOf: resolvedParentId,
           prochainRdv: resolvedRdv,
           rdvList: c.rdvList ?? [],
+          transfertAvisSpecialise: c.transfertAvisSpecialise === true,
+          transfertExamenComplementaire: c.transfertExamenComplementaire === true,
+          transfertPriseEnCharge: c.transfertPriseEnCharge === true,
+          pecNumeroCertifAssurance: c.pecNumeroCertifAssurance ?? '',
+          pecDescription: c.pecDescription ?? '',
+          pecCauses: c.pecCauses ?? '',
+          pecCin: c.pecCin ?? '',
         };
       });
       setConsultations(rows);
