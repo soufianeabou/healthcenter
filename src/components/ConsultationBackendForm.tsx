@@ -5,6 +5,7 @@ import { Patient } from '../types/patient';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
 import { saveAssignment, removeAssignment } from '../utils/materialAssignments';
+import { loadStaffPatients } from '../data/staffLoader';
 
 interface Props {
   personnelId: number;
@@ -204,10 +205,9 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             email: r.email || ''
           }]);
         } else {
-          // Fallback: check locally imported staff
+          // Fallback: check bundled staff list
           try {
-            const staffRaw = localStorage.getItem('staffPatients');
-            const staff: any[] = staffRaw ? JSON.parse(staffRaw) : [];
+            const staff = await loadStaffPatients();
             const found = staff.find(s => String(s.idNum) === term);
             if (found) {
               setPatients([{
@@ -410,13 +410,12 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
       return;
     }
 
-    // If the selected patient is a staff member (from localStorage), register them as
-    // ExternalPatient in the backend first so resolvePatient(-id) can find them.
+    // If the selected patient is a staff member, register them as ExternalPatient in the
+    // backend first so resolvePatient(-id) can find them.
     let finalPayload = { ...consultationPayload };
     if (!isExternalPatient && selectedPatientId) {
       try {
-        const staffRaw = localStorage.getItem('staffPatients');
-        const staffList: any[] = staffRaw ? JSON.parse(staffRaw) : [];
+        const staffList = await loadStaffPatients();
         const staffMember = staffList.find(s => s.idNum === selectedPatientId);
         if (staffMember) {
           const idsRaw = localStorage.getItem('staffExternalIds');

@@ -208,18 +208,7 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
     } catch (e: any) { setRdvError(e.message || 'Erreur'); }
   };
 
-  const handleToggleDone = async (r: { id: number; rdvDate: string; note?: string; done: boolean }) => {
-    try {
-      await fetch(`${RDV_API}/${r.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...r, done: !r.done }),
-      });
-      await refreshRdvList();
-    } catch { /* silent */ }
-  };
-
-  const handleDeleteRdv = async (id: number) => {
+const handleDeleteRdv = async (id: number) => {
     try {
       await fetch(`${RDV_API}/${id}`, { method: 'DELETE' });
       await refreshRdvList();

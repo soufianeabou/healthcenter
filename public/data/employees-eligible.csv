@@ -1,0 +1,369 @@
+Name,Email,Employee ID,Department,Job Title,Manager,Contract Type,Hiring Date
+Hamid Haroud,h.harroud@aui.ma,1131,ITS,Director ITS,Yassir Touhami,CDI,2007-08-24
+Imane Banani,i.banani@aui.ma,3374,Dev&Com,Deputy Director of Development & Communication,Yassir Touhami,CDI,2024-10-21
+Abderrahim Ben El Jarbouh,a.beneljarbouh@aui.ma,2949,OBS,Director OBS,Yassir Touhami,CDI,2022-01-17
+Assia Es-salih,a.essalih@aui.ma,972,COO Office,Manager COO Office,Yassir Touhami,CDI,2005-11-14
+Hicham Hafid,h.hafid@aui.ma,943,ACC,Manager ACC,Yassir Touhami,CDI,2005-08-13
+Abdallah Mhammedi Alaoui,a.mhammedi@aui.ma,157,Financial Aid,Manager Financial Aid,Yassir Touhami,Prestation de services,
+Mohammed Amine Kendoussi,m.kendoussi@aui.ma,192,Outreach & Admissions Office,Manager Admissions,Yassir Touhami,CDI,1996-07-01
+Omar Bougamza,o.bougamza@aui.ma,2261,DSA,Director of Student Success & Engagement,Mhammed Chraibi,CDI,2024-07-01
+Salaheddine Zekri,s.zekri@aui.ma,900,CIP/DSA,Community Involvement Manager,Omar Bougamza,CDI,2004-08-23
+Oussama Er-Rady,O.Er-rady@aui.ma,2977,CLE,Center for Learning Excellence Manager,Omar Bougamza,CDI,2022-05-18
+El Mehdi Idrissi,e.idrissi@aui.ma,1054,AC,Manager Azrou Center,Salaheddine Zekri,CDI,2006-11-01
+Said Nouamani,s.nouamani@aui.ma,1851,Procurement & Infrastructure Development,Director of Procurement and Infrastructure Development,Mohammed Nabil Benchekroun,CDI,2000-10-09
+Driss Chaibi,d.chaibi@aui.ma,215,ITS,Manager ITS,Hamid Harroud,CDI,1996-10-14
+Kamal Tadlaoui,k.tadlaoui@aui.ma,191,ITS,Manager ITS,Driss Chaibi,CDI,1996-04-22
+Abdelkarim Bettahi,a.bettahi@aui.ma,2099,ITS,Manager ITS,Hamid Harroud,CDI,2024-09-01
+Mounia Aaquil,m.aaquil@aui.ma,486,OBS,Manager OBS,Abderrahim Ben El Jarbouh,CDI,2000-09-11
+El Makhtar Rhannai,e.rhannai@aui.ma,441,OBS,Manager OBS,Abderrahim Ben El Jarbouh,CDI,2000-06-01
+Samira Rhioui,s.rhioui@aui.ma,852,OBS,Manager OBS,Abderrahim Ben El Jarbouh,CDI,2004-05-19
+Ayoub Bounasser,Ay.Bounasser@aui.ma,2895,Student Activities Office,Student Activities Office Manager,Omar Bougamza,,
+Hamid Nouamani,h.nouamani@aui.ma,437,Residential Life & Housing,Manager Housing,Adel Kamane,CDI,2000-04-10
+Mohammed El Akkaoui,m.elakkaoui@aui.ma,30237,Residential Life & Housing,Off-Campus Residences Manager,Hamid Nouamani,CDI,2001-03-01
+Adnane Guennoun,a.guennoun@aui.ma,1916,HC,Manager Health Center,Adel Kamane,Mis a la Disposition,2012-03-15
+Zineb El Kharrak,z.elkharrak@aui.ma,851,Campus Store Services,Manager Campus Store,Adel Kamane,CDI,2004-05-19
+Zakariae Slaoui,z.slaoui@aui.ma,2592,Dining Services,Manager Dining,Adel Kamane,CDI,2018-04-02
+Abderrazzak Boulziher,a.boulziher@aui.ma,2898,Security & Safety,Security Manager,Mohammed Nabil Benchekroun,CDI,2021-09-01
+Lahcen Dada,l.dada@aui.ma,50,G&M,Construction Projects Manager,Mohammed Nabil Benchekroun,CDI,1995-01-06
+Ezzaki Mitouilli,e.mitouilli@aui.ma,119,G&M,"Plumbing, air-conditioning and welding services Manager",Mohammed Nabil Benchekroun,,
+Farid Ou-Bakalla,f.oubakalla@aui.ma,30401,G&M,Car Fleet Supervisor,Mohammed Nabil Benchekroun,CDI,2005-12-12
+Hassane Benabdallah,h.benabdallah@aui.ma,84,G&M,Electricity Manager,Mohammed Nabil Benchekroun,CDI,1995-03-20
+Rachid Ait Charrou,r.aitcharrou@aui.ma,30097,Security & Safety,Security Supervisor,Abderrazzak Boulziher,,
+Hassan Jabbari,h.jabbari@aui.ma,989,Faculty Club,Supervisor Faculty Club,Adnane Guennoun,CDI,2006-01-27
+Faizan Rafi Hashmi,f.hashmi@aui.ma,3380,Registrar's service,Registrar,Abdelhamid Hamidi Alaoui,CDI,2025-06-16
+Paul Love,p.love@aui.ma,2619,Mohammed VI Library,Director Library,Hariclea P Zengos,CDI,2016-08-01
+Brian David Seilstad,b.seilstad@aui.ma,2862,OIP,Director OIP,Hariclea P Zengos,CDI,2021-07-15
+Karim Achibat,k.achibat@aui.ma,1020,LC,Director LC,Hariclea P Zengos,CDI,2006-08-01
+Soufiane Aboulhamam,s.aboulhamam@aui.ma,3342,ITS,ERP & Web Developer,Abdelkarim Bettahi,CDI,2025-03-03
+Hamid Lamididi,h.lamididi@aui.ma,341,ITS,DBA and Systems Reporting Administrator,Hamid Harroud,CDI,1998-10-01
+Mounir Karroumi,m.karroumi@aui.ma,1539,ITS,Service Desk Officer,Abdelkarim Bettahi,CDI,2009-11-03
+Abdelkader Samih,a.samih@aui.ma,30244,Athletics Services,Athletics Assistant,Adel Kamane,CDI,2001-03-01
+Mostafa Loune,m.loune@aui.ma,646,Athletics Services,Fitness room Supervisor,Adel Kamane,CDI,2001-09-07
+Khalifa Elhadri,k.elhadri@aui.ma,30133,Athletics Services,Building Agent,Adel Kamane,CDI,1996-04-01
+Noureddine Elabiad,n.elabiad@aui.ma,661,Athletics Services,Lifeguard,Adel Kamane,CDI,2002-03-26
+Nadia Bouchanine,n.bouchanine@aui.ma,30342,Athletics Services,Lifeguard & Administrative Assistant,Adel Kamane,CDI,2002-07-18
+Hamid Acherroua,h.acherroua@aui.ma,662,Athletics Services,Lifeguard,Adel Kamane,CDI,2002-03-26
+Zakaria Elkhaoua,z.elkhaoua@aui.ma,973,Mosque,Imam,Adel Kamane,Mis a la Disposition,2005-09-01
+Rachid Berkaya,r.berkaya@aui.ma,2681,Mosque,Muezzin,Adel Kamane,Mis a la Disposition,2018-12-13
+Amina Wahid,a.wahid@aui.ma,2907,Campus Store Services,Campus-store Cashier,Zineb El Kharrak,CDI,2021-09-29
+Said Nakib,s.nakib@aui.ma,3073,Campus Store Services,Stock Keeper,Zineb El Kharrak,CDI,2023-01-01
+Marwane Khalef,m.khalef@aui.ma,2905,Campus Store Services,Campus-store Cashier,Zineb El Kharrak,CDI,2021-09-29
+Miloud Zgagh,mi.zgagh@aui.ma,3099,Dining Services,Assistant to the Dining Services,Zakariae Slaoui,CDI,2023-02-08
+Souaf Maria,m.souaf@aui.ma,3089,Dining Services,Dining Services Supervisor,Zakariae Slaoui,CDI,2023-07-13
+Bahija Boualam,b.boualam.noemail@aui.ma,30476,Faculty Club,Cook Assistant,Adnane Guennoun,,
+Majda Zgagh,m.zgagh@aui.ma,3043,HC,Nurse,Adnane Guennoun,CDI,2024-02-01
+Meriem Ouakki,m.ouakki@aui.ma,1864,HC,Nurse,Adnane Guennoun,CDI,2011-12-01
+Siham Ghazal,s.ghazal@aui.ma,2417,HC,Nurse,Adnane Guennoun,CDI,2019-05-02
+Oumaima Ghazal,o.ghazal@aui.ma,2946,HC,Administrative Assistant,Adnane Guennoun,CDI,2022-01-03
+Fatima El Majdoubi,f.elmajdoubi@aui.ma,2450,HC,Nurse,Adnane Guennoun,CDI,2016-04-18
+Mounia Aslaf,m.aslaf@aui.ma,502,HC,Physician,Adnane Guennoun,Mis a la Disposition,2000-11-01
+Hamid Ziate,h.ziat@aui.ma,30480,Residential Life & Housing,Housing Receptionist,Hamid Nouamani,CDI,2009-12-01
+Mohamed Zakari,m.zakari@aui.ma,641,Residential Life & Housing,Housing guest Coordinator,Hamid Nouamani,CDI,2000-08-22
+Omar Ouzdine,o.ouzdine@aui.ma,3228,Residential Life & Housing,Housing and Residential Life Officer,Hamid Nouamani,CDI,2023-11-14
+Abdelmounim Ouyidir,a.ouyidir@aui.ma,405,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,1999-09-01
+Mounir Ouamchi,m.ouamchi@aui.ma,1547,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2009-08-26
+Najia Moussaoui,na.moussaoui@aui.ma,2401,Residential Life & Housing,Housing and Residence Life Officer,Hamid Nouamani,CDI,2015-08-27
+Fatima Mejdoub,f.mejdoub@aui.ma,336,Residential Life & Housing,Administrative Assistant,Hamid Nouamani,CDI,1998-09-01
+Khadija Iguedaren,k.iguedaren@aui.ma,1513,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2009-02-23
+Adnan Herrar,a.herrar@aui.ma,2402,Residential Life & Housing,Housing & Residence Life Officer,Hamid Nouamani,CDI,2015-08-27
+Younes Hatmi,y.hatmi@aui.ma,1833,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2011-08-08
+Mohamed Hajani,m.hajani@aui.ma,1908,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2012-06-01
+Farida El Kachmari,f.elkachmari@aui.ma,1177,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2008-01-01
+Soumia Elasri,s.elasri@aui.ma,1588,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2009-08-04
+Anass Chbihi Hossni,a.chbihihossni@aui.ma,1626,Residential Life & Housing,Residential Life & Housing Supervisor,Hamid Nouamani,CDI,2010-01-30
+Asmae Biaa,a.biaa@aui.ma,3215,Residential Life & Housing,Housing and Residential Life Officer,Hamid Nouamani,CDI,2024-11-04
+Rahma Azelmad,r.azelmad@aui.ma,638,Residential Life & Housing,Hall Director,Hamid Nouamani,CDI,2000-08-24
+Abdelouhab Taoufiq,a.taoufiq@aui.ma,1157,COO Office,Internal communication Manager,Yassir Touhami,CDI,2007-11-21
+Zineb Brioua,z.brioua@aui.ma,2097,Strategic Management,Project Manager,Abderrahmane Lazrak,CDI,2013-04-22
+Oumaima Zahoute,o.zahoute@aui.ma,3104,ACC,Receptionist,Hicham Hafid,CDI,2024-03-18
+Amhamed Senna,a.senna@aui.ma,3091,ACC,Receptionist,Hicham Hafid,CDI,2024-01-13
+Mohamed Ouaziz,m.ouaziz@aui.ma,3096,ACC,Logistics Assistant,Hicham Hafid,CDI,2024-08-15
+Mohamed Bouia,m.bouia@aui.ma,966,ACC,Events Officer,Hicham Hafid,CDI,2003-10-20
+Said Ouchlikh,s.ouchlikh@aui.ma,2945,Dev&Com,Multimedia and layout Officer,Imane Banani,CDI,2021-01-12
+Idir Moukhlis,i.moukhlis@aui.ma,3279,Dev&Com,Marketing and outreach Support Officer,Mohammed Amine Kendoussi,CDI,2024-04-01
+Yousra Lakiasse,y.lakiasse@aui.ma,2967,Dev&Com,Project Management Officer Marketing & Communication,Imane Banani,CDI,2024-09-01
+Mohammed Berhmane,m.berhmane@aui.ma,30488,Financial Aid,Financial Aid Officer,Abdellah Alaoui,CDI,2010-05-24
+Said Benhammou,s.benhammou@aui.ma,604,ITS,Systems Security Administrator,Hamid Harroud,CDI,2001-09-10
+Rachid Bellizi,r.bellizi@aui.ma,30051,ITS,Building Agent,Hamid Harroud,CDI,1995-04-16
+Zakarya Belkadi,z.belkadi@aui.ma,339,ITS,Communication and Collaboration Platform Administrator,Driss Chaibi,CDI,1998-10-01
+Mohamed Znibel,m.znibel@aui.ma,83,ITS,Network and Wiring Technician,Driss Chaibi,CDI,1995-03-16
+Driss Zeroual,d.zeroual@aui.ma,97,ITS,Virtual Infrastructure Administrator,Driss Chaibi,CDI,1995-05-01
+Nazha Zarwal,n.zarwal@aui.ma,603,ITS,Administrative Assistant,Hamid Harroud,CDI,2001-09-10
+ElHassan Mouj,e.mouj@aui.ma,163,ITS,Switchboard Operator,Driss Chaibi,CDI,1995-11-01
+Rachid Ktif,r.ktif@aui.ma,478,ITS,Communication & Collaboration Platform Administrator,Driss Chaibi,CDI,2000-09-05
+Najem Aneflous,n.aneflous@aui.ma,114,ITS,Switchboard Operator,Driss Chaibi,CDI,1995-08-07
+My Ahmed Ait Moulay Cherif,a.cherif@aui.ma,534,ITS,Systems Administrator,Driss Chaibi,CDI,2001-02-01
+Jamila Fadili,j.fadili@aui.ma,30406,ITS,Copy Center Assistant,Said Benhammou,CDI,2006-01-02
+Abdelhadi Es-Sahli,a.es-sahli@aui.ma,2363,ITS,Service Desk Technician,Said Benhammou,CDI,2015-05-18
+Akram Mesbahi,a.mesbahi@aui.ma,3100,OBS,Financial reporting analyst,Abderrahim Ben El Jarbouh,CDI,2024-10-01
+Aziza Dahdah,a.dahdah@aui.ma,831,OBS,Administrative Assistant,Abderrahim Ben El Jarbouh,CDI,2004-01-28
+Hajar Sabir,ha.sabir@aui.ma,3047,OBS,Comptable / Accountant,Karima Benabdellah,CDI,2023-08-13
+Soukaina Tahiri Alaoui,so.tahirialaoui@aui.ma,3286,OBS,Accountant,Abderrahim Ben El Jarbouh,CDI,2025-07-10
+Karima Benabdellah,k.benabdallah@aui.ma,1459,OBS,Accounting Supervisor,El Makhtar Rhannai,CDI,2010-04-01
+Soukaina Ballaoui,s.ballaoui@aui.ma,3263,OBS,Accountant,Karima Benabdellah,CDI,2025-03-03
+Ahmed El Addouli,a.eladdouli@aui.ma,1226,OBS,Accounts Payable Supervisor,Abderrahim Ben El Jarbouh,CDI,2008-08-25
+Zineb Barbache,z.barbache@aui.ma,3262,OBS,Cash Desk Assistant,Samira Rhioui,CDI,2025-03-03
+Salah Eddine Khattari,s.khattari@aui.ma,3046,OBS,Cash Desk Assistant,Samira Rhioui,CDI,2023-08-13
+Souhir Karaoui,s.karaoui@aui.ma,3051,OBS,Billing Assistant,Mounia Aaquil,CDI,2023-08-13
+Abdelouahed Chattini,a.chattini@aui.ma,1910,OBS,Billing Officer,Mounia Aaquil,CDI,2012-01-09
+Youssef Rachidi,y.rachidi@aui.ma,2725,Outreach & Admissions Office,Admissions Assistant,Mohammed Amine Kendoussi,CDI,2019-10-01
+Salma Oulhasni,s.oulhasni@aui.ma,3115,Outreach & Admissions Office,Admissions Assistant,Mohammed Amine Kendoussi,CDI,2024-09-02
+Siham Ouhmane,s.ouhmane@aui.ma,3118,Outreach & Admissions Office,Admissions Assistant,Mohammed Amine Kendoussi,CDI,2024-09-02
+Mohamed Nassim,m.nassim@aui.ma,2638,Outreach & Admissions Office,Admissions Assistant,Mohammed Amine Kendoussi,CDI,2018-12-25
+Hajiba Madane,h.madane@aui.ma,2080,Outreach & Admissions Office,Admissions and Outreach Officer,Mohammed Amine Kendoussi,CDI,2012-08-01
+Mohamed Amine Lmortaji,m.lmortaji@aui.ma,2732,Outreach & Admissions Office,Admissions and Outreach Officer,Mohammed Amine Kendoussi,CDI,2019-12-16
+Sifeddine Ijaouten,si.ijaouten@aui.ma,3058,Outreach & Admissions Office,Admissions and outreach officer,Mohammed Amine Kendoussi,CDI,2023-06-01
+Rania Hassi,r.hassi@aui.ma,3107,Outreach & Admissions Office,Admissions Assistant,Mohammed Amine Kendoussi,CDI,2024-09-02
+Nadia Benkhadda,n.benkhadda@aui.ma,2879,Outreach & Admissions Office,Undergraduate Admissions & Outreach Officer,Mohammed Amine Kendoussi,CDI,2021-12-01
+Loubna Belhirch,l.belhirch@aui.ma,2830,Outreach & Admissions Office,Admissions & Outreach Officer,Mohammed Amine Kendoussi,CDI,2021-03-08
+Mohamed Atti,m.atti@aui.ma,2743,Outreach & Admissions Office,Admissions & Outreach Officer,Mohammed Amine Kendoussi,CDI,2020-01-04
+Mohamed Babnou,m.babnou@aui.ma,1619,ITS,Audio-Video Services Head of Unit,Hamid Harroud,CDI,2010-04-01
+Bader Sdouqi,b.sdouqi@aui.ma,1236,AC,Formateur en Maintenance et Responsable de la Maintenance du Materiel informatique,El Mehdi Idrissi,CDI,2009-09-01
+Lamya Sarraf,l.sarraf@aui.ma,1911,AC,Administrative Assistant,El Mehdi Idrissi,CDI,2012-02-27
+Naima Herrar,n.herrar@aui.ma,734,AC,Stock and library operator,El Mehdi Idrissi,CDI,2004-04-02
+Mohamed Belouak,m.belouak@aui.ma,30241,AC,Assistant Financier,El Mehdi Idrissi,CDI,2001-03-01
+Fatima Ezahra Achehboune,f.achehboune@aui.ma,1038,CIP/DSA,Community Involvement Officer,Salaheddine Zekri,CDI,2006-08-01
+Malayan Kandy Naouaf,n.malayankandy@aui.ma,3130,CLE,First-Year Experience Coordinator,Oussama Er-rady,CDI,2024-06-26
+Adel El Bouzagaoui,a.elbouzagaoui@aui.ma,1160,CLE,CLE Program Manager,Oussama Er-rady,CDI,2009-02-25
+Mohamed Ghali Guissi,mg.guissi@aui.ma,3163,Counseling Services,Counselor,Mhammed Chraibi,CDI,2024-02-14
+Hassane Ouhadi,h.ouhadi@aui.ma,1530,DSA,Administrative Clerk,Mhammed Chraibi,CDI,2009-10-29
+Mohammed El Ouedghiri Idrissi,m.elouedghiri@aui.ma,421,DSA,Student Affairs IT Coordinator,Mhammed Chraibi,CDI,1999-11-01
+Amal Bouanani,a.bouanani@aui.ma,276,DSA,Project Manager,Mhammed Chraibi,CDI,1997-10-06
+Youssef Akhoubi,y.akhoubi@aui.ma,1546,DSA,Administrative Assistant,Mhammed Chraibi,CDI,2009-08-28
+Driss Ouabbou,d.ouabbou@aui.ma,30209,Student Activities Office,Administrative Assistant,Ayoub Bounasser,CDI,2000-12-21
+Loubna El Ayachi,l.elayachi@aui.ma,1162,Student Activities Office,Student Events Coordinator,Omar Bougamza,CDI,2008-01-01
+Soumiya Bellabair,s.bellabair@aui.ma,3283,Student Activities Office,Student Development Officer,Ayoub Bounasser,CDI,2025-06-13
+Bouchra Bouatia,b.bouatia@aui.ma,3127,HCO,Human Resources Business Partner,Safia Hazzaz,CDI,2023-06-01
+Sanae Marjani,s.marjani@aui.ma,914,HCO,Insurance Coordinator,Safia Hazzaz,CDI,2005-02-17
+Siham Lazaar,s.lazaar@aui.ma,1532,HCO,Insurance Officer,Safia Hazzaz,CDI,2009-11-23
+Hanene Duprat Laroun,H.Duprat@aui.ma,3489,Office of Employability & Entrepreneurship,Director of Employability & Entrepreneurship,Nicolas Klotz,,
+Mohamed Taha Rahmoune,t.rahmoune@aui.ma,3367,Office of Employability & Entrepreneurship,Event Manager,Hanene Duprat,CDI,2024-10-14
+Fouad Bouarfa,f.bouarfa@aui.ma,3351,Office of Employability & Entrepreneurship,Logistics coordinator,Hanene Duprat,CDI,2024-09-02
+Hayat Bouaouiss,h.bouaouiss@aui.ma,2518,Office of Employability & Entrepreneurship,Event Logistics Coordinator,Hanene Duprat,CDI,2017-01-09
+Fatima Sadik,f.sadik@aui.ma,971,VPAA's Office,Assistant to the VPAA,Hariclea P Zengos,CDI,2005-11-14
+Rachid Mrabti,r.mrabti@aui.ma,677,VPAA's Office,Faculty Support,Abdelhamid Hamidi Alaoui,CDI,2001-08-22
+Aziza Boumahdi,a.boumahdi@aui.ma,678,VPAA's Office,Academic Affairs Officer,Abdelhamid Hamidi Alaoui,CDI,2023-09-14
+Boutaina Amribet,b.amribet@aui.ma,3362,VPAA's Office,Community Care and Safety Officer,Hariclea P Zengos,CDI,2024-10-07
+Sidi Ali Maelainin,s.maelainin@aui.ma,3518,EEC-Casa,Executive Director EEC-Casa,President Office,,
+Abdelkrim Marzouk,a.marzouk@aui.ma,950,EEC-Ifrane,Associate Professor,Hariclea P Zengos,CDI,
+Karima Derkaoui,k.derkaoui@aui.ma,146,Academic Support Office,Advising Unit Coordinator,Latifa Ouanaim,CDI,1995-09-18
+Dounia Chayabaynou,d.chayabaynou@aui.ma,229,Academic Support Office,Academic Monitoring and Support Coordinator,Latifa Ouanaim,CDI,1997-01-20
+Abdelali Salim,a.salim@aui.ma,620,ASI,Coordinator IT,Amina ARAGOSA,CDI,2001-08-01
+Mostafa Charqi,m.charqi@aui.ma,30207,ASI,Administrative Clerk,Amina ARAGOSA,CDI,2000-12-09
+Hanane Bousellama,h.bousellama@aui.ma,770,ASI,Administrative Assistant,Amina ARAGOSA,CDI,2003-06-04
+Soufiane Lahmine,s.lahmine@aui.ma,2571,CTL,Instructional Design Engineer,Karim Moustaghfir,CDI,2020-01-01
+Abdelhadi El Hamdi,a.elhamdi@aui.ma,1755,CTL,Education Technology Supervisor,Karim Moustaghfir,CDI,2011-03-01
+El Mustapha Ouajjou,e.ouajjou@aui.ma,30229,LC,Building Agent,Karim Achibat,CDI,2000-08-01
+Karima Maazouz,k.maazouz@aui.ma,725,LC,Program Manager,Karim Achibat,CDI,2002-09-13
+Rachid Zegrane,r.zegrane@aui.ma,181,Mohammed VI Library,Collections & Access Unit Head & Librarian,Paul Love,CDI,1996-01-29
+Abdellah Salhi,a.salhi@aui.ma,236,Mohammed VI Library,Library Logistics and Collections & Access Services Agent,Rachid Zegrane,CDI,1996-12-23
+Hajar Matlaoui,h.matlaoui@aui.ma,2173,Mohammed VI Library,Research & Learning Service Librarian,Hanane Karkour,CDI,2013-10-22
+Hanane Karkour,h.karkour@aui.ma,2007,Mohammed VI Library,Research & Learning Service Unit Head & Librarian,Paul Love,CDI,2012-11-07
+Hanae Kal-La,h.kal-la@aui.ma,2321,Mohammed VI Library,Research & Learning Service Librarian,Hanane Karkour,CDI,2014-09-01
+Zahra Idrissi,z.idrissi@aui.ma,30010,Mohammed VI Library,Administrative Assistant,Paul Love,CDI,1995-04-16
+Fatima Hadre,f.hadre@aui.ma,611,Mohammed VI Library,Collections & Access Librarian,Hanane Karkour,CDI,2001-09-19
+Sanaa El Fata,s.elfata@aui.ma,917,Mohammed VI Library,Collections & Access Librarian,Rachid Zegrane,CDI,2005-04-18
+Mohamed El Fadil,m.elfadil@aui.ma,124,Mohammed VI Library,Bookstore Supervisor,Rachid Zegrane,CDI,1995-09-01
+Khawla El Akkili,k.elakkili@aui.ma,2325,Mohammed VI Library,"University archives, Special Collections, and Museum Unit Head",Paul Love,CDI,2014-09-01
+Mustapha Azaou,m.azaou@aui.ma,30084,Mohammed VI Library,Library Technical Services Officer,Rachid Zegrane,CDI,1995-08-14
+Asmae El-Mahdi,a.elmahdi@aui.ma,1938,OIP,Partnerships and Sponsored Programs Coordinator,Brian David Seilstad,CDI,2012-07-02
+Abderrafie El Maktoub,a.elmaktoub@aui.ma,430,OIP,Administrative Assistant,Brian David Seilstad,CDI,2000-01-12
+Houda Touchen,h.touchen@aui.ma,3274,OIP,Study Abroad Advisor For Inbound Students,Brian David Seilstad,CDI,2025-04-04
+Saida Zizoune,s.zizoune@aui.ma,1057,Registrar's service,Assistant Registrar,Faizan Rafi Hashmi,CDI,2006-11-07
+Driss Oumlal,d.oumlal@aui.ma,1055,Registrar's service,Registration Assistant,Faizan Rafi Hashmi,CDI,2006-10-26
+Fatima Ezzaher,f.ezzaher@aui.ma,666,Registrar's service,Assistant Registrar,Faizan Rafi Hashmi,CDI,2004-09-03
+Kaoutar El Lekhlifi,k.ellekhlifi@aui.ma,1545,Registrar's service,Registration Officer,Faizan Rafi Hashmi,CDI,2009-08-27
+Amale Achehboune,a.achehboune@aui.ma,942,Registrar's service,Registration Officer,Faizan Rafi Hashmi,CDI,2005-07-19
+Nassira Souaf,n.souaf@aui.ma,3007,SBA,Administrative Assistant,Lakshmi Goel,CDI,2023-10-23
+Mustafa Et-Toualy,m.ettoualy@aui.ma,1616,SBA,Experiential Learning and Student Engagement Associate,Lakshmi Goel,CDI,2009-11-16
+Nouhaila Bourray,n.bourray@aui.ma,3086,SBA,Assistant Administrative,Lakshmi Goel,CDI,2023-08-22
+Rachida Azelmad,ra.azelmad@aui.ma,1622,SBA,Assistant Project Manager,Lakshmi Goel,CDI,2010-03-23
+Meriem Marzak,m.marzak@aui.ma,3078,SSAH,Student Relations & Success Officer,Asma Abbas,CDI,2024-09-01
+Mohamed Saber,m.saber@aui.ma,30144,SSAH,Administrative Assistant,Asma Abbas,CDI,1996-04-01
+Najlaa Sabir,n.sabir@aui.ma,3343,SSE,Student Transition Project Manager,Khalid Sendide,CDI,2024-09-02
+Bouchra Saad,b.saad@aui.ma,255,SSE,Administrative Assistant,Khalid Sendide,CDI,1997-08-25
+Rachida Ou Bakalla,r.oubakalla@aui.ma,420,SSE,Food Control Lab Technician,Khalid Sendide,CDI,1999-11-01
+Abdeslam Bourjila,a.bourjila@aui.ma,30194,SSE,Building Agent,Khalid Sendide,CDI,2000-11-21
+Abderrahim Boulakrouch,a.boulakrouch@aui.ma,2138,SSE,Physics and Engineering Lab Technician,Khalid Sendide,CDI,2015-08-24
+Wijdane Benabbou,w.benabbou@aui.ma,2852,SSE,Lab Technician,Samir  El Hajjaji,CDI,2021-06-01
+Ilham Khechichine,i.khechichine@aui.ma,3497,EEC-Casa,EEC Account Manager,Sidi Ali Maelainin,CDI,2025-04-21
+Zakia El Moustaquim,z.elmoustaquim@aui.ma,1004,EEC-Casa,EEC Program Manager,Sidi Ali Maelainin,CDI,2006-08-15
+Lahcen Ait Cheikh,l.aitcheikh@aui.ma,668,EEC-Casa,Building Agent,Sidi Ali Maelainin,CDI,2002-03-09
+Soukaina Ouarab,s.ouarab@aui.ma,2288,EEC-Ifrane,Manager of Communication & Marketing,Abdelkrim Marzouk,CDI,2014-12-01
+Moha Ouabdelkrim,m.ouabdelkrim@aui.ma,30162,EEC-Ifrane,EEC Project Assistant,Abdelkrim Marzouk,CDI,2000-07-19
+Jihad Mandine,j.mandine@aui.ma,2014,EEC-Ifrane,EEC Coordinator,Abdelkrim Marzouk,CDI,2013-08-22
+Mounia Hadana,m.hadana@aui.ma,230,EEC-Ifrane,EEC Project Assistant,Abdelkrim Marzouk,CDI,1997-01-27
+Khadija Elbaaj,k.elbaaj@aui.ma,248,EEC-Ifrane,Administrative Assistant,Abdelkrim Marzouk,CDI,1997-02-03
+Driss El Halouani,d.elhalouani@aui.ma,30205,EEC-Ifrane,EEC Project Assistant,Abdelkrim Marzouk,CDI,2000-12-09
+Nada Chra,n.chra@aui.ma,1202,EEC-Ifrane,Business Development Manager,Abdelkrim Marzouk,CDI,2008-08-25
+Souhail Mechiche,s.mechiche@aui.ma,3022,OIRE,Junior Auditor,Cherif Belfekih,CDI,2022-10-03
+Imad Ghomri,i.ghomri@aui.ma,822,OIRE,Data Analyst,Cherif Belfekih,CDI,2004-09-07
+Imane Faiz,i.faiz@aui.ma,3420,OIRE,Junior Data Analyst,Cherif Belfekih,CDI,2025-02-10
+Abdelkarim Agidade,a.agidade@aui.ma,30497,Operational Excellence,Agent de Batiment,Mohammed Nabil Benchekroun,CDI,2010-11-24
+Assia Abouelabbes,a.abouelabbes@aui.ma,1235,Operational Excellence,Administrative Assistant,Mohammed Nabil Benchekroun,CDI,2008-10-06
+Nadia Ettabti,n.ettabti@aui.ma,30188,G&M,On-Campus Cleaner Supervisor,Mohammed Nabil Benchekroun,CDI,2000-10-11
+Soumia Bouha,s.bouha@aui.ma,30042,G&M,Off-Campus Cleaner Supervisor,Mohammed Nabil Benchekroun,CDI,1995-04-16
+Radouane Samia,r.samia@aui.ma,30118,G&M,On Campus Gardening Supervisor assistant,Mohamed Bentahiri,CDI,1995-10-01
+Mohamed Bentahiri,m.bentahiri@aui.ma,30411,G&M,Off-Campus Gardening Supervisor Assistant,Mohammed Nabil Benchekroun,CDI,2006-02-23
+Samir Ouzir,s.ouzir@aui.ma,999,G&M,Gardening Technician,Mohamed Bentahiri,CDI,2006-05-11
+Ahmed Toane,ah.toane@aui.ma,30090,G&M,Gardener,Mohamed Bentahiri,CDI,1995-08-30
+Abdelghani Saddok,a.sadouk@aui.ma,30220,G&M,Gardener,Mohamed Bentahiri,CDI,2001-02-01
+Lhoussaine Oukhouya,l.oukhouya@aui.ma,30409,G&M,Gardener,Mohamed Bentahiri,CDI,2006-02-23
+Said Kamal,s.kamal@aui.ma,30117,G&M,Gardener,Mohamed Bentahiri,CDI,1995-10-05
+El Hassan Azelmad,h.azelmad@aui.ma,30442,G&M,Gardener,Mohamed Bentahiri,CDI,2008-05-13
+Abdelkader Agidade,ab.agidade@aui.ma,30093,G&M,Gardener,Mohamed Bentahiri,CDI,1995-09-01
+El Hassane Oufedna,h.oufedna@aui.ma,30141,G&M,GMHELP Operator,Lahcen Dada,CDI,1996-04-01
+Abdeslam Mechkaka,a.mechkaka@aui.ma,30161,G&M,Painter,Lahcen Dada,CDI,2000-06-01
+Jamal El Bekri,j.elbekri@aui.ma,30490,G&M,Painter,Lahcen Dada,CDI,2010-07-09
+Mohamed Lala,m.lala@aui.ma,30381,G&M,Mason,Lahcen Dada,CDI,2005-04-14
+Mohamed Hettach,m.hettach@aui.ma,30434,G&M,Mason,Lahcen Dada,CDI,2007-12-01
+Hamid Herrar,h.herrar@aui.ma,30172,G&M,Maintenance Agent,Lahcen Dada,CDI,2000-09-20
+Mimoune Harmouchi,m.harmouchi@aui.ma,30489,G&M,Mason,Lahcen Dada,CDI,2010-07-07
+Brahim Edraoui,b.edraoui@aui.ma,30224,G&M,Carpenter,Lahcen Dada,CDI,2001-02-01
+Hamid Chraa,ha.chraa@aui.ma,30135,G&M,Carpenter,Lahcen Dada,CDI,1996-04-01
+Abdennabi Lafrid,a.lafrid@aui.ma,30129,G&M,Carpenter,Lahcen Dada,CDI,1998-01-05
+Abdelkader Balouk,a.balouk@aui.ma,30438,G&M,Carpenter,Lahcen Dada,CDI,2008-02-11
+Abdelfattah Tahiri,ab.tahiri@aui.ma,30106,G&M,Plumber,Ezzaki Mitouilli,CDI,1995-08-21
+Hicham Senna,h.senna@aui.ma,30233,G&M,Plumber-Mate,Ezzaki Mitouilli,CDI,2001-02-01
+Abdellah Ouchtenni,A.Ouchteni@aui.ma,30227,G&M,Plumber,Ezzaki Mitouilli,CDI,1998-08-01
+Noureddine Laaraj,n.laaraj@aui.ma,30139,G&M,Plumber,Ezzaki Mitouilli,CDI,1996-04-01
+Rachid Bouchantouf,r.bouchantouf@aui.ma,30484,G&M,Plumber Aid,Ezzaki Mitouilli,CDI,2010-05-06
+Mohamed Chattini,m.chattini@aui.ma,30235,G&M,Plumber,Ezzaki Mitouilli,CDI,2001-02-01
+Aziz Nouali,a.nouali@aui.ma,30486,G&M,Air Conditioning Technician,Ezzaki Mitouilli,CDI,2010-05-24
+Hamid Naciri,h.naciri@aui.ma,30114,G&M,Assistant Electrician,Hassane Benabdallah,CDI,1995-10-01
+Omar Gougou,o.gougou@aui.ma,30216,G&M,Climatization Technician,Ezzaki Mitouilli,CDI,2001-01-08
+Abdelfattah El Hassani,ab.elhassani@aui.ma,30217,G&M,Climatization Technician,Ezzaki Mitouilli,CDI,2001-01-08
+Rachid Herira,r.herira@aui.ma,30348,G&M,Welder-Aid,Ezzaki Mitouilli,CDI,2002-03-28
+Abdellah Mechiche,30134.noemail@aui.ma,30134,G&M,Gardener and Tractor Driver,Mohamed Bentahiri,,
+Mohamed Azelmad,m.azelmad@aui.ma,30228,G&M,Gardener and Tractor Driver,Mohamed Bentahiri,CDI,2001-02-01
+El Houssain Ouyochchou,l.ouychchou@aui.ma,30057,G&M,GM help Operator,Lahcen Dada,CDI,1995-04-16
+Mohsine Moukeddar,m.moukddar@aui.ma,30077,G&M,Driver,Farid Ou-Bakalla,CDI,1995-06-19
+Mohammed Laarj,m.laaraj@aui.ma,30132,G&M,Driver,Farid Ou-Bakalla,CDI,1996-04-01
+Aziz Laarj,a.laaraj@aui.ma,30145,G&M,Driver,Ezzaki Mitouilli,CDI,1996-04-01
+Nourredine Elamri,n.elamri@aui.ma,30400,G&M,Fleet Administrative Agent,Farid Ou-Bakalla,CDI,2005-12-12
+Achour Boutoukit,30418.noemail@aui.ma,30418,G&M,Driver,Farid Ou-Bakalla,,
+Chakib Boulaqrouch,c.boulaqrouch@aui.ma,30495,G&M,Driver,Farid Ou-Bakalla,CDI,2010-10-26
+Benaissa Boulaqrouch,b.boulaqrouch@aui.ma,30477,G&M,Driver,Farid Ou-Bakalla,CDI,2009-10-19
+Mohamed Belhanafi,m.belhanafi@aui.ma,30499,G&M,Mechanical Technician and cars wash,Farid Ou-Bakalla,CDI,2010-12-01
+Said Amaane,s.amaanee@aui.ma,30091,G&M,Driver,Farid Ou-Bakalla,CDI,1995-09-09
+Nourdine Alaoui Sossi,n.alaoui@aui.ma,30232,G&M,Driver,Farid Ou-Bakalla,CDI,2001-02-01
+Mohammed Ait El Haj,m.aitlhaj@aui.ma,30417,G&M,Driver,Hassane Benabdallah,CDI,2006-04-12
+Abdeltif Yamini,a.yamini@aui.ma,30225,G&M,Electrician Mate,Mohamed Bentahiri,CDI,2001-02-01
+El Mehdi Ismaili,e.ismaili@aui.ma,30211,G&M,Electrician,Hassane Benabdallah,CDI,2000-12-21
+Slimane Gafay,s.gafay@aui.ma,30426,G&M,Electrician,Hassane Benabdallah,CDI,2007-04-21
+Abdelmounaim El Oudghiri,a.eloudghiri@aui.ma,30160,G&M,Electrician,Hassane Benabdallah,CDI,1999-12-15
+Mohamed Ayach,30136.noemail@aui.ma,30136,G&M,Aid Technician,Ezzaki Mitouilli,,
+Brahim Amhaouch,b.amhaouch@aui.ma,30072,G&M,Electrician-Mate,Hassane Benabdallah,CDI,1995-05-16
+Ismail Achgani,i.achgani@aui.ma,30439,G&M,Technician,Farid Ou-Bakalla,CDI,2008-02-13
+Fatima El Faizi,f.elfaizi@aui.ma,30011,G&M,Cleaning Lady's Team Supervisor,Nadia Ettabti,CDI,1995-04-16
+Hadda Sahel,h.sahel@aui.ma,30013,G&M,Cleaning Lady's Team Supervisor,Nadia Ettabti,CDI,1995-04-16
+Fattouma Errami,f.errami@aui.ma,30041,G&M,Cleaning Lady's Team Supervisor,Nadia Ettabti,CDI,1995-04-16
+Fatima Zakri,f.zakri@aui.ma,30414,G&M,Cleaning Lady,El Faizi Fatima,CDI,2006-02-23
+Naima Ouba,n.ouba@aui.ma,30447,G&M,Cleaning Lady,El Faizi Fatima,CDI,2008-09-15
+Soumia Bira,30472.noemail@aui.ma,30472,G&M,Cleaning Lady,El Faizi Fatima,,
+Zhor Ayach,z.ayach@aui.ma,30368,G&M,Cleaning Lady,El Faizi Fatima,CDI,2004-01-26
+Najat Attab,30021.noemail@aui.ma,30021,G&M,Cleaning Lady,El Faizi Fatima,,
+Hanane Aouich,30413.noemail@aui.ma,30413,G&M,Cleaning Lady,El Faizi Fatima,,
+Mina Ait Lamkadem,m.aitlamkadem@aui.ma,30148,G&M,Cleaning Lady,El Faizi Fatima,CDI,1999-06-01
+Samira Ait Benlaarbi,s.aitbenlaarbi@aui.ma,30500,G&M,Cleaning Lady,El Faizi Fatima,CDI,2010-12-14
+Amina Ouchaou,a.ouchaou@aui.ma,30432,G&M,Cleaning Lady,Nadia Ettabti,CDI,2007-08-31
+Ilham Chakouchi,i.chakouchi@aui.ma,30475,G&M,Cleaning Lady,Nadia Ettabti,CDI,2009-10-05
+Malika Zouguaghi,m.zouguaghi@aui.ma,30423,G&M,Cleaning Lady,Sahel Hada,CDI,2006-09-29
+Fatouma Toane,30007.noemail@aui.ma,30007,G&M,Cleaning Lady,Sahel Hada,,
+Khadija Sghiouar,k.sghiouar@aui.ma,30250,G&M,Cleaning Lady,Sahel Hada,CDI,2001-08-25
+Lakbira Oullaha,30017.noemail@aui.ma,30017,G&M,Cleaning Lady,Sahel Hada,,
+Kabira Malloul,30446.noemail@aui.ma,30446,G&M,Cleaning Lady,Sahel Hada,,
+Khadija Lakioui,30478.noemail@aui.ma,30478,G&M,Cleaning Lady,Sahel Hada,,
+Sanaa Khadmi,s.khadmi@aui.ma,30451,G&M,Cleaning Lady,Sahel Hada,CDI,2009-01-19
+Fatiha Ittaana,f.ittaana@aui.ma,30445,G&M,Cleaning Lady,Sahel Hada,CDI,2008-09-15
+Fettouma Bourchich,30185.noemail@aui.ma,30185,G&M,Cleaning Lady,Sahel Hada,,
+Itto Amine,30038.noemail@aui.ma,30038,G&M,Cleaning Lady,Sahel Hada,,
+Hayat Zine,30193.noemail@aui.ma,30193,G&M,Cleaning Lady,Errami Fattouma,,
+Fatima Sadouq,f.sadouq@aui.ma,30030,G&M,Cleaning Lady,Errami Fattouma,CDI,1995-04-16
+Fatima Sadouk,f.sadouk@aui.ma,30346,G&M,Cleaning Lady,Errami Fattouma,CDI,2002-09-26
+Hafida Ouboucetta,h.ouboucetta@aui.ma,30180,G&M,Cleaning Lady,Errami Fattouma,CDI,2000-08-01
+Touria Kadiri,t.kadiri@aui.ma,30178,G&M,Cleaning Lady,Errami Fattouma,CDI,2000-08-01
+Mahjouba Irzi,30424.noemail@aui.ma,30424,G&M,Cleaning Lady,Errami Fattouma,,
+Aicha Idrissi,a.idrissi@aui.ma,30155,G&M,Cleaning Lady,Errami Fattouma,CDI,1999-06-01
+Yatto Iberaze,y.iberaze@aui.ma,30008,G&M,Cleaning Lady,Errami Fattouma,CDI,1995-04-16
+Naima Housni,n.hosni@aui.ma,30189,G&M,Cleaning Lady,Errami Fattouma,CDI,2000-10-11
+Malika Hamri,30088.noemail@aui.ma,30088,G&M,Cleaning Lady,Errami Fattouma,,
+Meriem Fadili,30152.noemail@aui.ma,30152,G&M,Cleaning Lady,Errami Fattouma,,
+Aziza Errami,a.rami@aui.ma,30443,G&M,Cleaning Lady,Errami Fattouma,CDI,2008-09-15
+Rabha El-Amraoui,r.elamraoui@aui.ma,30449,G&M,Cleaning Lady,Errami Fattouma,CDI,2008-12-22
+Zhor El Mouden,30150.noemail@aui.ma,30150,G&M,Cleaning Lady,Errami Fattouma,,
+Hassania El Idrysy,h.elidrysy@aui.ma,30176,G&M,Cleaning Lady,Errami Fattouma,CDI,2000-10-30
+Najia Boutaza,30248.noemail@aui.ma,30248,G&M,Cleaning Lady,Errami Fattouma,,
+Fatima Zahra Benabbou,30184.noemail@aui.ma,30184,G&M,Cleaning Lady,Errami Fattouma,,
+Malika Bahmmou,30473.noemail@aui.ma,30473,G&M,Cleaning Lady,Errami Fattouma,,
+Hakima Baalaoui,30027.noemail@aui.ma,30027,G&M,Cleaning Lady,Errami Fattouma,,
+Fatima Amaane,30022.noemail@aui.ma,30022,G&M,Cleaning Lady,Errami Fattouma,,
+Fatima Agidade,30125.noemail@aui.ma,30125,G&M,Cleaning Lady,Errami Fattouma,,
+Atika Affout,at.affout@aui.ma,30419,G&M,Cleaning Lady,Errami Fattouma,CDI,2006-09-08
+Fatiha Abida,f.abida@aui.ma,30012,G&M,Cleaning Lady,Errami Fattouma,CDI,1995-04-16
+Ayada Aarour,30247.noemail@aui.ma,30247,G&M,Cleaning Lady,Errami Fattouma,,
+Halima En-Naili,h.en-naili@aui.ma,70,G&M,Cleaning Lady's Team Supervisor,Soumia Bouha,CDI,1995-02-01
+Aziza Ichou,az.ichou@aui.ma,30177,G&M,Cleaning Lady,Soumia Bouha,CDI,2000-08-01
+Saida Ait Cherou,s.aitcherou@aui.ma,30182,G&M,Cleaning Lady,Soumia Bouha,CDI,2000-10-11
+Adiba Kifahi,a.kifahi@aui.ma,372,Procurement & Infrastructure Development,Purchaser,Said Nouamani,CDI,1999-03-30
+My Younes Kaouatir,m.kaouatir@aui.ma,30108,Procurement & Infrastructure Development,Construction Projects Supervisor,Said Nouamani,CDI,1995-08-21
+Khalid Ghezala,k.ghezala@aui.ma,613,Procurement & Infrastructure Development,Purchaser,Said Nouamani,CDI,2001-09-15
+Lahcen El Makrani,e.elmakrani@aui.ma,30206,Procurement & Infrastructure Development,Stock Controller,Said Nouamani,CDI,2000-12-09
+Mohamed Draoui,m.draoui@aui.ma,30239,Procurement & Infrastructure Development,Purchaser,Said Nouamani,CDI,2001-03-01
+Hanan Boujenna,h.boujenna@aui.ma,3377,Procurement & Infrastructure Development,Purchaser,Said Nouamani,CDI,2024-11-07
+Mohamed Benismail,m.benismail@aui.ma,2950,Procurement & Infrastructure Development,Administrative Clerk,Said Nouamani,CDI,2022-01-02
+Abdenbi Allam,a.allam@aui.ma,30263,Procurement & Infrastructure Development,Inventory Controller,Said Nouamani,CDI,2002-02-25
+Zineb Yassine,z.yassine@aui.ma,319,Security & Safety,Administrative Assistant,Abderrazzak Boulziher,CDI,1998-09-01
+El Houssain Al Bakhouchi,e.albakhouchi@aui.ma,30238,Security & Safety,Security Supervisor,Abderrazzak Boulziher,CDI,2001-03-01
+Abdellah Affout,a.affout@aui.ma,30204,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2000-12-09
+Driss Ychen,d.ychen@aui.ma,30171,Security & Safety,Security Supervisor,Abderrazzak Boulziher,CDI,2000-09-20
+Driss El Maaroufi,d.elmaaroufi@aui.ma,30265,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2002-02-25
+Hicham Ouakki,h.ouakki@aui.ma,30496,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2010-11-01
+Ahmed Farssi,a.farssi@aui.ma,30493,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2010-11-01
+Abdeslam Ziani,a.ziani@aui.ma,30158,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,1999-12-01
+Nourdine Salim,n.salim@aui.ma,30404,Security & Safety,Security Supervisor,Abderrazzak Boulziher,CDI,2006-01-02
+Abdelali Toudghi,a.toudghi@aui.ma,30130,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,1996-04-01
+Driss El Benaissi,d.elbenaissi@aui.ma,30428,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2007-04-21
+Sidi Abdallah Hamidi,s.hamidi@aui.ma,30240,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2001-03-01
+Hamid Chekerni,h.chkerni@aui.ma,30425,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2007-04-21
+El Houssain Ouakrim,e.ouakrim@aui.ma,30208,Security & Safety,Security Supervisor,Abderrazzak Boulziher,CDI,2000-12-13
+El Hassan Lasfar,e.lasfar@aui.ma,30099,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,1995-08-28
+Abdeslam Aanouz,a.aanouz@aui.ma,30466,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2009-09-02
+Morade Irzi,m.irzi@aui.ma,30196,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2000-10-25
+Mohammed El Faizi,m.elfaizi@aui.ma,30164,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2000-07-21
+Hassan Sekouri,h.sekouri@aui.ma,30215,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2000-12-09
+Moulay El Mustapha Maliki,m.maliki@aui.ma,30469,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2009-09-02
+Abderrahmane Menani,a.menani@aui.ma,30157,Security & Safety,Security Supervisor,Abderrazzak Boulziher,CDI,1999-12-01
+Driss Dahabi,d.dahabi@aui.ma,30435,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2007-12-17
+Bouchra Ouddaf,b.ouddaf@aui.ma,30244,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2001-05-21
+Abderrahman Jabour,a.jabour@aui.ma,30173,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2000-09-20
+Jamila Fazazi,j.fazazi@aui.ma,30341,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2002-07-18
+Ibrahim Rouah,b.rouah@aui.ma,30264,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2002-02-25
+Said Hadin,s.hadin@aui.ma,30470,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2009-09-07
+Smail Oussetti,i.oussetti@aui.ma,30491,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2010-11-01
+Riad Aoujil,r.aoujil@aui.ma,30402,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2006-01-02
+El Houssain El Arfaoui,e.elarfaoui@aui.ma,30199,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,2000-10-25
+Rachid Boutaza,r.boutaza@aui.ma,30113,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,1995-10-01
+Abdeslam Lemsiah,a.lamsieh@aui.ma,30065,Security & Safety,Security Agent,Abderrazzak Boulziher,CDI,1995-04-16
+Sanaa Mokaddeme,s.mokaddeme@aui.ma,637,President Office,President's Office Manager,President Office,CDI,2000-10-02
+Laila El Hamdani,l.elhamdani@aui.ma,145,President Office,Executive Assistant,President Office,CDI,1995-09-27
+Mohamed Ouakrim,m.ouakrim@aui.ma,30416,President Office,Driver,President Office,CDI,2006-04-12
+Yassir Touhami,y.touhami@aui.ma,99972,COO Office,COO,President Office,CDI,
+Mhammed Chraibi,m.chraibi@aui.ma,1771,DSA,Assistant Dean for Student Success and Engagement,President Office,CDI,
+Adel Kamane,a.kamane@aui.ma,335,Athletics Services,Assistant Dean for Student Life and Services,President Office,CDI,
+Mohammed Nabil Benchekroun,mn.benchekroun@aui.ma,3378,Operational Excellence,Executive Operational Excellence,President Office,,
+Hariclea P. Zengos,h.zengos@aui.ma,3448,VPAA's Office,VPAA,President Office,CDI,
+Safia Hazzaz,s.hazzaz@aui.ma,2970,HCO,Director of Human Capital,President Office,CDI,
+My Cherif Bel Fekih,c.belfekih@aui.ma,996,OIRE,"Executive Director, Institutional Research and Effectiveness",President Office,CDI,
+Abderrahmane Lazrak,Ab.Lazrak@aui.ma,3493,Strategic Management,Executive Director for Strategic Management,President Office,,
+John Doe,Doe@aui.ma,Doe,ITS,Job1,Yassir Touhami,CDI,2025-03-04
+John Manager,Manager@aui.ma,John,ITS,Manager,Abdelkarim Bettahi,CDI,
+President office,president@aui.ma,President,President Office,President,Admin User,Nomination,
+Nadia Bibouda,n.bibouda@aui.ma,30369,G&M,GM help operator,Lahcen Dada,,
+Khadija Aanouz,k.aanouze@aui.ma,30034,G&M,GM help Operator,Lahcen Dada,,
+Zhor Barkach,z.barkach@aui.ma,30366,G&M,GM help Operator,Lahcen Dada,,
+Khadija Bouchantouf,k.bouchantouf@aui.ma,30149,G&M,Cleaning Lady,El Faizi Fatima,,
+Said Ijaouten,s.ijaouten@aui.ma,30441,Security & Safety,Security Agent,Abderrazzak Boulziher,,
+Aziz seghir,A.Seghir@aui.ma,30200,OBS,AC payable,Ahmed El Addouli,CDI,2000-10-01
+ouchtenni Mouhamed,M.Ouchtenni@aui.ma,,G&M,Driver,Farid Ou-Bakalla,,
+Amaane Said,S.Amaane@aui.ma,30060,Procurement & Infrastructure Development,Stock Room Clerk,Said Nouamani,CDI,1995-01-01
