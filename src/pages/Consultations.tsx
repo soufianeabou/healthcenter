@@ -351,6 +351,14 @@ const handleDeleteRdv = async (id: number) => {
         console.error('[handleSaveTransferts] HTTP', res.status, errText);
         throw new Error(`Erreur ${res.status}: ${errText}`);
       }
+      // Detect old backend: if new fields absent from response, backend not redeployed
+      const saved = await res.json().catch(() => ({}));
+      console.log('[handleSaveTransferts] response body:', saved);
+      if (!('transfertAvisSpecialise' in saved)) {
+        throw new Error(
+          'Le backend doit être mis à jour et redémarré — les colonnes transfert ne sont pas encore actives sur le serveur.'
+        );
+      }
       setTransfertSaved(true);
       setTimeout(() => setTransfertSaved(false), 3000);
       onRefresh?.();
