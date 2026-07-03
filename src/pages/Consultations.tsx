@@ -788,7 +788,7 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
   const { user, effectiveRole } = useAuth();
   const isNurse = effectiveRole === UserRole.INFIRMIER;
   const isAdmin = effectiveRole === UserRole.ADMIN || effectiveRole === UserRole.SUPER_ADMIN;
-  const canEdit = effectiveRole === UserRole.MEDECIN || isAdmin;
+  const canEdit = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.PSY || isAdmin;
 
   const [consultations, setConsultations] = useState<ConsultationRow[]>([]);
   const [externalConsultations, setExternalConsultations] = useState<ConsultationRow[]>([]);

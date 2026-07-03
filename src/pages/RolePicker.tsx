@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, UserCog, Stethoscope, Heart, LogOut, GraduationCap, ShieldCheck } from 'lucide-react';
+import { Shield, UserCog, Stethoscope, Heart, LogOut, GraduationCap, ShieldCheck, Brain } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
 
@@ -67,6 +67,15 @@ const ROLE_CARDS: RoleCard[] = [
     accent: '#C2410C',
     light: '#FFF7ED',
     border: '#FDBA74',
+  },
+  {
+    role: UserRole.PSY,
+    label: 'Psychiatre',
+    description: 'Consultations psychiatriques, dossiers patients et revue des certificats.',
+    icon: Brain,
+    accent: '#6D28D9',
+    light: '#F5F3FF',
+    border: '#C4B5FD',
   },
 ];
 

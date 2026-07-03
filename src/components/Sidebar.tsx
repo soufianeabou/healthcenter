@@ -28,6 +28,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.INFIRMIER]:   'Infirmier(e)',
   [UserRole.STUDENT]:     'Étudiant(e)',
   [UserRole.DSA]:         'DSA',
+  [UserRole.PSY]:         'Psychiatre',
 };
 
 const Sidebar = () => {
@@ -80,6 +81,13 @@ const Sidebar = () => {
     { icon: ShieldCheck,     label: 'Certificats DSA',    path: '/dsa-certificates' },
   ];
 
+  const psyNavItems = [
+    { icon: LayoutDashboard, label: 'Tableau de bord',   path: '/dashboard' },
+    { icon: Brain,           label: 'Psychiatrie',        path: '/psychiatrie' },
+    { icon: Users,           label: 'Patients',           path: '/patients' },
+    { icon: FileCheck,       label: 'Revue des certificats', path: '/certificate-review' },
+  ];
+
   const navItems = (() => {
     switch (effectiveRole) {
       case UserRole.ADMIN:
@@ -93,6 +101,8 @@ const Sidebar = () => {
         return studentNavItems;
       case UserRole.DSA:
         return dsaNavItems;
+      case UserRole.PSY:
+        return psyNavItems;
       default:
         return adminNavItems;
     }

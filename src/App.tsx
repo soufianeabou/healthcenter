@@ -29,7 +29,7 @@ import CertificateReview from './pages/CertificateReview';
 import DSACertificates from './pages/DSACertificates';
 
 function AppContent() {
-  const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole, isMedecin, isStudent, isDSA } = useAuth();
+  const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole, isMedecin, isStudent, isDSA, isPsy } = useAuth();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -61,6 +61,7 @@ function AppContent() {
   const isClinical    = effectiveRole === UserRole.MEDECIN || effectiveRole === UserRole.INFIRMIER;
   const isStudentRole = effectiveRole === UserRole.STUDENT;
   const isDSARole     = effectiveRole === UserRole.DSA;
+  const isPsyRole     = effectiveRole === UserRole.PSY;
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -100,9 +101,16 @@ function AppContent() {
                 <Route path="/materiels/:id" element={<MaterielDetails />} />
               </>
             )}
-            {/* Psychiatry: only medecin/admin, not nurses */}
-            {(isAdmin || (isClinical && effectiveRole !== UserRole.INFIRMIER)) && (
+            {/* Psychiatry: medecin/admin/PSY, not nurses */}
+            {(isAdmin || isPsyRole || (isClinical && effectiveRole !== UserRole.INFIRMIER)) && (
               <Route path="/psychiatrie" element={<Consultations typeFilter="PSYCHIATRIE" />} />
+            )}
+
+            {/* PSY-only routes */}
+            {isPsyRole && (
+              <>
+                <Route path="/patients" element={<Patients />} />
+              </>
             )}
 
             {/* Admin only */}
@@ -117,8 +125,8 @@ function AppContent() {
               </>
             )}
 
-            {/* Certificate review — Admin & Médecin */}
-            {(isAdmin || isMedecin()) && (
+            {/* Certificate review — Admin, Médecin & PSY */}
+            {(isAdmin || isMedecin() || isPsy()) && (
               <Route path="/certificate-review" element={<CertificateReview />} />
             )}
 

@@ -4,7 +4,8 @@ export enum UserRole {
   INFIRMIER = 'INFIRMIER',
   SUPER_ADMIN = 'SUPER_ADMIN',
   STUDENT = 'STUDENT',
-  DSA = 'DSA'
+  DSA = 'DSA',
+  PSY = 'PSY',
 }
 
 // Type for user status
@@ -35,6 +36,8 @@ export function getRoleDisplayName(role: UserRole): string {
       return 'Student';
     case UserRole.DSA:
       return 'DSA';
+    case UserRole.PSY:
+      return 'Psychiatre';
     default:
       return 'Unknown';
   }
@@ -55,6 +58,8 @@ export function getRoleBadgeColors(role: UserRole): string {
       return 'bg-teal-100 text-teal-800';
     case UserRole.DSA:
       return 'bg-orange-100 text-orange-800';
+    case UserRole.PSY:
+      return 'bg-purple-100 text-purple-800';
     default:
       return 'bg-gray-100 text-gray-800';
   }

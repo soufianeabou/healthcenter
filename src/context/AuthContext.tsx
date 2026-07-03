@@ -143,6 +143,7 @@ interface AuthContextType {
   isInfirmier: () => boolean;
   isStudent: () => boolean;
   isDSA: () => boolean;
+  isPsy: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -364,6 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isInfirmier = ()                  => effectiveRole === UserRole.INFIRMIER;
   const isStudent   = ()                  => effectiveRole === UserRole.STUDENT;
   const isDSA       = ()                  => effectiveRole === UserRole.DSA;
+  const isPsy       = ()                  => effectiveRole === UserRole.PSY;
 
   return (
     <AuthContext.Provider
@@ -387,6 +389,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isInfirmier,
         isStudent,
         isDSA,
+        isPsy,
       }}
     >
       {children}
