@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Filter, Calendar, User, FileText, Pill,
   Clock, Trash2, ChevronRight, Activity, AlertCircle, Package, X,
-  Stethoscope, Edit2, CalendarClock,
+  Stethoscope, Edit2, CalendarClock, Printer, ArrowUpRight, Send,
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import ConsultationBackendForm from '../components/ConsultationBackendForm';
@@ -47,6 +47,12 @@ interface ConsultationRow {
   psyNotes?: string;
   extremeUrgence?: boolean;
   suiviOf?: number;
+  transfertAvisSpecialise?: boolean;
+  transfertExamenComplementaire?: boolean;
+  transfertPriseEnCharge?: boolean;
+  pecNumeroCertifAssurance?: string;
+  pecDescription?: string;
+  pecCauses?: string;
   prochainRdv?: string;
   rdvList?: Array<{ id: number; rdvDate: string; note?: string; done: boolean }>;
 }
@@ -80,7 +86,7 @@ interface DetailsModalProps {
 const DetailsModal: React.FC<DetailsModalProps> = ({
   consultation, canEdit, onClose, onDeleted, onSaved, onCreateSuivi,
 }) => {
-  const [tab, setTab] = useState<'info' | 'materiels'>('info');
+  const [tab, setTab] = useState<'info' | 'materiels' | 'transferts'>('info');
   const [editing, setEditing] = useState(false);
   const [diagnostic, setDiagnostic] = useState(consultation.diagnostic || '');
   const [traitement, setTraitement] = useState(consultation.traitement || '');
@@ -117,6 +123,14 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
   const [matError, setMatError] = useState('');
   const [selectedMat, setSelectedMat] = useState<number | ''>('');
   const [showAssign, setShowAssign] = useState(false);
+
+  // Transferts state
+  const [transfertAvis, setTransfertAvis] = useState<boolean>(c0.transfertAvisSpecialise ?? false);
+  const [transfertExamen, setTransfertExamen] = useState<boolean>(c0.transfertExamenComplementaire ?? false);
+  const [transfertPec, setTransfertPec] = useState<boolean>(c0.transfertPriseEnCharge ?? false);
+  const [pecAssurance, setPecAssurance] = useState<string>(c0.pecNumeroCertifAssurance ?? '');
+  const [pecDescriptionText, setPecDescriptionText] = useState<string>(c0.pecDescription ?? '');
+  const [pecCausesText, setPecCausesText] = useState<string>(c0.pecCauses ?? '');
 
   const { constantes, notes } = parseConstantes(consultation.diagnostic);
   const isPending = consultation.status === 'PENDING';
@@ -173,6 +187,12 @@ const DetailsModal: React.FC<DetailsModalProps> = ({
           extremeUrgence: c0.extremeUrgence ?? null,
           prochainRdv: consultation.prochainRdv || null,
           parentConsultationId: consultation.suiviOf ?? null,
+          transfertAvisSpecialise: transfertAvis || null,
+          transfertExamenComplementaire: transfertExamen || null,
+          transfertPriseEnCharge: transfertPec || null,
+          pecNumeroCertifAssurance: pecAssurance || null,
+          pecDescription: pecDescriptionText || null,
+          pecCauses: pecCausesText || null,
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -283,6 +303,137 @@ const handleDeleteRdv = async (id: number) => {
     } catch (e: any) { setMatError(e.message); }
   };
 
+  const printPec = () => {
+    const isStudent = consultation.patient?.typePatient === 'ETUDIANT';
+    const patientName = consultation.patientName ?? '';
+    const idNum = String(consultation.patient?.idNum ?? '');
+    const doctorName = consultation.doctorName ?? '';
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' });
+    const logoUrl = `${window.location.origin}/assets/auilogo.png`;
+    const idLabel = isStudent ? "Carte d'étudiant(e) N°" : "Carte d'Identité Nationale N°";
+    const idLabelEn = isStudent ? "(Student Identity Card N°)" : "(National Identity Card N°)";
+    const descLabel = isStudent
+      ? "Brève description du problème de l'étudiant(e)"
+      : "Brève description du problème de l'employé(e)";
+    const descLabelEn = isStudent
+      ? "(Brief Description of the Medical Problem of the Student)"
+      : "(Brief Description of the Medical Problem of the Employee)";
+    const authSubject = isStudent ? "l'étudiant(e)" : "l'employé(e)";
+    const authSubjectEn = isStudent ? "student" : "employee";
+
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Prise en Charge — ${esc(patientName)}</title>
+  <style>
+    @page { size: A4 portrait; margin: 20mm 18mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; margin: 0; padding: 0; }
+    .header { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2.5px solid #003366; }
+    .logo { width: 88px; height: auto; flex-shrink: 0; }
+    .header-text { flex: 1; text-align: center; }
+    .header-text .hc { font-size: 13pt; font-weight: bold; color: #003366; margin: 0 0 4px; letter-spacing: 1px; }
+    .header-text .title-fr { font-size: 12pt; font-weight: bold; color: #003366; margin: 0 0 2px; }
+    .header-text .title-en { font-size: 10pt; color: #444; font-style: italic; margin: 0; }
+    .row2 { display: flex; gap: 30px; margin-bottom: 10px; }
+    .field-block { margin-bottom: 10px; }
+    .field-label { font-size: 10.5pt; font-weight: bold; }
+    .field-sublabel { font-size: 9pt; color: #666; font-style: italic; margin-top: 1px; }
+    .field-value { border-bottom: 1px solid #333; min-height: 22px; padding: 1px 3px; display: inline-block; min-width: 180px; font-size: 11pt; }
+    .field-value.wide { min-width: 320px; }
+    .desc-section { margin: 14px 0; }
+    .desc-section .lbl { font-weight: bold; font-size: 10.5pt; margin-bottom: 2px; }
+    .desc-section .sub { font-size: 9pt; font-style: italic; color: #666; margin-bottom: 6px; }
+    .desc-box { border: 1px solid #555; min-height: 80px; padding: 6px 8px; font-size: 11pt; white-space: pre-wrap; word-wrap: break-word; }
+    .causes-box { border: 1px solid #555; min-height: 54px; padding: 6px 8px; font-size: 11pt; white-space: pre-wrap; word-wrap: break-word; }
+    .auth { margin: 18px 0 8px; font-size: 10.5pt; line-height: 1.7; }
+    .sig-row { display: flex; gap: 40px; margin-top: 28px; }
+    .sig-block { flex: 1; }
+    .sig-label { font-weight: bold; font-size: 10.5pt; margin-bottom: 4px; }
+    .sig-sublabel { font-size: 9pt; font-style: italic; color: #666; }
+    .sig-line { border-bottom: 1px solid #333; min-height: 50px; margin-top: 6px; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="${logoUrl}" class="logo" alt="AUI Logo" onerror="this.style.display='none'" />
+    <div class="header-text">
+      <p class="hc">HEALTH CENTER</p>
+      <p class="title-fr">AUTORISATION DE PRISE EN CHARGE MEDICALE</p>
+      <p class="title-en">MEDICAL TREATMENT AUTHORIZATION FORM</p>
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="field-block" style="flex:1">
+      <div class="field-label">Date : <span class="field-value">${esc(dateStr)}</span></div>
+      <div class="field-sublabel">(Date)</div>
+    </div>
+    <div class="field-block" style="flex:1">
+      <div class="field-label">Heure : <span class="field-value">${esc(timeStr)}</span></div>
+      <div class="field-sublabel">(Time)</div>
+    </div>
+  </div>
+
+  <div class="field-block">
+    <div class="field-label">Nom &amp; Prénom : <span class="field-value wide">${esc(patientName)}</span></div>
+    <div class="field-sublabel">(Full Name)</div>
+  </div>
+
+  <div class="row2">
+    <div class="field-block" style="flex:1">
+      <div class="field-label">${esc(idLabel)} : <span class="field-value">${esc(idNum)}</span></div>
+      <div class="field-sublabel">${esc(idLabelEn)}</div>
+    </div>
+    <div class="field-block" style="flex:1">
+      <div class="field-label">Certificat d'assurance N° : <span class="field-value">${esc(pecAssurance)}</span></div>
+      <div class="field-sublabel">(Insurance Certificate N°)</div>
+    </div>
+  </div>
+
+  <div class="desc-section">
+    <div class="lbl">${esc(descLabel)} :</div>
+    <div class="sub">${esc(descLabelEn)}</div>
+    <div class="desc-box">${esc(pecDescriptionText)}</div>
+  </div>
+
+  <div class="desc-section">
+    <div class="lbl">Causes et circonstances en cas d'accident :</div>
+    <div class="sub">(Causes &amp; Circumstances in case of accident)</div>
+    <div class="causes-box">${esc(pecCausesText)}</div>
+  </div>
+
+  <div class="auth">
+    <p>Ce formulaire autorise …………………..à prendre en charge ${esc(authSubject)} susmentionné(e) à la limite de l'étendue des garanties du contrat d'assurance.</p>
+    <p><em>This Form authorizes ………………………..to treat the above-mentioned ${esc(authSubjectEn)} to the limits of guarantees stipulated in the insurance contract.</em></p>
+  </div>
+
+  <div class="sig-row">
+    <div class="sig-block">
+      <div class="sig-label">Nom du médecin : ${esc(doctorName)}</div>
+      <div class="sig-sublabel">(Doctor's name)</div>
+    </div>
+    <div class="sig-block">
+      <div class="sig-label">Signature :</div>
+      <div class="sig-sublabel">(Signature)</div>
+      <div class="sig-line"></div>
+    </div>
+  </div>
+
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 400); };</script>
+</body>
+</html>`;
+
+    const w = window.open('', '_blank', 'width=870,height=1150,scrollbars=yes');
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
   return (
     <div className="flex flex-col" style={{ minWidth: 560, maxWidth: 720 }}>
       {/* Status banner for pending */}
@@ -296,7 +447,7 @@ const handleDeleteRdv = async (id: number) => {
 
       {/* Tabs — hide Matériels for psychiatry consultations */}
       <div className="flex border-b border-gray-200 px-5">
-        {(['info', 'materiels'] as const)
+        {(['info', 'materiels', 'transferts'] as const)
           .filter(t => t !== 'materiels' || consultation.consultationType !== 'PSYCHIATRIE')
           .map(t => (
           <button
@@ -310,8 +461,15 @@ const handleDeleteRdv = async (id: number) => {
           >
             {t === 'info' ? (
               <span className="flex items-center gap-1.5"><FileText className="w-4 h-4" /> Consultation</span>
-            ) : (
+            ) : t === 'materiels' ? (
               <span className="flex items-center gap-1.5"><Package className="w-4 h-4" /> Matériels</span>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <Send className="w-4 h-4" /> Transferts
+                {(transfertAvis || transfertExamen || transfertPec) && (
+                  <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                )}
+              </span>
             )}
           </button>
         ))}
@@ -708,6 +866,128 @@ const handleDeleteRdv = async (id: number) => {
               </div>
             </div>
           </>
+        )}
+
+        {tab === 'transferts' && (
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 mb-1 flex items-center gap-1.5">
+                <ArrowUpRight className="w-4 h-4 text-blue-600" /> Transferts
+              </h4>
+              <p className="text-xs text-gray-500 mb-3">Cochez les transferts applicables à cette consultation.</p>
+              <div className="space-y-2">
+                {([
+                  { key: 'avis', label: 'Avis spécialisé', val: transfertAvis, set: setTransfertAvis },
+                  { key: 'examen', label: 'Examen complémentaire', val: transfertExamen, set: setTransfertExamen },
+                  { key: 'pec', label: 'Prise en charge', val: transfertPec, set: setTransfertPec },
+                ] as const).map(({ key, label, val, set }) => (
+                  <label key={key} className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer select-none transition-all ${
+                    val ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}>
+                    <div
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                        val ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                      }`}
+                      onClick={() => canEdit && (set as any)(!val)}
+                    >
+                      {val && <span className="text-white text-xs font-bold leading-none">✓</span>}
+                    </div>
+                    <span
+                      className={`text-sm font-medium ${val ? 'text-blue-800' : 'text-gray-700'}`}
+                      onClick={() => canEdit && (set as any)(!val)}
+                    >
+                      {label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {transfertPec && (
+              <div className="border-2 border-blue-200 rounded-xl bg-blue-50/40 p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-sm font-bold text-blue-900 flex items-center gap-1.5">
+                    <Printer className="w-4 h-4" />
+                    Formulaire de Prise en Charge
+                  </h5>
+                  <button
+                    onClick={printPec}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> Imprimer / PDF
+                  </button>
+                </div>
+
+                {/* Patient type indicator */}
+                <div className="text-xs font-medium text-blue-700 bg-blue-100 rounded-lg px-3 py-2">
+                  {consultation.patient?.typePatient === 'ETUDIANT'
+                    ? '🎓 Formulaire étudiant(e) — Carte d\'étudiant(e) N°'
+                    : '👤 Formulaire employé(e) / personnel — Carte d\'Identité Nationale N°'}
+                  {consultation.patient?.idNum && (
+                    <span className="ml-2 font-bold">{consultation.patient.idNum}</span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Certificat d'assurance N°
+                    </label>
+                    <input
+                      type="text"
+                      value={pecAssurance}
+                      onChange={e => setPecAssurance(e.target.value)}
+                      placeholder="Numéro du certificat"
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    {consultation.patient?.typePatient === 'ETUDIANT'
+                      ? "Brève description du problème de l'étudiant(e)"
+                      : "Brève description du problème de l'employé(e)"}
+                  </label>
+                  <textarea
+                    value={pecDescriptionText}
+                    onChange={e => setPecDescriptionText(e.target.value)}
+                    rows={4}
+                    placeholder="Décrivez le problème médical…"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Causes et circonstances en cas d'accident
+                  </label>
+                  <textarea
+                    value={pecCausesText}
+                    onChange={e => setPecCausesText(e.target.value)}
+                    rows={3}
+                    placeholder="Causes et circonstances (si applicable)…"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
+                  />
+                </div>
+
+                <p className="text-xs text-gray-500 italic">
+                  Les données du patient (nom, date, médecin) seront automatiquement incluses lors de l'impression.
+                </p>
+              </div>
+            )}
+
+            {canEdit && (
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="w-full py-2.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {saving ? 'Enregistrement…' : 'Enregistrer les transferts'}
+              </button>
+            )}
+            {saveError && <p className="text-red-600 text-sm">{saveError}</p>}
+          </div>
         )}
 
         {tab === 'materiels' && (
