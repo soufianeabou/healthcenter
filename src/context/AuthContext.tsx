@@ -12,6 +12,7 @@ interface User {
   telephone: string;
   email: string;
   status: UserStatus;
+  idNum?: number;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -114,6 +115,38 @@ const resolveUserFromBackendPersonnel = async (email: string): Promise<User | nu
       telephone:  match.telephone  ?? '',
       email:      match.email      ?? email,
       status:     UserStatus.ACTIVE,
+    };
+  } catch {
+    return null;
+  }
+};
+
+/* Fetches the student roster from the patient service and matches by email.
+   Used when the email is authenticated via SSO but has no personnel row —
+   any AUI account found here is a student and gets the STUDENT portal role. */
+const resolveStudentFromPatientService = async (email: string): Promise<User | null> => {
+  try {
+    const res = await fetch('https://hc.aui.ma/api/patients/by-type/students', {
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    const students: any[] = await res.json();
+    const match = students.find(
+      (p) => normalizeEmail(p.email) === normalizeEmail(email),
+    );
+    if (!match) return null;
+    return {
+      id:         match.id,
+      nom:        match.nom    ?? '',
+      prenom:     match.prenom ?? '',
+      username:   match.email  ?? email,
+      passwd:     null,
+      role:       UserRole.STUDENT,
+      specialite: '',
+      telephone:  '',
+      email:      match.email  ?? email,
+      status:     UserStatus.ACTIVE,
+      idNum:      match.idNum ?? undefined,
     };
   } catch {
     return null;
@@ -262,13 +295,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
           persistUser(personnelUser, 'sso');
         } else {
-          // Authenticated by Azure but not found in the personnel table
-          clearStoredAuth();
-          setUser(null);
-          setIsAuthenticated(false);
-          setAuthError(
-            `Le compte ${email} est authentifié mais n'a pas de profil personnel dans le système. Contactez l'administrateur.`,
-          );
+          // 3. Not staff — check the student roster before giving up
+          const studentUser = await resolveStudentFromPatientService(email);
+
+          if (studentUser) {
+            setAuthError(null);
+            setUser(studentUser);
+            setIsAuthenticated(true);
+            persistUser(studentUser, 'sso');
+          } else {
+            // Authenticated by Azure but not found as personnel or student
+            clearStoredAuth();
+            setUser(null);
+            setIsAuthenticated(false);
+            setAuthError(
+              `Le compte ${email} est authentifié mais n'a pas de profil dans le système. Contactez l'administrateur.`,
+            );
+          }
         }
       } catch (err: any) {
         clearTimeout(timer);
