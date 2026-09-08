@@ -88,18 +88,23 @@ const DSACertificates: React.FC = () => {
 
   const fetchAttendance = async (cert: AbsenceCertificate) => {
     if (!cert.studentIdNum) return;
+    const requestBody = { studentIds: [cert.studentIdNum], year: '2627', session: 'FA' };
+    console.log('[attendance] request →', ATTENDANCE_API, requestBody);
     try {
       setAttendanceLoading(true);
       const res = await fetch(ATTENDANCE_API, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentIds: [cert.studentIdNum], year: '2627', session: 'FA' }),
+        body: JSON.stringify(requestBody),
       });
-      if (!res.ok) throw new Error();
+      console.log('[attendance] response status ←', res.status);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
+      console.log('[attendance] response body ←', data);
       setAttendanceRecords(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      console.error('[attendance] fetch failed:', err);
       // Attendance system unreachable — the modal falls back to manual entry below.
       setAttendanceRecords([]);
     } finally {
@@ -128,6 +133,7 @@ const DSACertificates: React.FC = () => {
       {},
     ),
   );
+  console.log('[attendance] grouped courses:', attendanceCourses, 'from', attendanceRecords.length, 'record(s)');
 
   const selectedCourseRecords = attendanceCourses.find(c => c.course_sis_id === selectedCourseSisId)?.records ?? [];
 
