@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, BookOpen, AlertTriangle } from 'lucide-react';
 import { AbsenceCertificate, AttendanceFilterRecord, DSAReviewPayload } from '../types/certificate';
+import { useAuth } from '../context/AuthContext';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
 const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter';
@@ -39,6 +40,7 @@ const DSABadge = ({ status }: { status: string | null }) => {
 };
 
 const DSACertificates: React.FC = () => {
+  const { user } = useAuth();
   const [certificates, setCertificates] = useState<AbsenceCertificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -88,7 +90,7 @@ const DSACertificates: React.FC = () => {
 
   const fetchAttendance = async (cert: AbsenceCertificate) => {
     if (!cert.studentIdNum) return;
-    const requestBody = { studentIds: [cert.studentIdNum], year: '2627', session: 'FA' };
+    const requestBody = { studentIds: [cert.studentIdNum], year: '2627', session: 'FA', userEmail: user?.email ?? '' };
     console.log('[attendance] request →', ATTENDANCE_API, requestBody);
     try {
       setAttendanceLoading(true);
