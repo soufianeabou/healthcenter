@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, BookOpen, AlertTriangle } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, AlertTriangle } from 'lucide-react';
 import { AbsenceCertificate, AttendanceFilterRecord, DSAReviewPayload } from '../types/certificate';
 import { useAuth } from '../context/AuthContext';
 
@@ -52,7 +52,6 @@ const DSACertificates: React.FC = () => {
 
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceFilterRecord[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [selectedCourseSisId, setSelectedCourseSisId] = useState<string | null>(null);
 
   const fetchAll = async () => {
     try {
@@ -84,7 +83,6 @@ const DSACertificates: React.FC = () => {
       dsaStatus: (cert.dsaStatus as 'APPROVED' | 'REJECTED') ?? 'APPROVED',
     });
     setAttendanceRecords([]);
-    setSelectedCourseSisId(null);
     void fetchAttendance(cert);
   };
 
@@ -114,40 +112,14 @@ const DSACertificates: React.FC = () => {
     }
   };
 
-  const attendanceCourses = Object.values(
-    attendanceRecords.reduce<Record<string, { course_sis_id: string; course_name: string; instructor_name: string; trmCde: string | null; yrCde: string | null; absentLimit: number | null; records: AttendanceFilterRecord[] }>>(
-      (acc, r) => {
-        const key = r.course_sis_id;
-        if (!acc[key]) {
-          acc[key] = {
-            course_sis_id: r.course_sis_id,
-            course_name: r.course_name || r.course_sis_id,
-            instructor_name: r.instructor_name || '—',
-            trmCde: r.trmCde,
-            yrCde: r.yrCde,
-            absentLimit: r.absentLimit,
-            records: [],
-          };
-        }
-        acc[key].records.push(r);
-        return acc;
-      },
-      {},
-    ),
-  );
-  console.log('[attendance] grouped courses:', attendanceCourses, 'from', attendanceRecords.length, 'record(s)');
-
-  const selectedCourseRecords = attendanceCourses.find(c => c.course_sis_id === selectedCourseSisId)?.records ?? [];
-
-  const selectCourse = (course: (typeof attendanceCourses)[number]) => {
-    setSelectedCourseSisId(course.course_sis_id);
+  const toggleAbsence = (key: AbsenceKey, record: AttendanceFilterRecord | undefined, checked: boolean) => {
     setForm(f => ({
       ...f,
-      course: course.course_name,
-      professor: course.instructor_name,
-      absence1: false, absence2: false, absence3: false,
-      absence4: false, absence5: false, absence6: false,
-      absence7: false, absence8: false, absence9: false,
+      [key]: checked,
+      // Auto-fill Course/Professor from whichever real record was just ticked.
+      ...(checked && record
+        ? { course: record.course_name?.trim() || record.course_sis_id, professor: record.instructor_name || f.professor }
+        : {}),
     }));
   };
 
@@ -340,44 +312,6 @@ const DSACertificates: React.FC = () => {
                   />
                 </div>
 
-                {attendanceLoading && (
-                  <p className="text-xs text-gray-500">Loading attendance records…</p>
-                )}
-
-                {!attendanceLoading && attendanceCourses.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Course (from attendance system) <span className="text-red-500">*</span></label>
-                    <div className="grid gap-2">
-                      {attendanceCourses.map(c => {
-                        const absentCount = c.records.length;
-                        const overLimit = c.absentLimit != null && absentCount > c.absentLimit;
-                        return (
-                          <button
-                            type="button"
-                            key={c.course_sis_id}
-                            onClick={() => selectCourse(c)}
-                            className={`text-left border-2 rounded-lg p-3 transition-colors ${selectedCourseSisId === c.course_sis_id ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <BookOpen className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate">{c.course_name}</p>
-                                  <p className="text-xs text-gray-500 truncate">{c.instructor_name}{c.trmCde ? ` · ${c.trmCde}${c.yrCde ?? ''}` : ''}</p>
-                                </div>
-                              </div>
-                              <span className={`flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${overLimit ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                {overLimit && <AlertTriangle className="w-3 h-3" />}
-                                {absentCount}{c.absentLimit != null ? ` / ${c.absentLimit}` : ''} absences
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Course <span className="text-red-500">*</span></label>
@@ -416,15 +350,52 @@ const DSACertificates: React.FC = () => {
               {/* Absence records */}
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absence Records</p>
-                {selectedCourseRecords.length > 0 ? (
+                {attendanceLoading && (
+                  <p className="text-xs text-gray-500">Loading attendance records…</p>
+                )}
+                {!attendanceLoading && attendanceRecords.length > 0 ? (
                   <>
                     <p className="text-xs text-gray-500">Tick each recorded absence considered under this appeal</p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {ABSENCE_KEYS.map((key, idx) => {
-                        const record = selectedCourseRecords[idx];
+                        const record = attendanceRecords[idx];
                         if (!record) return null;
                         const dateLabel = record.marked_at ? new Date(record.marked_at).toLocaleDateString() : ABSENCE_LABELS[idx];
+                        const overLimit = record.absentLimit != null && attendanceRecords.length > record.absentLimit;
                         return (
+                          <label
+                            key={key}
+                            className={`flex items-start gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={form[key]}
+                              onChange={e => toggleAbsence(key, record, e.target.checked)}
+                              className="w-4 h-4 accent-orange-600 mt-0.5"
+                            />
+                            <span className="text-sm text-gray-700">
+                              <span className="font-medium block">{record.course_name?.trim() || record.course_sis_id}</span>
+                              <span className="block text-xs text-gray-500">
+                                {dateLabel} · {record.attendance || '—'}
+                                {record.instructor_name ? ` · ${record.instructor_name}` : ''}
+                              </span>
+                              {overLimit && (
+                                <span className="inline-flex items-center gap-1 text-xs text-red-600 mt-1">
+                                  <AlertTriangle className="w-3 h-3" /> exceeds {record.absentLimit} absence limit
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  !attendanceLoading && (
+                    <>
+                      <p className="text-xs text-gray-500">Tick each absence considered under this appeal</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {ABSENCE_KEYS.map((key, idx) => (
                           <label
                             key={key}
                             className={`flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
@@ -435,39 +406,12 @@ const DSACertificates: React.FC = () => {
                               onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
                               className="w-4 h-4 accent-orange-600"
                             />
-                            <span className="text-sm text-gray-700">
-                              {dateLabel}
-                              {record.attendance && <span className="block text-xs text-gray-400">{record.attendance}</span>}
-                            </span>
+                            <span className="text-sm text-gray-700">{ABSENCE_LABELS[idx]}</span>
                           </label>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-gray-500">
-                      {attendanceCourses.length > 0
-                        ? 'Select a course above to see its recorded absences.'
-                        : 'Tick each absence considered under this appeal'}
-                    </p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {ABSENCE_KEYS.map((key, idx) => (
-                        <label
-                          key={key}
-                          className={`flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={form[key]}
-                            onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
-                            className="w-4 h-4 accent-orange-600"
-                          />
-                          <span className="text-sm text-gray-700">{ABSENCE_LABELS[idx]}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </>
+                        ))}
+                      </div>
+                    </>
+                  )
                 )}
               </div>
 
