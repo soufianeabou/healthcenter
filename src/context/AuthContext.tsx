@@ -64,6 +64,41 @@ const extractEmailFromPrincipal = (principal: unknown): string | null => {
   return candidates.find((v) => v.includes('@')) ?? null;
 };
 
+/* Azure AD is the authoritative source for a person's name — the personnel/
+   patient DB rows can carry stale or duplicated data (e.g. a reused email on
+   an old record). When Azure supplies given_name/family_name (or a full
+   name), prefer it over whatever the DB match returned. */
+const extractNameFromPrincipal = (principal: unknown): { prenom: string; nom: string } | null => {
+  if (!principal) return null;
+
+  const root   = principal as any;
+  const nested = (root.principal as any) ?? root;
+  const attrs  = (nested.attributes as any) ?? nested;
+
+  const givenName  = typeof attrs.given_name === 'string' ? attrs.given_name.trim() : '';
+  const familyName = typeof attrs.family_name === 'string' ? attrs.family_name.trim() : '';
+  if (givenName || familyName) return { prenom: givenName, nom: familyName };
+
+  const fullName = typeof attrs.name === 'string' ? attrs.name.trim() : '';
+  if (fullName) {
+    const parts = fullName.split(/\s+/);
+    return { prenom: parts[0], nom: parts.slice(1).join(' ') };
+  }
+
+  return null;
+};
+
+/* Applies the Azure-sourced name on top of a DB-resolved user, when available. */
+const withAuthoritativeName = (user: User, principal: unknown): User => {
+  const azureName = extractNameFromPrincipal(principal);
+  if (!azureName) return user;
+  return {
+    ...user,
+    prenom: azureName.prenom || user.prenom,
+    nom:    azureName.nom    || user.nom,
+  };
+};
+
 /* ─────────────────────────────────────────────────────────
    SUPER_ADMIN override — these emails get the elevated role
    regardless of what is stored in the personnel table.
@@ -271,14 +306,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 1. SUPER_ADMIN override — elevated role regardless of DB entry
         if (SUPER_ADMIN_EMAILS.has(normalizedEmail)) {
           const personnelUser = await resolveUserFromBackendPersonnel(email);
-          const superAdminUser: User = personnelUser
-            ? { ...personnelUser, role: UserRole.SUPER_ADMIN }
-            : {
-                id: 0, nom: normalizedEmail.split('@')[0], prenom: '',
-                username: email, passwd: null,
-                role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
-                telephone: '', email, status: UserStatus.ACTIVE,
-              };
+          const superAdminUser: User = withAuthoritativeName(
+            personnelUser
+              ? { ...personnelUser, role: UserRole.SUPER_ADMIN }
+              : {
+                  id: 0, nom: normalizedEmail.split('@')[0], prenom: '',
+                  username: email, passwd: null,
+                  role: UserRole.SUPER_ADMIN, specialite: 'Supervision',
+                  telephone: '', email, status: UserStatus.ACTIVE,
+                },
+            principal,
+          );
           setAuthError(null);
           setUser(superAdminUser);
           setIsAuthenticated(true);
@@ -290,19 +328,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const personnelUser = await resolveUserFromBackendPersonnel(email);
 
         if (personnelUser) {
+          const finalPersonnelUser = withAuthoritativeName(personnelUser, principal);
           setAuthError(null);
-          setUser(personnelUser);
+          setUser(finalPersonnelUser);
           setIsAuthenticated(true);
-          persistUser(personnelUser, 'sso');
+          persistUser(finalPersonnelUser, 'sso');
         } else {
           // 3. Not staff — check the student roster before giving up
           const studentUser = await resolveStudentFromPatientService(email);
 
           if (studentUser) {
+            const finalStudentUser = withAuthoritativeName(studentUser, principal);
             setAuthError(null);
-            setUser(studentUser);
+            setUser(finalStudentUser);
             setIsAuthenticated(true);
-            persistUser(studentUser, 'sso');
+            persistUser(finalStudentUser, 'sso');
           } else {
             // Authenticated by Azure but not found as personnel or student
             clearStoredAuth();
