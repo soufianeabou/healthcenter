@@ -94,7 +94,7 @@ const DSACertificates: React.FC = () => {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentIds: [cert.studentIdNum] }),
+        body: JSON.stringify({ studentIds: [cert.studentIdNum], year: '2627', session: 'FA' }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
