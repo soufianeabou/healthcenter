@@ -12,6 +12,7 @@ export interface AbsenceCertificate {
   // Student submission
   studentName: string;
   studentEmail: string;
+  studentIdNum: string | null;
   submissionDate: string; // ISO datetime
   certificateFileName: string;
   certificateFileType: string;
@@ -55,6 +56,27 @@ export interface HCReviewPayload {
   healthCenterStatus: 'APPROVED_HC' | 'REJECTED_HC';
   healthCenterReviewerName: string;
   healthCenterSignature: string;
+}
+
+export interface AttendanceFilterRecord {
+  id: number;
+  student_sis_id: string;
+  course_sis_id: string;
+  attendance: string;
+  count: number | null;
+  marked_at: string | null;
+  marked_time: string | null;
+  seniority: string | null;
+  marked_by_sis_id: string | null;
+  course_name: string | null;
+  instructor_name: string | null;
+  status: string | null;
+  grade: string | null;
+  trmCde: string | null;
+  yrCde: string | null;
+  absentLimit: number | null;
+  firstName: string | null;
+  lastName: string | null;
 }
 
 export interface DSAReviewPayload {

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search } from 'lucide-react';
-import { AbsenceCertificate, DSAReviewPayload } from '../types/certificate';
+import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, BookOpen, AlertTriangle } from 'lucide-react';
+import { AbsenceCertificate, AttendanceFilterRecord, DSAReviewPayload } from '../types/certificate';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
+const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter';
 
 const ABSENCE_LABELS = [
   'Absence 1', 'Absence 2', 'Absence 3',
@@ -47,6 +48,10 @@ const DSACertificates: React.FC = () => {
   const [form, setForm] = useState<DSAReviewPayload>(emptyForm());
   const [submitting, setSubmitting] = useState(false);
 
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceFilterRecord[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [selectedCourseSisId, setSelectedCourseSisId] = useState<string | null>(null);
+
   const fetchAll = async () => {
     try {
       setLoading(true);
@@ -76,6 +81,66 @@ const DSACertificates: React.FC = () => {
       absence7: cert.absence7, absence8: cert.absence8, absence9: cert.absence9,
       dsaStatus: (cert.dsaStatus as 'APPROVED' | 'REJECTED') ?? 'APPROVED',
     });
+    setAttendanceRecords([]);
+    setSelectedCourseSisId(null);
+    void fetchAttendance(cert);
+  };
+
+  const fetchAttendance = async (cert: AbsenceCertificate) => {
+    if (!cert.studentIdNum) return;
+    try {
+      setAttendanceLoading(true);
+      const res = await fetch(ATTENDANCE_API, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentIds: [cert.studentIdNum] }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setAttendanceRecords(Array.isArray(data) ? data : []);
+    } catch {
+      // Attendance system unreachable — the modal falls back to manual entry below.
+      setAttendanceRecords([]);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const attendanceCourses = Object.values(
+    attendanceRecords.reduce<Record<string, { course_sis_id: string; course_name: string; instructor_name: string; trmCde: string | null; yrCde: string | null; absentLimit: number | null; records: AttendanceFilterRecord[] }>>(
+      (acc, r) => {
+        const key = r.course_sis_id;
+        if (!acc[key]) {
+          acc[key] = {
+            course_sis_id: r.course_sis_id,
+            course_name: r.course_name || r.course_sis_id,
+            instructor_name: r.instructor_name || '—',
+            trmCde: r.trmCde,
+            yrCde: r.yrCde,
+            absentLimit: r.absentLimit,
+            records: [],
+          };
+        }
+        acc[key].records.push(r);
+        return acc;
+      },
+      {},
+    ),
+  );
+
+  const selectedCourseRecords = attendanceCourses.find(c => c.course_sis_id === selectedCourseSisId)?.records ?? [];
+
+  const selectCourse = (course: (typeof attendanceCourses)[number]) => {
+    setSelectedCourseSisId(course.course_sis_id);
+    setForm(f => ({
+      ...f,
+      course: course.course_name,
+      professor: course.instructor_name,
+      absence1: false, absence2: false, absence3: false,
+      absence4: false, absence5: false, absence6: false,
+      absence7: false, absence8: false, absence9: false,
+    }));
   };
 
   const handleSubmitReview = async () => {
@@ -267,6 +332,44 @@ const DSACertificates: React.FC = () => {
                   />
                 </div>
 
+                {attendanceLoading && (
+                  <p className="text-xs text-gray-500">Loading attendance records…</p>
+                )}
+
+                {!attendanceLoading && attendanceCourses.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Course (from attendance system) <span className="text-red-500">*</span></label>
+                    <div className="grid gap-2">
+                      {attendanceCourses.map(c => {
+                        const absentCount = c.records.length;
+                        const overLimit = c.absentLimit != null && absentCount > c.absentLimit;
+                        return (
+                          <button
+                            type="button"
+                            key={c.course_sis_id}
+                            onClick={() => selectCourse(c)}
+                            className={`text-left border-2 rounded-lg p-3 transition-colors ${selectedCourseSisId === c.course_sis_id ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <BookOpen className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-gray-800 truncate">{c.course_name}</p>
+                                  <p className="text-xs text-gray-500 truncate">{c.instructor_name}{c.trmCde ? ` · ${c.trmCde}${c.yrCde ?? ''}` : ''}</p>
+                                </div>
+                              </div>
+                              <span className={`flex-shrink-0 inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${overLimit ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {overLimit && <AlertTriangle className="w-3 h-3" />}
+                                {absentCount}{c.absentLimit != null ? ` / ${c.absentLimit}` : ''} absences
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Course <span className="text-red-500">*</span></label>
@@ -305,23 +408,59 @@ const DSACertificates: React.FC = () => {
               {/* Absence records */}
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absence Records</p>
-                <p className="text-xs text-gray-500">Tick each absence considered under this appeal</p>
-                <div className="grid grid-cols-3 gap-3">
-                  {ABSENCE_KEYS.map((key, idx) => (
-                    <label
-                      key={key}
-                      className={`flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={form[key]}
-                        onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
-                        className="w-4 h-4 accent-orange-600"
-                      />
-                      <span className="text-sm text-gray-700">{ABSENCE_LABELS[idx]}</span>
-                    </label>
-                  ))}
-                </div>
+                {selectedCourseRecords.length > 0 ? (
+                  <>
+                    <p className="text-xs text-gray-500">Tick each recorded absence considered under this appeal</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {ABSENCE_KEYS.map((key, idx) => {
+                        const record = selectedCourseRecords[idx];
+                        if (!record) return null;
+                        const dateLabel = record.marked_at ? new Date(record.marked_at).toLocaleDateString() : ABSENCE_LABELS[idx];
+                        return (
+                          <label
+                            key={key}
+                            className={`flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={form[key]}
+                              onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
+                              className="w-4 h-4 accent-orange-600"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {dateLabel}
+                              {record.attendance && <span className="block text-xs text-gray-400">{record.attendance}</span>}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500">
+                      {attendanceCourses.length > 0
+                        ? 'Select a course above to see its recorded absences.'
+                        : 'Tick each absence considered under this appeal'}
+                    </p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {ABSENCE_KEYS.map((key, idx) => (
+                        <label
+                          key={key}
+                          className={`flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form[key]}
+                            onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
+                            className="w-4 h-4 accent-orange-600"
+                          />
+                          <span className="text-sm text-gray-700">{ABSENCE_LABELS[idx]}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* DSA Final decision */}
