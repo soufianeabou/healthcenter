@@ -64,6 +64,37 @@ const extractEmailFromPrincipal = (principal: unknown): string | null => {
   return candidates.find((v) => v.includes('@')) ?? null;
 };
 
+/* Same claim set as extractEmailFromPrincipal, but returns every distinct
+   @-shaped candidate instead of just the first. Jenzabar's on-file email
+   for a student is sometimes a different alias than the "primary" email
+   Azure surfaces (e.g. an ID-number address the SIS still has on record,
+   like 120487@aui.ma, while Outlook shows a name-based H.Idhammou@aui.ma).
+   Since these are two different strings, matching only the first candidate
+   can miss a legitimate student entirely — so the student lookup tries
+   each of these in turn instead of giving up after the first miss. */
+const extractAllEmailCandidates = (principal: unknown): string[] => {
+  if (!principal) return [];
+
+  const root   = principal as any;
+  const nested = (root.principal as any) ?? root;
+  const attrs  = (nested.attributes as any) ?? nested;
+
+  const candidates: string[] = [
+    attrs.email,
+    attrs.preferred_username,
+    attrs.upn,
+    attrs.userPrincipalName,
+    root.name,
+  ].map((v) => (typeof v === 'string' ? v : ''));
+
+  const seen = new Set<string>();
+  return candidates.filter((v) => {
+    if (!v.includes('@') || seen.has(v)) return false;
+    seen.add(v);
+    return true;
+  });
+};
+
 /* Azure AD is the authoritative source for a person's name — the personnel/
    patient DB rows can carry stale or duplicated data (e.g. a reused email on
    an old record). When Azure supplies given_name/family_name (or a full
@@ -167,14 +198,25 @@ type StudentLookupResult =
   | { status: 'not_found' }
   | { status: 'error' };
 
-/* Looks up a single student by email against the patient service — a fast,
-   targeted query (see PatientController#getStudentByEmail on the backend),
-   rather than fetching the entire historical student roster and filtering
-   it client-side. Used when the email is authenticated via SSO but has no
-   personnel row — a match here is a student and gets the STUDENT portal role. */
-const resolveStudentFromPatientService = async (email: string): Promise<StudentLookupResult> => {
+/* Looks up a single student against the patient service by candidateEmail —
+   a fast, targeted query (see PatientController#getStudentByEmail on the
+   backend), rather than fetching the entire historical student roster and
+   filtering it client-side. Used when the email is authenticated via SSO but
+   has no personnel row — a match here is a student and gets the STUDENT
+   portal role.
+
+   candidateEmail is whichever Azure-supplied claim we're trying this attempt
+   (see extractAllEmailCandidates below) — Jenzabar's on-file email for a
+   student can be a different alias than the one Azure surfaces as their
+   primary "email" (e.g. an ID-number address like 120487@aui.ma on file
+   while Outlook shows H.Idhammou@aui.ma), so the caller tries several.
+   loginEmail is the student's actual, stable Outlook identity: the returned
+   profile always carries that, not whichever Jenzabar alias happened to
+   match, so certificate history and everything else keyed by email stays
+   consistent regardless of which candidate succeeded. */
+const resolveStudentFromPatientService = async (candidateEmail: string, loginEmail: string): Promise<StudentLookupResult> => {
   try {
-    const res = await fetch(`https://hc.aui.ma/api/patients/by-email/${encodeURIComponent(email)}`, {
+    const res = await fetch(`https://hc.aui.ma/api/patients/by-email/${encodeURIComponent(candidateEmail)}`, {
       credentials: 'include',
     });
     if (res.status === 404) return { status: 'not_found' };
@@ -187,12 +229,12 @@ const resolveStudentFromPatientService = async (email: string): Promise<StudentL
         id:         match.id,
         nom:        match.nom    ?? '',
         prenom:     match.prenom ?? '',
-        username:   match.email  ?? email,
+        username:   loginEmail,
         passwd:     null,
         role:       UserRole.STUDENT,
         specialite: '',
         telephone:  '',
-        email:      match.email  ?? email,
+        email:      loginEmail,
         status:     UserStatus.ACTIVE,
         idNum:      match.idNum ?? undefined,
       },
@@ -348,8 +390,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
           persistUser(finalPersonnelUser, 'sso');
         } else {
-          // 3. Not staff — check the student roster before giving up
-          const studentLookup = await resolveStudentFromPatientService(email);
+          // 3. Not staff — check the student roster before giving up.
+          // Try every email-shaped claim Azure gave us, not just the primary
+          // one: Jenzabar may have this student on file under a different
+          // alias (see extractAllEmailCandidates). If any attempt merely
+          // fails (network/backend), remember that instead of a plain miss,
+          // so a real error further down the list doesn't get masked by an
+          // earlier clean "not found".
+          const emailCandidates = extractAllEmailCandidates(principal);
+          let studentLookup: StudentLookupResult = { status: 'not_found' };
+          for (const candidate of emailCandidates) {
+            const result = await resolveStudentFromPatientService(candidate, email);
+            if (result.status === 'found') { studentLookup = result; break; }
+            if (result.status === 'error') studentLookup = result;
+          }
 
           if (studentLookup.status === 'found') {
             const finalStudentUser = withAuthoritativeName(studentLookup.user, principal);
