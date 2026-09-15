@@ -156,35 +156,49 @@ const resolveUserFromBackendPersonnel = async (email: string): Promise<User | nu
   }
 };
 
-/* Fetches the student roster from the patient service and matches by email.
-   Used when the email is authenticated via SSO but has no personnel row —
-   any AUI account found here is a student and gets the STUDENT portal role. */
-const resolveStudentFromPatientService = async (email: string): Promise<User | null> => {
+/* Result of the student lookup below, distinguishing "genuinely not a
+   student" from "couldn't tell right now" — these need different user-facing
+   messages. Collapsing both into null (as an earlier version did) made a
+   transient backend/network failure look identical to "no profile exists",
+   which sent students to contact an administrator about an account that was
+   actually fine. */
+type StudentLookupResult =
+  | { status: 'found'; user: User }
+  | { status: 'not_found' }
+  | { status: 'error' };
+
+/* Looks up a single student by email against the patient service — a fast,
+   targeted query (see PatientController#getStudentByEmail on the backend),
+   rather than fetching the entire historical student roster and filtering
+   it client-side. Used when the email is authenticated via SSO but has no
+   personnel row — a match here is a student and gets the STUDENT portal role. */
+const resolveStudentFromPatientService = async (email: string): Promise<StudentLookupResult> => {
   try {
-    const res = await fetch('https://hc.aui.ma/api/patients/by-type/students', {
+    const res = await fetch(`https://hc.aui.ma/api/patients/by-email/${encodeURIComponent(email)}`, {
       credentials: 'include',
     });
-    if (!res.ok) return null;
-    const students: any[] = await res.json();
-    const match = students.find(
-      (p) => normalizeEmail(p.email) === normalizeEmail(email),
-    );
-    if (!match) return null;
+    if (res.status === 404) return { status: 'not_found' };
+    if (!res.ok) return { status: 'error' };
+    const match = await res.json();
+    if (!match) return { status: 'not_found' };
     return {
-      id:         match.id,
-      nom:        match.nom    ?? '',
-      prenom:     match.prenom ?? '',
-      username:   match.email  ?? email,
-      passwd:     null,
-      role:       UserRole.STUDENT,
-      specialite: '',
-      telephone:  '',
-      email:      match.email  ?? email,
-      status:     UserStatus.ACTIVE,
-      idNum:      match.idNum ?? undefined,
+      status: 'found',
+      user: {
+        id:         match.id,
+        nom:        match.nom    ?? '',
+        prenom:     match.prenom ?? '',
+        username:   match.email  ?? email,
+        passwd:     null,
+        role:       UserRole.STUDENT,
+        specialite: '',
+        telephone:  '',
+        email:      match.email  ?? email,
+        status:     UserStatus.ACTIVE,
+        idNum:      match.idNum ?? undefined,
+      },
     };
   } catch {
-    return null;
+    return { status: 'error' };
   }
 };
 
@@ -335,16 +349,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           persistUser(finalPersonnelUser, 'sso');
         } else {
           // 3. Not staff — check the student roster before giving up
-          const studentUser = await resolveStudentFromPatientService(email);
+          const studentLookup = await resolveStudentFromPatientService(email);
 
-          if (studentUser) {
-            const finalStudentUser = withAuthoritativeName(studentUser, principal);
+          if (studentLookup.status === 'found') {
+            const finalStudentUser = withAuthoritativeName(studentLookup.user, principal);
             setAuthError(null);
             setUser(finalStudentUser);
             setIsAuthenticated(true);
             persistUser(finalStudentUser, 'sso');
+          } else if (studentLookup.status === 'error') {
+            // The lookup itself failed (network/backend) — this is NOT the
+            // same as "no profile exists", so don't tell the student to
+            // contact an administrator about an account that's actually
+            // fine. Keep whatever localStorage has and let them retry.
+            console.warn('[Auth] Student lookup failed for', email);
+            setAuthError(
+              'Impossible de vérifier votre profil pour le moment. Merci de réessayer dans un instant.',
+            );
           } else {
-            // Authenticated by Azure but not found as personnel or student
+            // Authenticated by Azure but genuinely not found as personnel or student
             clearStoredAuth();
             setUser(null);
             setIsAuthenticated(false);
