@@ -377,11 +377,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const resetTimer = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        clearStoredAuth();
-        localStorage.removeItem(ACTIVE_ROLE_KEY);
-        setActiveRoleState(null);
-        setUser(null);
-        setIsAuthenticated(false);
+        // Go through the same real logout as the button: end the gateway
+        // session too, not just the local React state. Otherwise a page
+        // refresh after "auto-logout" silently re-authenticates via the
+        // still-alive SSO session — the whole point of an inactivity
+        // timeout on a shared/lab terminal.
+        logout();
       }, TIMEOUT_MS);
     };
 
