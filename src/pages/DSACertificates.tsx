@@ -184,26 +184,33 @@ const DSACertificates: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+            <table className="w-full min-w-[520px] sm:min-w-[700px]">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Student', 'Email', 'Submitted', 'HC Decision', 'DSA Status', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                  {[
+                    { label: 'Student', className: '' },
+                    { label: 'Email', className: 'hidden sm:table-cell' },
+                    { label: 'Submitted', className: '' },
+                    { label: 'HC Decision', className: '' },
+                    { label: 'DSA Status', className: '' },
+                    { label: 'Actions', className: '' },
+                  ].map(h => (
+                    <th key={h.label} className={`px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${h.className}`}>{h.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {displayed.map(cert => (
-                  <tr key={cert.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4 text-sm font-medium text-gray-900">{cert.studentName}</td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{cert.studentEmail}</td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{new Date(cert.submissionDate).toLocaleDateString()}</td>
+                  <tr key={cert.id} onClick={() => openReview(cert)} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                    <td className="px-5 py-4 text-sm font-medium text-gray-900 max-w-[140px] sm:max-w-none truncate">{cert.studentName}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 hidden sm:table-cell">{cert.studentEmail}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">{new Date(cert.submissionDate).toLocaleDateString()}</td>
                     <td className="px-5 py-4"><HCBadge status={cert.healthCenterStatus} /></td>
                     <td className="px-5 py-4"><DSABadge status={summarizeDsaDecisions(cert)} /></td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openReview(cert)} className="text-orange-600 hover:text-orange-800 transition-colors" title="Review"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => handleDownloadFile(cert)} className="text-gray-400 hover:text-gray-700 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); openReview(cert); }} className="text-orange-600 hover:text-orange-800 transition-colors" title="Review"><Eye className="w-4 h-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDownloadFile(cert); }} className="text-gray-400 hover:text-gray-700 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -249,9 +256,9 @@ const DSACertificates: React.FC = () => {
                   <div><p className="text-xs text-gray-500">HC Signature</p><p className="font-medium font-serif italic">{selected.healthCenterSignature}</p></div>
                 )}
                 <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-700">{selected.certificateFileName}</span>
-                  <button onClick={() => handleDownloadFile(selected)} className="text-orange-600 hover:text-orange-800 text-xs flex items-center gap-1">
+                  <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span className="text-gray-700 min-w-0 truncate flex-1">{selected.certificateFileName}</span>
+                  <button onClick={() => handleDownloadFile(selected)} className="text-orange-600 hover:text-orange-800 text-xs flex items-center gap-1 flex-shrink-0">
                     <Download className="w-3 h-3" /> Download
                   </button>
                 </div>

@@ -183,13 +183,13 @@ const ExitStockPage: React.FC = () => {
                 </tr>
               ) : (
                 filteredStocks.map((stock) => (
-                  <tr key={stock.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
+                  <tr key={stock.id} onClick={() => setSelectedStock(stock)} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-6 py-4 max-w-[160px] sm:max-w-[240px] md:max-w-none">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
                           {stock.medicament.nomMedicament}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 truncate">
                           {stock.medicament.codeBarre39}
                         </div>
                       </div>

@@ -240,12 +240,12 @@ const Students = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{request.studentName}</div>
-                      <div className="text-sm text-gray-500">{request.studentId}</div>
-                      <div className="text-sm text-gray-500">{request.email}</div>
+                <tr key={request.id} onClick={() => openReviewModal(request)} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-6 py-4 max-w-[160px] sm:max-w-[240px] md:max-w-none">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-gray-900 truncate">{request.studentName}</div>
+                      <div className="text-sm text-gray-500 truncate">{request.studentId}</div>
+                      <div className="text-sm text-gray-500 truncate">{request.email}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -270,7 +270,7 @@ const Students = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
-                      onClick={() => openReviewModal(request)}
+                      onClick={(e) => { e.stopPropagation(); openReviewModal(request); }}
                       className="text-green-600 hover:text-green-900 transition-colors flex items-center space-x-1"
                     >
                       <Eye className="w-4 h-4" />

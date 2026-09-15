@@ -506,7 +506,7 @@ const handleDeleteRdv = async (id: number) => {
   };
 
   return (
-    <div className="flex flex-col" style={{ minWidth: 560, maxWidth: 720 }}>
+    <div className="flex flex-col w-full sm:min-w-[560px] sm:max-w-[720px]">
       {/* Status banner for pending */}
       {isPending && (
         <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-5 py-3 text-amber-800 text-sm">
@@ -517,26 +517,27 @@ const handleDeleteRdv = async (id: number) => {
       )}
 
       {/* Tabs — hide Matériels for psychiatry consultations */}
-      <div className="flex border-b border-gray-200 px-5">
+      <div className="flex border-b border-gray-200 px-2 sm:px-5 overflow-x-auto">
         {(['info', 'materiels', 'transferts'] as const)
           .filter(t => t !== 'materiels' || consultation.consultationType !== 'PSYCHIATRIE')
           .map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+            title={t === 'info' ? 'Consultation' : t === 'materiels' ? 'Matériels' : 'Transferts'}
+            className={`px-2.5 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px flex-shrink-0 whitespace-nowrap ${
               tab === t
                 ? 'border-blue-600 text-blue-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
             {t === 'info' ? (
-              <span className="flex items-center gap-1.5"><FileText className="w-4 h-4" /> Consultation</span>
+              <span className="flex items-center gap-1.5"><FileText className="w-4 h-4" /> <span className="hidden sm:inline">Consultation</span></span>
             ) : t === 'materiels' ? (
-              <span className="flex items-center gap-1.5"><Package className="w-4 h-4" /> Matériels</span>
+              <span className="flex items-center gap-1.5"><Package className="w-4 h-4" /> <span className="hidden sm:inline">Matériels</span></span>
             ) : (
               <span className="flex items-center gap-1.5">
-                <Send className="w-4 h-4" /> Transferts
+                <Send className="w-4 h-4" /> <span className="hidden sm:inline">Transferts</span>
                 {(transfertAvis || transfertExamen || transfertPec) && (
                   <span className="w-2 h-2 bg-blue-500 rounded-full" />
                 )}
@@ -976,14 +977,14 @@ const handleDeleteRdv = async (id: number) => {
 
             {transfertPec && (
               <div className="border-2 border-blue-200 rounded-xl bg-blue-50/40 p-4 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <h5 className="text-sm font-bold text-blue-900 flex items-center gap-1.5">
-                    <Printer className="w-4 h-4" />
+                    <Printer className="w-4 h-4 flex-shrink-0" />
                     Formulaire de Prise en Charge
                   </h5>
                   <button
                     onClick={printPec}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex-shrink-0"
                   >
                     <Printer className="w-3.5 h-3.5" /> Imprimer / PDF
                   </button>
@@ -1093,12 +1094,12 @@ const handleDeleteRdv = async (id: number) => {
             {matError && (
               <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2 border border-red-200">{matError}</p>
             )}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-2">
               <h4 className="text-sm font-semibold text-gray-800">Matériels assignés au patient</h4>
               {!consultation.isExternal && (
                 <button
                   onClick={() => setShowAssign(!showAssign)}
-                  className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex-shrink-0"
                 >
                   <Plus className="w-4 h-4" /> Assigner
                 </button>
@@ -1547,9 +1548,10 @@ const Consultations = ({ typeFilter }: { typeFilter?: 'GENERAL' | 'PSYCHIATRIE' 
                 return (
                   <tr
                     key={consultation.id}
-                    className={`hover:bg-gray-50 transition-colors ${isPending ? 'bg-amber-50/40' : ''}`}
+                    onClick={() => { setSelectedConsultation(consultation); setIsDetailsOpen(true); }}
+                    className={`hover:bg-gray-50 transition-colors cursor-pointer ${isPending ? 'bg-amber-50/40' : ''}`}
                   >
-                    <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 md:px-6 py-4 max-w-[160px] sm:max-w-[220px] md:max-w-none">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${isPending ? 'bg-amber-100' : 'bg-green-100'}`}>
                           <User className={`w-4 h-4 ${isPending ? 'text-amber-600' : 'text-green-600'}`} />

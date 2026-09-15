@@ -176,32 +176,38 @@ const CertificateReview: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px]">
+            <table className="w-full min-w-[480px] sm:min-w-[640px]">
               <thead className="bg-gray-50">
                 <tr>
-                  {['Student', 'Email', 'Submitted', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                  {[
+                    { label: 'Student', className: '' },
+                    { label: 'Email', className: 'hidden sm:table-cell' },
+                    { label: 'Submitted', className: '' },
+                    { label: 'Status', className: '' },
+                    { label: 'Actions', className: '' },
+                  ].map(h => (
+                    <th key={h.label} className={`px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${h.className}`}>{h.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {displayed.map(cert => (
-                  <tr key={cert.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4 text-sm font-medium text-gray-900">{cert.studentName}</td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{cert.studentEmail}</td>
-                    <td className="px-5 py-4 text-sm text-gray-600">{new Date(cert.submissionDate).toLocaleDateString()}</td>
+                  <tr key={cert.id} onClick={() => openReview(cert)} className="hover:bg-gray-50 transition-colors cursor-pointer">
+                    <td className="px-5 py-4 text-sm font-medium text-gray-900 max-w-[140px] sm:max-w-none truncate">{cert.studentName}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 hidden sm:table-cell">{cert.studentEmail}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">{new Date(cert.submissionDate).toLocaleDateString()}</td>
                     <td className="px-5 py-4"><StatusBadge status={cert.healthCenterStatus} /></td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => openReview(cert)}
+                          onClick={(e) => { e.stopPropagation(); openReview(cert); }}
                           className="text-green-600 hover:text-green-800 transition-colors"
                           title="Review"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDownloadFile(cert)}
+                          onClick={(e) => { e.stopPropagation(); handleDownloadFile(cert); }}
                           className="text-gray-400 hover:text-gray-700 transition-colors"
                           title="Download certificate"
                         >
@@ -239,10 +245,10 @@ const CertificateReview: React.FC = () => {
                 <p className="text-sm font-medium text-gray-700 mb-2">Attached Certificate</p>
                 <div className="flex items-center gap-3 border border-gray-200 rounded-lg p-3">
                   <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-700 flex-1">{selected.certificateFileName}</span>
+                  <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{selected.certificateFileName}</span>
                   <button
                     onClick={() => handleDownloadFile(selected)}
-                    className="text-green-600 hover:text-green-800 text-sm flex items-center gap-1"
+                    className="text-green-600 hover:text-green-800 text-sm flex items-center gap-1 flex-shrink-0"
                   >
                     <Download className="w-4 h-4" /> Download
                   </button>

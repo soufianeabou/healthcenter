@@ -321,14 +321,14 @@ const Personnel = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredPersonnel.map((person) => (
-                <tr key={person.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr key={person.id} onClick={() => openEditModal(person)} className="hover:bg-gray-50 cursor-pointer">
+                  <td className="px-6 py-4 max-w-[160px] sm:max-w-[240px] md:max-w-none">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                         <User className="w-5 h-5 text-green-600" />
                       </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                      <div className="ml-4 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
                           {person.prenom} {person.nom}
                         </div>
                         <div className="text-sm text-gray-500">
@@ -360,13 +360,13 @@ const Personnel = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => openEditModal(person)}
+                        onClick={(e) => { e.stopPropagation(); openEditModal(person); }}
                         className="text-green-600 hover:text-green-900 transition-colors"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeletePersonnel(person.id)}
+                        onClick={(e) => { e.stopPropagation(); handleDeletePersonnel(person.id); }}
                         className="text-red-600 hover:text-red-900 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />

@@ -269,7 +269,7 @@ const Materiels = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredMateriels.map((materiel) => (
-                  <tr key={materiel.id} className="hover:bg-gray-50">
+                  <tr key={materiel.id} onClick={() => openEditForm(materiel)} className="hover:bg-gray-50 cursor-pointer">
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{materiel.name}</div>
                       <div className="text-xs text-gray-500">{materiel.description}</div>
@@ -296,13 +296,13 @@ const Materiels = () => {
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium">
                       <button
-                        onClick={() => openEditForm(materiel)}
+                        onClick={(e) => { e.stopPropagation(); openEditForm(materiel); }}
                         className="text-blue-600 hover:text-blue-900 mr-3"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => materiel.id && handleDelete(materiel.id)}
+                        onClick={(e) => { e.stopPropagation(); materiel.id && handleDelete(materiel.id); }}
                         className="text-red-600 hover:text-red-900"
                       >
                         <Trash2 className="w-4 h-4" />

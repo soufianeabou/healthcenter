@@ -268,7 +268,7 @@ const MedicinesList = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredMedicines.map((medicine) => (
-                <tr key={medicine.id} className="hover:bg-gray-50">
+                <tr key={medicine.id} onClick={() => openEditModal(medicine)} className="hover:bg-gray-50 cursor-pointer">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -324,14 +324,14 @@ const MedicinesList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => openEditModal(medicine)}
+                        onClick={(e) => { e.stopPropagation(); openEditModal(medicine); }}
                         className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
                         title="Modifier"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteMedicine(medicine.id!)}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteMedicine(medicine.id!); }}
                         className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
                         title="Supprimer"
                       >

@@ -150,9 +150,9 @@ const BadgeDetail: React.FC<BadgeDetailProps> = ({
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {stocks.map((stock) => (
-                  <tr key={stock.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                  <tr key={stock.id} onClick={() => onEdit(stock)} className="hover:bg-gray-50 cursor-pointer">
+                    <td className="px-6 py-4 max-w-[140px] sm:max-w-none">
+                      <div className="text-sm font-medium text-gray-900 truncate">
                         {stock.medicament.nomMedicament}
                       </div>
                     </td>
@@ -174,14 +174,14 @@ const BadgeDetail: React.FC<BadgeDetailProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => onEdit(stock)}
+                          onClick={(e) => { e.stopPropagation(); onEdit(stock); }}
                           className="text-indigo-600 hover:text-indigo-900 transition-colors"
                           title="Modifier"
                         >
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => stock.id && onDelete(stock.id)}
+                          onClick={(e) => { e.stopPropagation(); stock.id && onDelete(stock.id); }}
                           className="text-red-600 hover:text-red-900 transition-colors"
                           title="Supprimer"
                         >

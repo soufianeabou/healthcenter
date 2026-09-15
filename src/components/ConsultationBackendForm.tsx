@@ -734,7 +734,7 @@ const ConsultationBackendForm: React.FC<Props> = ({ personnelId, initial, onSubm
             <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs mr-2">❤</span>
             Constantes vitales
           </h3>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">Temp (°C)</label>
               <input 
