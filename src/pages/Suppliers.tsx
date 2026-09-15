@@ -189,7 +189,7 @@ const Suppliers = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestion des Fournisseurs</h1>
           <p className="text-gray-600">Gérez les fournisseurs pharmaceutiques et leurs contacts</p>

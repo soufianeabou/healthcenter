@@ -282,13 +282,13 @@ const EntryStockForm: React.FC<EntryStockFormProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between gap-3 p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 min-w-0">
             {isEdit ? 'Modifier l\'entrée de stock' : 'Nouvelle entrée de stock (Lot)'}
           </h2>
           <button
             onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           >
             <X size={24} />
           </button>
@@ -397,13 +397,13 @@ const EntryStockForm: React.FC<EntryStockFormProps> = ({
 
           {/* Medicines List */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
               <h3 className="text-lg font-medium text-gray-900">Médicaments du lot</h3>
               {!isEdit && (
                 <button
                   type="button"
                   onClick={addMedicineRow}
-                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2 flex-shrink-0"
                 >
                   <Plus size={16} />
                   <span>Ajouter un médicament</span>
@@ -509,7 +509,7 @@ const EntryStockForm: React.FC<EntryStockFormProps> = ({
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between flex-wrap gap-3 pt-4 border-t border-gray-200">
             <button
               type="button"
               onClick={() => {

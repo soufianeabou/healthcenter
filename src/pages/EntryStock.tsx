@@ -225,7 +225,7 @@ const EntryStockPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Gestion des Entrées de Stock</h1>
           <p className="text-gray-600">Gérez les entrées de médicaments en stock par lots</p>
@@ -283,12 +283,12 @@ const EntryStockPage: React.FC = () => {
           Object.entries(stocksByBadge).map(([badge, stocks]) => (
             <div key={badge} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-blue-50 px-6 py-4 border-b border-blue-200">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="min-w-0">
                     <h3 className="text-lg font-semibold text-blue-900">Lot: {badge}</h3>
                     <div className="text-sm text-blue-700">
-                      <span className="font-medium">{stocks.length}</span> médicament(s) • 
-                      Fournisseur: <span className="font-medium">{stocks[0].fournisseur.nomFournisseur}</span> • 
+                      <span className="font-medium">{stocks.length}</span> médicament(s) •
+                      Fournisseur: <span className="font-medium">{stocks[0].fournisseur.nomFournisseur}</span> •
                       Date: <span className="font-medium">{formatDate(stocks[0].dateEntre)}</span>
                       <span className="ml-2 font-semibold text-blue-900">
                         • Total lot: {badgeTotal(stocks).toFixed(2)} MAD
@@ -297,7 +297,7 @@ const EntryStockPage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => setSelectedBadge(selectedBadge === badge ? null : badge)}
-                    className="text-blue-600 hover:text-blue-800 transition-colors flex items-center space-x-2"
+                    className="text-blue-600 hover:text-blue-800 transition-colors flex items-center space-x-2 flex-shrink-0"
                   >
                     <Eye size={16} />
                     <span>{selectedBadge === badge ? 'Masquer' : 'Voir détails'}</span>

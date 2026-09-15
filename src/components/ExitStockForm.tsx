@@ -131,13 +131,13 @@ const ExitStockForm: React.FC<ExitStockFormProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center justify-between gap-3 p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 min-w-0">
             {isEdit ? 'Modifier la sortie de stock' : 'Nouvelle sortie de stock'}
           </h2>
           <button
             onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
           >
             <X size={24} />
           </button>

@@ -393,20 +393,20 @@ const Patients: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <h2>Gestion des Patients</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <input
             value={searchId}
             onChange={(e) => setSearchId(e.target.value)}
             placeholder="Recherche par ID (idNum)"
-            style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
+            style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6, flex: '1 1 140px', minWidth: 0 }}
           />
           <input
             value={nameSearch}
             onChange={(e) => setNameSearch(e.target.value)}
             placeholder="Recherche par nom"
-            style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6 }}
+            style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6, flex: '1 1 140px', minWidth: 0 }}
           />
           <select
             value={categoryFilter}
