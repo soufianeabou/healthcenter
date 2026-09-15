@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Clock, CheckCircle, XCircle, Plus, Eye, Download } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, XCircle, Plus, Eye, Download, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AbsenceCertificate } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, SelectedAbsencePayload, summarizeDsaDecisions } from '../types/certificate';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
+const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter';
+
+const APPEAL_REASON_LABELS: Record<AppealReason, string> = {
+  REINSTATEMENT: 'Reinstatement',
+  QUIZ_EXAM_MISSING: 'Quiz/Exam missing',
+};
 
 const StatusBadge = ({ status }: { status: string }) => {
   switch (status) {
@@ -37,6 +43,12 @@ const StatusBadge = ({ status }: { status: string }) => {
           <XCircle className="w-3 h-3" /> DSA Rejected
         </span>
       );
+    case 'MIXED_DSA':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          <AlertTriangle className="w-3 h-3" /> Partially Approved
+        </span>
+      );
     default:
       return null;
   }
@@ -52,6 +64,52 @@ const StudentCertificates: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [viewCert, setViewCert] = useState<AbsenceCertificate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceFilterRecord[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  // Keyed by the attendance record's id — presence of a key means ticked.
+  const [selectedReasons, setSelectedReasons] = useState<Record<number, AppealReason | ''>>({});
+
+  const fetchAttendance = async () => {
+    if (!user?.idNum) return;
+    const requestBody = { studentIds: [String(user.idNum)], year: '2627', session: 'FA', userEmail: user.email ?? '' };
+    try {
+      setAttendanceLoading(true);
+      const res = await fetch(ATTENDANCE_API, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setAttendanceRecords(Array.isArray(data) ? data : []);
+    } catch {
+      // Attendance system unreachable — student can still submit with no ticked absences.
+      setAttendanceRecords([]);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  const openForm = () => {
+    setShowForm(true);
+    setSelectedReasons({});
+    void fetchAttendance();
+  };
+
+  const toggleAbsence = (recordId: number, checked: boolean) => {
+    setSelectedReasons(prev => {
+      const next = { ...prev };
+      if (checked) next[recordId] = next[recordId] || '';
+      else delete next[recordId];
+      return next;
+    });
+  };
+
+  const setAbsenceReason = (recordId: number, reason: AppealReason) => {
+    setSelectedReasons(prev => ({ ...prev, [recordId]: reason }));
+  };
 
   const fetchCertificates = async () => {
     if (!user?.email) return;
@@ -74,6 +132,13 @@ const StudentCertificates: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile || !user) return;
+
+    const tickedIds = Object.keys(selectedReasons).map(Number);
+    if (tickedIds.some(id => !selectedReasons[id])) {
+      setError('Please choose an appeal reason for each ticked absence.');
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError('');
@@ -81,11 +146,30 @@ const StudentCertificates: React.FC = () => {
       form.append('file', selectedFile);
       form.append('studentName', `${user.prenom} ${user.nom}`);
       form.append('studentEmail', user.email);
-      if ((user as any).idNum) form.append('studentIdNum', String((user as any).idNum));
+      if (user.idNum) form.append('studentIdNum', String(user.idNum));
+
+      const selectedAbsences: SelectedAbsencePayload[] = tickedIds.map(id => {
+        const record = attendanceRecords.find(r => r.id === id);
+        return {
+          attendanceRecordId: id,
+          courseSisId: record?.course_sis_id ?? null,
+          courseName: record?.course_name ?? null,
+          instructorName: record?.instructor_name ?? null,
+          markedAt: record?.marked_at ?? null,
+          markedTime: record?.marked_time ?? null,
+          attendanceStatus: record?.attendance ?? null,
+          appealReason: selectedReasons[id] as AppealReason,
+        };
+      });
+      if (selectedAbsences.length > 0) {
+        form.append('selectedAbsences', JSON.stringify(selectedAbsences));
+      }
+
       const res = await fetch(API, { method: 'POST', body: form });
       if (!res.ok) throw new Error('Submission failed');
       setShowForm(false);
       setSelectedFile(null);
+      setSelectedReasons({});
       await fetchCertificates();
     } catch {
       setError('Submission failed. Please try again.');
@@ -113,8 +197,8 @@ const StudentCertificates: React.FC = () => {
   const counts = {
     pending: certificates.filter(c => c.healthCenterStatus === 'PENDING_HC').length,
     hcApproved: certificates.filter(c => c.healthCenterStatus === 'APPROVED_HC').length,
-    dsaApproved: certificates.filter(c => c.dsaStatus === 'APPROVED').length,
-    rejected: certificates.filter(c => c.healthCenterStatus === 'REJECTED_HC' || c.dsaStatus === 'REJECTED').length,
+    dsaApproved: certificates.filter(c => summarizeDsaDecisions(c) === 'APPROVED').length,
+    rejected: certificates.filter(c => c.healthCenterStatus === 'REJECTED_HC' || summarizeDsaDecisions(c) === 'REJECTED').length,
   };
 
   return (
@@ -129,7 +213,7 @@ const StudentCertificates: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={openForm}
             className="bg-white text-teal-700 px-5 py-2.5 rounded-lg hover:bg-teal-50 transition-colors font-medium flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Submit Certificate
@@ -209,10 +293,82 @@ const StudentCertificates: React.FC = () => {
               />
             </div>
 
+            {/* Absences to excuse */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absences to Excuse</p>
+              {attendanceLoading ? (
+                <p className="text-xs text-gray-500">Loading your attendance records…</p>
+              ) : attendanceRecords.length === 0 ? (
+                <p className="text-xs text-gray-500">No attendance records found. You can still submit the certificate.</p>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-500">
+                    Tick each absence this certificate should excuse, and choose a reason for it.
+                  </p>
+                  <div className="space-y-2">
+                    {attendanceRecords.map(record => {
+                      const checked = record.id in selectedReasons;
+                      const overLimit = record.absentLimit != null && record.count != null && record.count > record.absentLimit;
+                      return (
+                        <div
+                          key={record.id}
+                          className={`border-2 rounded-lg p-3 transition-colors ${checked ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}
+                        >
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={e => toggleAbsence(record.id, e.target.checked)}
+                              className="w-4 h-4 accent-teal-600 mt-0.5"
+                            />
+                            <span className="text-sm text-gray-700 flex-1">
+                              <span className="font-medium block">{record.course_name?.trim() || record.course_sis_id}</span>
+                              <span className="block text-xs text-gray-500">
+                                {record.marked_at ? new Date(record.marked_at).toLocaleDateString() : '—'} · {record.attendance || '—'}
+                                {record.instructor_name ? ` · ${record.instructor_name}` : ''}
+                              </span>
+                              {overLimit && (
+                                <span className="inline-flex items-center gap-1 text-xs text-red-600 mt-1">
+                                  <AlertTriangle className="w-3 h-3" /> exceeds {record.absentLimit} absence limit
+                                </span>
+                              )}
+                            </span>
+                          </label>
+                          {checked && (
+                            <div className="mt-2 ml-6 flex gap-2">
+                              {(Object.keys(APPEAL_REASON_LABELS) as AppealReason[]).map(reason => (
+                                <label
+                                  key={reason}
+                                  className={`flex-1 text-center border rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                                    selectedReasons[record.id] === reason
+                                      ? 'border-teal-500 bg-teal-100 text-teal-800'
+                                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`reason-${record.id}`}
+                                    className="sr-only"
+                                    checked={selectedReasons[record.id] === reason}
+                                    onChange={() => setAbsenceReason(record.id, reason)}
+                                  />
+                                  {APPEAL_REASON_LABELS[reason]}
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setSelectedFile(null); }}
+                onClick={() => { setShowForm(false); setSelectedFile(null); setSelectedReasons({}); }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
               >
                 Cancel
@@ -241,7 +397,7 @@ const StudentCertificates: React.FC = () => {
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">No certificates submitted yet.</p>
             <button
-              onClick={() => setShowForm(true)}
+              onClick={openForm}
               className="mt-4 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm"
             >
               Submit Your First Certificate
@@ -263,7 +419,15 @@ const StudentCertificates: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <StatusBadge status={cert.dsaStatus ? (cert.dsaStatus === 'APPROVED' ? 'APPROVED_DSA' : cert.dsaStatus === 'REJECTED' ? 'REJECTED_DSA' : cert.healthCenterStatus) : cert.healthCenterStatus} />
+                  <StatusBadge status={
+                    (() => {
+                      const dsa = summarizeDsaDecisions(cert);
+                      if (dsa === 'APPROVED') return 'APPROVED_DSA';
+                      if (dsa === 'REJECTED') return 'REJECTED_DSA';
+                      if (dsa === 'MIXED') return 'MIXED_DSA';
+                      return cert.healthCenterStatus;
+                    })()
+                  } />
                   <button
                     onClick={() => setViewCert(cert)}
                     className="text-gray-400 hover:text-gray-700 transition-colors"
@@ -318,17 +482,32 @@ const StudentCertificates: React.FC = () => {
                 )}
               </div>
 
-              {/* DSA review section */}
+              {/* DSA review section — one line per absence, since each is decided individually */}
               {(viewCert.healthCenterStatus === 'APPROVED_HC') && (
                 <div className="border-t pt-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">DSA Review</p>
-                  {!viewCert.dsaStatus ? (
-                    <p className="text-blue-600">Awaiting DSA review</p>
+                  {viewCert.absenceSelections.length === 0 ? (
+                    <p className="text-gray-500">No absences were ticked with this certificate.</p>
                   ) : (
                     <div className="space-y-2">
-                      <div><span className="text-gray-500">DSA Decision:</span> <span className={`ml-1 font-medium ${viewCert.dsaStatus === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}>{viewCert.dsaStatus}</span></div>
-                      {viewCert.course && <div><span className="text-gray-500">Course:</span> <span className="ml-1">{viewCert.course}</span></div>}
-                      {viewCert.professor && <div><span className="text-gray-500">Professor:</span> <span className="ml-1">{viewCert.professor}</span></div>}
+                      {viewCert.absenceSelections.map(sel => (
+                        <div key={sel.id} className="flex items-center justify-between gap-3 border border-gray-100 rounded-lg px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-800 truncate">{sel.courseName || sel.courseSisId}</p>
+                            <p className="text-xs text-gray-500">
+                              {APPEAL_REASON_LABELS[sel.appealReason]}
+                              {sel.markedAt ? ` · ${sel.markedAt}` : ''}
+                            </p>
+                          </div>
+                          {sel.dsaDecision === 'PENDING' ? (
+                            <span className="text-xs font-medium text-blue-600 flex-shrink-0">Awaiting DSA</span>
+                          ) : (
+                            <span className={`text-xs font-medium flex-shrink-0 ${sel.dsaDecision === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}>
+                              {sel.dsaDecision === 'APPROVED' ? 'Approved' : 'Rejected'}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

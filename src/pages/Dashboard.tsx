@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
+import { summarizeDsaDecisions } from '../types/certificate';
 
 const API = 'https://hc.aui.ma';
 
@@ -368,7 +369,7 @@ const StudentDashboard = ({ user }: { user: any }) => {
 
   const pending = certs.filter(c => c.healthCenterStatus === 'PENDING_HC');
   const hcApproved = certs.filter(c => c.healthCenterStatus === 'APPROVED_HC');
-  const approved = certs.filter(c => c.dsaStatus === 'APPROVED_DSA');
+  const approved = certs.filter(c => summarizeDsaDecisions(c) === 'APPROVED');
 
   const statusLabel: Record<string, { label: string; color: string }> = {
     PENDING_HC:   { label: 'En attente HC',    color: 'bg-amber-100 text-amber-800' },
@@ -425,7 +426,9 @@ const StudentDashboard = ({ user }: { user: any }) => {
         ) : (
           <div className="divide-y divide-gray-50">
             {certs.slice(0, 5).map((c: any) => {
-              const st = statusLabel[c.dsaStatus || c.healthCenterStatus] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-600' };
+              const dsa = summarizeDsaDecisions(c);
+              const statusKey = dsa === 'APPROVED' ? 'APPROVED_DSA' : dsa === 'REJECTED' ? 'REJECTED_DSA' : c.healthCenterStatus;
+              const st = statusLabel[statusKey] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-600' };
               return (
                 <div key={c.id} className="flex items-center gap-3 px-5 py-3">
                   <div className="flex-1 min-w-0">

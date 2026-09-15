@@ -1,30 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, AlertTriangle } from 'lucide-react';
-import { AbsenceCertificate, AttendanceFilterRecord, DSAReviewPayload } from '../types/certificate';
-import { useAuth } from '../context/AuthContext';
+import { AbsenceCertificate, AppealReason, DsaReviewPayload, summarizeDsaDecisions } from '../types/certificate';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
-const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter';
 
-const ABSENCE_LABELS = [
-  'Absence 1', 'Absence 2', 'Absence 3',
-  'Absence 4', 'Absence 5', 'Absence 6',
-  'Absence 7', 'Absence 8', 'Absence 9',
-] as const;
-
-type AbsenceKey = 'absence1'|'absence2'|'absence3'|'absence4'|'absence5'|'absence6'|'absence7'|'absence8'|'absence9';
-const ABSENCE_KEYS: AbsenceKey[] = ['absence1','absence2','absence3','absence4','absence5','absence6','absence7','absence8','absence9'];
-
-const emptyForm = (): DSAReviewPayload => ({
-  appealReason: '',
-  course: '',
-  professor: '',
-  dsaReviewer: '',
-  absence1: false, absence2: false, absence3: false,
-  absence4: false, absence5: false, absence6: false,
-  absence7: false, absence8: false, absence9: false,
-  dsaStatus: 'APPROVED',
-});
+const APPEAL_REASON_LABELS: Record<AppealReason, string> = {
+  REINSTATEMENT: 'Reinstatement',
+  QUIZ_EXAM_MISSING: 'Quiz/Exam missing',
+};
 
 const HCBadge = ({ status }: { status: string }) => (
   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status === 'APPROVED_HC' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -33,25 +16,23 @@ const HCBadge = ({ status }: { status: string }) => (
   </span>
 );
 
-const DSABadge = ({ status }: { status: string | null }) => {
-  if (!status) return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3" />Pending DSA</span>;
+const DSABadge = ({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'MIXED' | null }) => {
+  if (!status || status === 'PENDING') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3" />Pending DSA</span>;
   if (status === 'APPROVED') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />DSA Approved</span>;
-  return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3" />DSA Rejected</span>;
+  if (status === 'REJECTED') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3" />DSA Rejected</span>;
+  return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"><AlertTriangle className="w-3 h-3" />Partially Approved</span>;
 };
 
 const DSACertificates: React.FC = () => {
-  const { user } = useAuth();
   const [certificates, setCertificates] = useState<AbsenceCertificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'PENDING' | 'ALL'>('PENDING');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<AbsenceCertificate | null>(null);
-  const [form, setForm] = useState<DSAReviewPayload>(emptyForm());
+  const [dsaReviewer, setDsaReviewer] = useState('');
+  const [decisions, setDecisions] = useState<Record<number, 'APPROVED' | 'REJECTED'>>({});
   const [submitting, setSubmitting] = useState(false);
-
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceFilterRecord[]>([]);
-  const [attendanceLoading, setAttendanceLoading] = useState(false);
 
   const fetchAll = async () => {
     try {
@@ -72,70 +53,46 @@ const DSACertificates: React.FC = () => {
 
   const openReview = (cert: AbsenceCertificate) => {
     setSelected(cert);
-    setForm({
-      appealReason:  cert.appealReason  ?? '',
-      course:        cert.course        ?? '',
-      professor:     cert.professor     ?? '',
-      dsaReviewer:   cert.dsaReviewer   ?? '',
-      absence1: cert.absence1, absence2: cert.absence2, absence3: cert.absence3,
-      absence4: cert.absence4, absence5: cert.absence5, absence6: cert.absence6,
-      absence7: cert.absence7, absence8: cert.absence8, absence9: cert.absence9,
-      dsaStatus: (cert.dsaStatus as 'APPROVED' | 'REJECTED') ?? 'APPROVED',
+    setDsaReviewer(cert.dsaReviewer ?? '');
+    const initial: Record<number, 'APPROVED' | 'REJECTED'> = {};
+    cert.absenceSelections.forEach(sel => {
+      if (sel.dsaDecision === 'APPROVED' || sel.dsaDecision === 'REJECTED') {
+        initial[sel.id] = sel.dsaDecision;
+      }
     });
-    setAttendanceRecords([]);
-    void fetchAttendance(cert);
+    setDecisions(initial);
   };
 
-  const fetchAttendance = async (cert: AbsenceCertificate) => {
-    if (!cert.studentIdNum) return;
-    const requestBody = { studentIds: [cert.studentIdNum], year: '2627', session: 'FA', userEmail: user?.email ?? '' };
-    console.log('[attendance] request →', ATTENDANCE_API, requestBody);
-    try {
-      setAttendanceLoading(true);
-      const res = await fetch(ATTENDANCE_API, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      console.log('[attendance] response status ←', res.status);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      console.log('[attendance] response body ←', data);
-      setAttendanceRecords(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('[attendance] fetch failed:', err);
-      // Attendance system unreachable — the modal falls back to manual entry below.
-      setAttendanceRecords([]);
-    } finally {
-      setAttendanceLoading(false);
-    }
+  const setDecision = (selectionId: number, decision: 'APPROVED' | 'REJECTED') => {
+    setDecisions(prev => ({ ...prev, [selectionId]: decision }));
   };
 
-  const toggleAbsence = (key: AbsenceKey, record: AttendanceFilterRecord | undefined, checked: boolean) => {
-    setForm(f => ({
-      ...f,
-      [key]: checked,
-      // Auto-fill Course/Professor from whichever real record was just ticked.
-      ...(checked && record
-        ? { course: record.course_name?.trim() || record.course_sis_id, professor: record.instructor_name || f.professor }
-        : {}),
-    }));
-  };
+  const allDecided = !!selected && selected.absenceSelections.every(sel => decisions[sel.id]);
 
   const handleSubmitReview = async () => {
     if (!selected) return;
-    if (!form.appealReason || !form.course || !form.professor || !form.dsaReviewer) {
-      setError('Please fill all required fields before submitting.');
+    if (!dsaReviewer.trim()) {
+      setError('Please enter the DSA reviewer name.');
+      return;
+    }
+    if (!allDecided) {
+      setError('Please approve or reject every absence before submitting.');
       return;
     }
     try {
       setSubmitting(true);
       setError('');
+      const payload: DsaReviewPayload = {
+        dsaReviewer,
+        decisions: selected.absenceSelections.map(sel => ({
+          selectionId: sel.id,
+          dsaDecision: decisions[sel.id],
+        })),
+      };
       const res = await fetch(`${API}/${selected.id}/dsa-review`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error();
       setSelected(null);
@@ -164,14 +121,17 @@ const DSACertificates: React.FC = () => {
   };
 
   const displayed = certificates
-    .filter(c => tab === 'ALL' || !c.dsaStatus)
+    .filter(c => tab === 'ALL' || summarizeDsaDecisions(c) === 'PENDING' || summarizeDsaDecisions(c) === null)
     .filter(c =>
       !search ||
       c.studentName.toLowerCase().includes(search.toLowerCase()) ||
       c.studentEmail.toLowerCase().includes(search.toLowerCase())
     );
 
-  const pendingCount = certificates.filter(c => !c.dsaStatus).length;
+  const pendingCount = certificates.filter(c => {
+    const s = summarizeDsaDecisions(c);
+    return s === 'PENDING' || s === null;
+  }).length;
 
   return (
     <div className="space-y-6">
@@ -239,7 +199,7 @@ const DSACertificates: React.FC = () => {
                     <td className="px-5 py-4 text-sm text-gray-600">{cert.studentEmail}</td>
                     <td className="px-5 py-4 text-sm text-gray-600">{new Date(cert.submissionDate).toLocaleDateString()}</td>
                     <td className="px-5 py-4"><HCBadge status={cert.healthCenterStatus} /></td>
-                    <td className="px-5 py-4"><DSABadge status={cert.dsaStatus} /></td>
+                    <td className="px-5 py-4"><DSABadge status={summarizeDsaDecisions(cert)} /></td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <button onClick={() => openReview(cert)} className="text-orange-600 hover:text-orange-800 transition-colors" title="Review"><Eye className="w-4 h-4" /></button>
@@ -297,148 +257,61 @@ const DSACertificates: React.FC = () => {
                 </div>
               </div>
 
-              {/* DSA Follow-Up form */}
-              <div className="space-y-4">
-                <p className="text-sm font-semibold text-gray-700 border-b pb-2">DSA Follow-Up</p>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Appeal Reason <span className="text-red-500">*</span></label>
-                  <textarea
-                    rows={3}
-                    value={form.appealReason}
-                    onChange={e => setForm(f => ({ ...f, appealReason: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                    placeholder="Describe the reason for this appeal…"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Course <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={form.course}
-                      onChange={e => setForm(f => ({ ...f, course: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="e.g. CS101"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Professor <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={form.professor}
-                      onChange={e => setForm(f => ({ ...f, professor: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="Professor name"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">DSA Reviewer <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={form.dsaReviewer}
-                    onChange={e => setForm(f => ({ ...f, dsaReviewer: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    placeholder="Reviewer full name"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">DSA Reviewer <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={dsaReviewer}
+                  onChange={e => setDsaReviewer(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Reviewer full name"
+                />
               </div>
 
-              {/* Absence records */}
+              {/* Absences the student ticked, each with its own decision */}
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absence Records</p>
-                {attendanceLoading && (
-                  <p className="text-xs text-gray-500">Loading attendance records…</p>
-                )}
-                {!attendanceLoading && attendanceRecords.length > 0 ? (
-                  <>
-                    <p className="text-xs text-gray-500">Tick each recorded absence considered under this appeal</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {ABSENCE_KEYS.map((key, idx) => {
-                        const record = attendanceRecords[idx];
-                        if (!record) return null;
-                        const dateLabel = record.marked_at ? new Date(record.marked_at).toLocaleDateString() : ABSENCE_LABELS[idx];
-                        const overLimit = record.absentLimit != null && attendanceRecords.length > record.absentLimit;
-                        return (
-                          <label
-                            key={key}
-                            className={`flex items-start gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={form[key]}
-                              onChange={e => toggleAbsence(key, record, e.target.checked)}
-                              className="w-4 h-4 accent-orange-600 mt-0.5"
-                            />
-                            <span className="text-sm text-gray-700">
-                              <span className="font-medium block">{record.course_name?.trim() || record.course_sis_id}</span>
-                              <span className="block text-xs text-gray-500">
-                                {dateLabel} · {record.attendance || '—'}
-                                {record.instructor_name ? ` · ${record.instructor_name}` : ''}
-                              </span>
-                              {overLimit && (
-                                <span className="inline-flex items-center gap-1 text-xs text-red-600 mt-1">
-                                  <AlertTriangle className="w-3 h-3" /> exceeds {record.absentLimit} absence limit
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </>
+                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absences ({selected.absenceSelections.length})</p>
+                {selected.absenceSelections.length === 0 ? (
+                  <p className="text-sm text-gray-500">The student did not tick any absences with this certificate.</p>
                 ) : (
-                  !attendanceLoading && (
-                    <>
-                      <p className="text-xs text-gray-500">Tick each absence considered under this appeal</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {ABSENCE_KEYS.map((key, idx) => (
-                          <label
-                            key={key}
-                            className={`flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form[key] ? 'border-orange-400 bg-orange-50' : 'border-gray-200 hover:border-gray-300'}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={form[key]}
-                              onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
-                              className="w-4 h-4 accent-orange-600"
-                            />
-                            <span className="text-sm text-gray-700">{ABSENCE_LABELS[idx]}</span>
-                          </label>
-                        ))}
+                  <div className="space-y-3">
+                    {selected.absenceSelections.map(sel => (
+                      <div key={sel.id} className="border-2 border-gray-200 rounded-lg p-3 space-y-2">
+                        <div>
+                          <p className="font-medium text-gray-800">{sel.courseName || sel.courseSisId}</p>
+                          <p className="text-xs text-gray-500">
+                            {sel.markedAt || '—'}{sel.markedTime ? ` · ${sel.markedTime}` : ''} · {sel.attendanceStatus || '—'}
+                            {sel.instructorName ? ` · ${sel.instructorName}` : ''}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            Reason: <span className="font-medium">{APPEAL_REASON_LABELS[sel.appealReason]}</span>
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          {(['APPROVED', 'REJECTED'] as const).map(val => (
+                            <label
+                              key={val}
+                              className={`flex-1 flex items-center justify-center gap-2 border-2 rounded-lg p-2 cursor-pointer transition-colors ${decisions[sel.id] === val ? (val === 'APPROVED' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-200 hover:border-gray-300'}`}
+                            >
+                              <input
+                                type="radio"
+                                name={`decision-${sel.id}`}
+                                value={val}
+                                checked={decisions[sel.id] === val}
+                                onChange={() => setDecision(sel.id, val)}
+                                className="sr-only"
+                              />
+                              {val === 'APPROVED'
+                                ? <><CheckCircle className="w-4 h-4 text-green-600" /><span className="text-sm font-medium text-green-700">Approved</span></>
+                                : <><XCircle className="w-4 h-4 text-red-600" /><span className="text-sm font-medium text-red-700">Rejected</span></>
+                              }
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                    </>
-                  )
+                    ))}
+                  </div>
                 )}
-              </div>
-
-              {/* DSA Final decision */}
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-gray-700 border-b pb-2">DSA Final Decision</p>
-                <div className="flex gap-3">
-                  {(['APPROVED', 'REJECTED'] as const).map(val => (
-                    <label
-                      key={val}
-                      className={`flex-1 flex items-center gap-2 border-2 rounded-lg p-3 cursor-pointer transition-colors ${form.dsaStatus === val ? (val === 'APPROVED' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-200 hover:border-gray-300'}`}
-                    >
-                      <input
-                        type="radio"
-                        name="dsaStatus"
-                        value={val}
-                        checked={form.dsaStatus === val}
-                        onChange={() => setForm(f => ({ ...f, dsaStatus: val }))}
-                        className="sr-only"
-                      />
-                      {val === 'APPROVED'
-                        ? <><CheckCircle className="w-4 h-4 text-green-600" /><span className="text-sm font-medium text-green-700">Approved</span></>
-                        : <><XCircle className="w-4 h-4 text-red-600" /><span className="text-sm font-medium text-red-700">Rejected</span></>
-                      }
-                    </label>
-                  ))}
-                </div>
               </div>
             </div>
 
