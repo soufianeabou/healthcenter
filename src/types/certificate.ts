@@ -80,25 +80,18 @@ export interface HCReviewPayload {
   healthCenterSignature: string;
 }
 
+// One attendance record from attendance.aui.ma's /api/v1/attendance/filter
+// (proxied via the gateway). Field names match the API's snake_case JSON.
 export interface AttendanceFilterRecord {
   id: number;
   student_sis_id: string;
   course_sis_id: string;
-  attendance: string;
-  count: number | null;
-  marked_at: string | null;
-  marked_time: string | null;
-  seniority: string | null;
-  marked_by_sis_id: string | null;
   course_name: string | null;
+  marked_by_sis_id: string | null;
   instructor_name: string | null;
-  status: string | null;
-  grade: string | null;
-  trmCde: string | null;
-  yrCde: string | null;
-  absentLimit: number | null;
-  firstName: string | null;
-  lastName: string | null;
+  status: string | null;        // e.g. "absent"
+  session_type: string | null;  // e.g. "morning"
+  session_date: string | null;  // e.g. "2026-09-15"
 }
 
 export interface DsaReviewPayload {

@@ -72,7 +72,9 @@ const StudentCertificates: React.FC = () => {
 
   const fetchAttendance = async () => {
     if (!user?.idNum) return;
-    const requestBody = { studentIds: [String(user.idNum)], year: '2627', session: 'FA', userEmail: user.email ?? '' };
+    // New attendance API contract: a single studentSisId (the student's AUI
+    // ID number, the same id used elsewhere in the student flow).
+    const requestBody = { studentSisId: String(user.idNum) };
     try {
       setAttendanceLoading(true);
       const res = await fetch(ATTENDANCE_API, {
@@ -150,14 +152,19 @@ const StudentCertificates: React.FC = () => {
 
       const selectedAbsences: SelectedAbsencePayload[] = tickedIds.map(id => {
         const record = attendanceRecords.find(r => r.id === id);
+        // Map the new attendance API fields onto the existing stored-selection
+        // keys, so the backend entity and the DSA view need no change:
+        //   markedAt        ← session_date
+        //   markedTime      ← session_type (e.g. "morning")
+        //   attendanceStatus ← status      (e.g. "absent")
         return {
           attendanceRecordId: id,
           courseSisId: record?.course_sis_id ?? null,
           courseName: record?.course_name ?? null,
           instructorName: record?.instructor_name ?? null,
-          markedAt: record?.marked_at ?? null,
-          markedTime: record?.marked_time ?? null,
-          attendanceStatus: record?.attendance ?? null,
+          markedAt: record?.session_date ?? null,
+          markedTime: record?.session_type ?? null,
+          attendanceStatus: record?.status ?? null,
           appealReason: selectedReasons[id] as AppealReason,
         };
       });
@@ -308,7 +315,6 @@ const StudentCertificates: React.FC = () => {
                   <div className="space-y-2">
                     {attendanceRecords.map(record => {
                       const checked = record.id in selectedReasons;
-                      const overLimit = record.absentLimit != null && record.count != null && record.count > record.absentLimit;
                       return (
                         <div
                           key={record.id}
@@ -324,14 +330,10 @@ const StudentCertificates: React.FC = () => {
                             <span className="text-sm text-gray-700 flex-1">
                               <span className="font-medium block">{record.course_name?.trim() || record.course_sis_id}</span>
                               <span className="block text-xs text-gray-500">
-                                {record.marked_at ? new Date(record.marked_at).toLocaleDateString() : '—'} · {record.attendance || '—'}
+                                {record.session_date ? new Date(record.session_date).toLocaleDateString() : '—'}
+                                {record.session_type ? ` · ${record.session_type}` : ''} · {record.status || '—'}
                                 {record.instructor_name ? ` · ${record.instructor_name}` : ''}
                               </span>
-                              {overLimit && (
-                                <span className="inline-flex items-center gap-1 text-xs text-red-600 mt-1">
-                                  <AlertTriangle className="w-3 h-3" /> exceeds {record.absentLimit} absence limit
-                                </span>
-                              )}
                             </span>
                           </label>
                           {checked && (
