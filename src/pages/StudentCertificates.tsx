@@ -71,10 +71,21 @@ const StudentCertificates: React.FC = () => {
   const [selectedReasons, setSelectedReasons] = useState<Record<number, AppealReason | ''>>({});
 
   const fetchAttendance = async () => {
-    if (!user?.idNum) return;
+    // Diagnostic: show exactly what identity we have to key the attendance
+    // call off. If idNum is missing here (e.g. a user cached in localStorage
+    // before idNum existed), the call can't fire and the list stays empty.
+    console.log('[Attendance] logged-in user object:', user);
+    console.log('[Attendance] user.idNum =', user?.idNum, '| email =', user?.email);
+
+    if (!user?.idNum) {
+      console.warn('[Attendance] No user.idNum — cannot query attendance. '
+        + 'Log out and back in so the profile is refreshed with the id.');
+      return;
+    }
     // New attendance API contract: a single studentSisId (the student's AUI
     // ID number, the same id used elsewhere in the student flow).
     const requestBody = { studentSisId: String(user.idNum) };
+    console.log('[Attendance] POST', ATTENDANCE_API, '→ body:', requestBody);
     try {
       setAttendanceLoading(true);
       const res = await fetch(ATTENDANCE_API, {
@@ -83,11 +94,16 @@ const StudentCertificates: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
       });
+      console.log('[Attendance] response status:', res.status, res.statusText);
+      const raw = await res.text();
+      console.log('[Attendance] raw response body:', raw);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const data = raw ? JSON.parse(raw) : [];
+      console.log('[Attendance] parsed records:', Array.isArray(data) ? data.length : 'not-an-array', data);
       setAttendanceRecords(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
       // Attendance system unreachable — student can still submit with no ticked absences.
+      console.error('[Attendance] fetch failed:', err);
       setAttendanceRecords([]);
     } finally {
       setAttendanceLoading(false);
