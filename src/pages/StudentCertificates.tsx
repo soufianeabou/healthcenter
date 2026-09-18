@@ -4,9 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, SelectedAbsencePayload, summarizeDsaDecisions } from '../types/certificate';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
-// Attendance is served by the attendance system directly (not the hc.aui.ma
-// gateway) at its own host.
-const ATTENDANCE_API = 'https://attendance.aui.ma/api/v1/attendance/filter';
+// Must go through the hc.aui.ma gateway, NOT attendance.aui.ma directly:
+// attendance.aui.ma sends no CORS headers, so the browser blocks a direct
+// cross-origin call. The gateway calls it server-to-server (no CORS) and
+// attaches the attendance API's static Authorization key.
+const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter';
 
 const APPEAL_REASON_LABELS: Record<AppealReason, string> = {
   REINSTATEMENT: 'Reinstatement',
