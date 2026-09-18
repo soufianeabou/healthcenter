@@ -225,18 +225,38 @@ const resolveStudentFromPatientService = async (candidateEmails: string[], login
     const students: any[] = await res.json();
     if (!Array.isArray(students)) return { status: 'error' };
 
-    const candidateSet = new Set(candidateEmails.map(normalizeEmail));
+    // Two ways to match a roster patient, tried together:
+    //  (a) email string equality against any Azure claim, and
+    //  (b) student ID: a student's AUI email is {id_num}@aui.ma — a format
+    //      unique to students (personnel/staff never use it) — and id_num is
+    //      exactly the identifier the roster and the attendance API are keyed
+    //      to. So we pull the numeric local part from any {digits}@... claim
+    //      and match it against the patient's idNum. This is more robust than
+    //      email-string matching alone: it still works if Outlook surfaces
+    //      the id-based address in one claim while the roster stored it
+    //      slightly differently, and it directly uses the ID the rest of the
+    //      student flow (certificates, absences) relies on.
+    const candidateEmailSet = new Set(candidateEmails.map(normalizeEmail));
+    const candidateIdSet = new Set(
+      candidateEmails
+        .map((e) => normalizeEmail(e).match(/^(\d+)@/)?.[1])
+        .filter((id): id is string => !!id),
+    );
+
     const match = students.find(
-      (p) => p?.email && candidateSet.has(normalizeEmail(p.email)),
+      (p) =>
+        (p?.email && candidateEmailSet.has(normalizeEmail(p.email))) ||
+        (p?.idNum != null && candidateIdSet.has(String(p.idNum))),
     );
     if (!match) {
       // Diagnostic: if a genuinely-registered student still isn't matched,
-      // this line pinpoints why (usually: Azure never surfaced the ID-based
-      // alias the roster is keyed to). Compare the candidates we tried
-      // against the roster emails to see the mismatch at a glance.
+      // this line pinpoints why (usually: Azure surfaced neither the
+      // id-based email nor any alias the roster is keyed to). Shows exactly
+      // what we tried vs the roster size.
       console.warn(
-        '[Auth] No student roster match. Azure email candidates tried:',
+        '[Auth] No student roster match. Azure candidates:',
         candidateEmails,
+        '| IDs parsed from them:', [...candidateIdSet],
         '| roster size:', students.length,
       );
       return { status: 'not_found' };
