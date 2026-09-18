@@ -36,6 +36,18 @@ const AUTH_BASE_URL = getAuthBaseUrl();
 const normalizeEmail = (value: string | null | undefined): string =>
   (value ?? '').trim().toLowerCase();
 
+/* Collapses a name to a comparable key: strips diacritics (Aït → ait),
+   lowercases, and removes everything but letters/digits so spacing,
+   hyphens and punctuation differences (El Mesnaoui / el-mesnaoui) don't
+   break equality. Used only to bridge a student's Outlook name to their
+   roster record when no shared email/ID identifier is available. */
+const normalizeName = (value: string | null | undefined): string =>
+  (value ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
 const clearStoredAuth = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('authSource');
@@ -214,9 +226,22 @@ type StudentLookupResult =
    Outlook alias differs from their SIS email through.
 
    loginEmail is the student's actual, stable Outlook identity: the returned
-   profile always carries that (not whichever roster alias matched), so
-   certificate history and everything else keyed by email stays consistent. */
-const resolveStudentFromPatientService = async (candidateEmails: string[], loginEmail: string): Promise<StudentLookupResult> => {
+   profile always carries that (not whichever roster field matched), so
+   certificate history and everything else keyed by email stays consistent.
+
+   azureName is the student's name from Outlook (given_name/family_name).
+   It's the bridge that actually works in practice: a student signs in with
+   a NAME-based alias (O.Mesnaoui@aui.ma), but the TmsEPrd/roster record is
+   keyed to an ID-based email (120XXX@aui.ma) and Outlook does NOT expose
+   that ID in any claim — so email/ID matching can't connect the two. The
+   person's name is the one identifier both sides reliably carry. Whichever
+   matcher wins, idNum still comes from the matched roster row, so the
+   downstream student flow (certificates, absences) keeps using the right ID. */
+const resolveStudentFromPatientService = async (
+  candidateEmails: string[],
+  azureName: { prenom: string; nom: string } | null,
+  loginEmail: string,
+): Promise<StudentLookupResult> => {
   try {
     const res = await fetch('https://hc.aui.ma/api/patients/by-type/students', {
       credentials: 'include',
@@ -225,17 +250,10 @@ const resolveStudentFromPatientService = async (candidateEmails: string[], login
     const students: any[] = await res.json();
     if (!Array.isArray(students)) return { status: 'error' };
 
-    // Two ways to match a roster patient, tried together:
-    //  (a) email string equality against any Azure claim, and
-    //  (b) student ID: a student's AUI email is {id_num}@aui.ma — a format
-    //      unique to students (personnel/staff never use it) — and id_num is
-    //      exactly the identifier the roster and the attendance API are keyed
-    //      to. So we pull the numeric local part from any {digits}@... claim
-    //      and match it against the patient's idNum. This is more robust than
-    //      email-string matching alone: it still works if Outlook surfaces
-    //      the id-based address in one claim while the roster stored it
-    //      slightly differently, and it directly uses the ID the rest of the
-    //      student flow (certificates, absences) relies on.
+    // (a) email string equality against any Azure claim, and
+    // (b) student ID parsed from any {digits}@... claim vs patient.idNum.
+    //     Both only fire if Outlook happens to surface the id-based address;
+    //     kept because they're exact when they do.
     const candidateEmailSet = new Set(candidateEmails.map(normalizeEmail));
     const candidateIdSet = new Set(
       candidateEmails
@@ -243,19 +261,41 @@ const resolveStudentFromPatientService = async (candidateEmails: string[], login
         .filter((id): id is string => !!id),
     );
 
-    const match = students.find(
+    let match = students.find(
       (p) =>
         (p?.email && candidateEmailSet.has(normalizeEmail(p.email))) ||
         (p?.idNum != null && candidateIdSet.has(String(p.idNum))),
     );
+
+    // (c) name match — the bridge that actually works, since Outlook gives a
+    //     name-based alias while the roster is keyed to an id-based email the
+    //     token never exposes. Require a UNIQUE full-name match (both name
+    //     orderings, accent/spacing-insensitive) so we never log a student in
+    //     as a different student who happens to share their name.
+    if (!match && azureName && (azureName.prenom || azureName.nom)) {
+      const target    = normalizeName(azureName.prenom) + normalizeName(azureName.nom);
+      const targetRev  = normalizeName(azureName.nom) + normalizeName(azureName.prenom);
+      const nameMatches = students.filter((p) => {
+        const key = normalizeName(String(p?.prenom ?? '')) + normalizeName(String(p?.nom ?? ''));
+        return key !== '' && (key === target || key === targetRev);
+      });
+      if (nameMatches.length === 1) {
+        match = nameMatches[0];
+      } else if (nameMatches.length > 1) {
+        console.warn(
+          '[Auth] Ambiguous student name match — refusing to guess.',
+          'name:', azureName, 'candidates:', nameMatches.length,
+        );
+      }
+    }
+
     if (!match) {
       // Diagnostic: if a genuinely-registered student still isn't matched,
-      // this line pinpoints why (usually: Azure surfaced neither the
-      // id-based email nor any alias the roster is keyed to). Shows exactly
-      // what we tried vs the roster size.
+      // this pinpoints why. Compare the Azure name/emails against the roster.
       console.warn(
-        '[Auth] No student roster match. Azure candidates:',
-        candidateEmails,
+        '[Auth] No student roster match.',
+        '| Azure name:', azureName,
+        '| Azure email candidates:', candidateEmails,
         '| IDs parsed from them:', [...candidateIdSet],
         '| roster size:', students.length,
       );
@@ -430,13 +470,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           persistUser(finalPersonnelUser, 'sso');
         } else {
           // 3. Not staff — check the student roster before giving up.
-          // Match against every email-shaped claim Azure gave us, not just
-          // the primary one: the student's SIS/patient record is often keyed
-          // to an ID-number email (e.g. 120487@aui.ma) that differs from
-          // their Outlook alias (H.Idhammou@aui.ma). See
-          // extractAllEmailCandidates / resolveStudentFromPatientService.
+          // Bridge the student's Outlook identity to their roster record by
+          // email, id, or (the one that actually works) name — see
+          // resolveStudentFromPatientService. A student's Outlook alias
+          // (O.Mesnaoui@aui.ma) never matches the roster's id-based email
+          // (120XXX@aui.ma), and Outlook doesn't expose the id, so name is
+          // the only shared identifier.
+          // One-time dump of exactly what Outlook returned, so if a
+          // registered student still fails we can see the real claims.
+          console.debug('[Auth] Azure principal for student lookup:', principal);
           const emailCandidates = extractAllEmailCandidates(principal);
-          const studentLookup = await resolveStudentFromPatientService(emailCandidates, email);
+          const azureName = extractNameFromPrincipal(principal);
+          const studentLookup = await resolveStudentFromPatientService(emailCandidates, azureName, email);
 
           if (studentLookup.status === 'found') {
             const finalStudentUser = withAuthoritativeName(studentLookup.user, principal);
