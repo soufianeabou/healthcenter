@@ -198,31 +198,50 @@ type StudentLookupResult =
   | { status: 'not_found' }
   | { status: 'error' };
 
-/* Looks up a single student against the patient service by candidateEmail —
-   a fast, targeted query (see PatientController#getStudentByEmail on the
-   backend), rather than fetching the entire historical student roster and
-   filtering it client-side. Used when the email is authenticated via SSO but
-   has no personnel row — a match here is a student and gets the STUDENT
-   portal role.
+/* Resolves a student from the patient service's student roster
+   (/api/patients/by-type/students) — the same endpoint that has always been
+   deployed and that made student login work originally. Used when the email
+   is authenticated via SSO but has no personnel row; a match here is a
+   student and gets the STUDENT portal role.
 
-   candidateEmail is whichever Azure-supplied claim we're trying this attempt
-   (see extractAllEmailCandidates below) — Jenzabar's on-file email for a
-   student can be a different alias than the one Azure surfaces as their
-   primary "email" (e.g. an ID-number address like 120487@aui.ma on file
-   while Outlook shows H.Idhammou@aui.ma), so the caller tries several.
+   candidateEmails is every @-shaped claim Azure gave us (see
+   extractAllEmailCandidates). Jenzabar's on-file email for a student is
+   often a different alias than the one Outlook shows: the student signs in
+   as e.g. H.Idhammou@aui.ma, while the SIS/patient record is keyed to an
+   ID-number address like 120487@aui.ma (the same ID used by the attendance
+   API). So we match a roster patient whose email equals ANY of the Azure
+   candidates, not just the primary one — that's what lets students whose
+   Outlook alias differs from their SIS email through.
+
    loginEmail is the student's actual, stable Outlook identity: the returned
-   profile always carries that, not whichever Jenzabar alias happened to
-   match, so certificate history and everything else keyed by email stays
-   consistent regardless of which candidate succeeded. */
-const resolveStudentFromPatientService = async (candidateEmail: string, loginEmail: string): Promise<StudentLookupResult> => {
+   profile always carries that (not whichever roster alias matched), so
+   certificate history and everything else keyed by email stays consistent. */
+const resolveStudentFromPatientService = async (candidateEmails: string[], loginEmail: string): Promise<StudentLookupResult> => {
   try {
-    const res = await fetch(`https://hc.aui.ma/api/patients/by-email/${encodeURIComponent(candidateEmail)}`, {
+    const res = await fetch('https://hc.aui.ma/api/patients/by-type/students', {
       credentials: 'include',
     });
-    if (res.status === 404) return { status: 'not_found' };
     if (!res.ok) return { status: 'error' };
-    const match = await res.json();
-    if (!match) return { status: 'not_found' };
+    const students: any[] = await res.json();
+    if (!Array.isArray(students)) return { status: 'error' };
+
+    const candidateSet = new Set(candidateEmails.map(normalizeEmail));
+    const match = students.find(
+      (p) => p?.email && candidateSet.has(normalizeEmail(p.email)),
+    );
+    if (!match) {
+      // Diagnostic: if a genuinely-registered student still isn't matched,
+      // this line pinpoints why (usually: Azure never surfaced the ID-based
+      // alias the roster is keyed to). Compare the candidates we tried
+      // against the roster emails to see the mismatch at a glance.
+      console.warn(
+        '[Auth] No student roster match. Azure email candidates tried:',
+        candidateEmails,
+        '| roster size:', students.length,
+      );
+      return { status: 'not_found' };
+    }
+
     return {
       status: 'found',
       user: {
@@ -391,19 +410,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           persistUser(finalPersonnelUser, 'sso');
         } else {
           // 3. Not staff — check the student roster before giving up.
-          // Try every email-shaped claim Azure gave us, not just the primary
-          // one: Jenzabar may have this student on file under a different
-          // alias (see extractAllEmailCandidates). If any attempt merely
-          // fails (network/backend), remember that instead of a plain miss,
-          // so a real error further down the list doesn't get masked by an
-          // earlier clean "not found".
+          // Match against every email-shaped claim Azure gave us, not just
+          // the primary one: the student's SIS/patient record is often keyed
+          // to an ID-number email (e.g. 120487@aui.ma) that differs from
+          // their Outlook alias (H.Idhammou@aui.ma). See
+          // extractAllEmailCandidates / resolveStudentFromPatientService.
           const emailCandidates = extractAllEmailCandidates(principal);
-          let studentLookup: StudentLookupResult = { status: 'not_found' };
-          for (const candidate of emailCandidates) {
-            const result = await resolveStudentFromPatientService(candidate, email);
-            if (result.status === 'found') { studentLookup = result; break; }
-            if (result.status === 'error') studentLookup = result;
-          }
+          const studentLookup = await resolveStudentFromPatientService(emailCandidates, email);
 
           if (studentLookup.status === 'found') {
             const finalStudentUser = withAuthoritativeName(studentLookup.user, principal);
