@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { UserRole, UserStatus } from '../types/roles';
 
 interface User {
@@ -48,9 +48,21 @@ const normalizeName = (value: string | null | undefined): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '');
 
+/* Inactivity: last user activity is kept as a timestamp in localStorage and
+   compared on a short interval, rather than relying on one long setTimeout.
+   A single in-memory timer is lost on refresh/tab close and fires late (or
+   never) across laptop sleep and background-tab throttling, so a returning
+   user could still hold a live login well past the limit. A stored
+   timestamp survives all of that and is shared across open tabs. */
+const LAST_ACTIVITY_KEY    = 'lastActivity';
+const INACTIVITY_LIMIT_MS  = 30 * 60 * 1000;
+const INACTIVITY_CHECK_MS  = 15 * 1000;
+const ACTIVITY_WRITE_THROTTLE_MS = 5 * 1000;
+
 const clearStoredAuth = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('authSource');
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
 };
 
 const persistUser = (nextUser: User, source: 'sso') => {
@@ -522,32 +534,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     void tryHydrateFromSso();
   }, []);
 
-  /* ── 30-minute inactivity timeout ── */
+  /* ── 30-minute inactivity logout ──
+     Goes through the same real logout as the button (gateway session and
+     Azure sign-out included), not just a local state reset — otherwise a
+     refresh after "auto-logout" would silently re-authenticate through the
+     still-alive SSO session, defeating the point on a shared/lab terminal. */
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const TIMEOUT_MS = 30 * 60 * 1000;
-    let timer: ReturnType<typeof setTimeout>;
+    const readLastActivity = (): number => Number(localStorage.getItem(LAST_ACTIVITY_KEY)) || 0;
+    const touch = () => localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
 
-    const resetTimer = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        // Go through the same real logout as the button: end the gateway
-        // session too, not just the local React state. Otherwise a page
-        // refresh after "auto-logout" silently re-authenticates via the
-        // still-alive SSO session — the whole point of an inactivity
-        // timeout on a shared/lab terminal.
-        logout();
-      }, TIMEOUT_MS);
+    const isExpired = () => {
+      const last = readLastActivity();
+      return last > 0 && Date.now() - last > INACTIVITY_LIMIT_MS;
     };
 
-    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'] as const;
-    events.forEach(e => window.addEventListener(e, resetTimer));
-    resetTimer();
+    // Returning after being away (closed tab, slept laptop): the stored
+    // timestamp is already past the limit, so end the session right away
+    // instead of restoring a stale login from localStorage.
+    if (isExpired()) {
+      logout();
+      return;
+    }
+    if (!readLastActivity()) touch();
+
+    let lastWrite = Date.now();
+    const onActivity = () => {
+      const now = Date.now();
+      if (now - lastWrite < ACTIVITY_WRITE_THROTTLE_MS) return;
+      lastWrite = now;
+      touch();
+    };
+
+    const check = () => { if (isExpired()) logout(); };
+    const interval = setInterval(check, INACTIVITY_CHECK_MS);
+    // Timers are throttled/suspended in background tabs and during sleep;
+    // re-check the moment the tab is visible again.
+    const onVisibility = () => { if (document.visibilityState === 'visible') check(); };
+
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'] as const;
+    events.forEach(e => window.addEventListener(e, onActivity, { passive: true }));
+    document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
-      clearTimeout(timer);
-      events.forEach(e => window.removeEventListener(e, resetTimer));
+      clearInterval(interval);
+      events.forEach(e => window.removeEventListener(e, onActivity));
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [isAuthenticated]);
 
@@ -557,8 +590,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = `${AUTH_BASE_URL}/oauth2/authorization/azure-dev`;
   };
 
-  /* ── Logout: clear storage and redirect through gateway logout ── */
+  /* ── Logout: clear local state, then hand off to the gateway's /logout,
+        which destroys the server session and signs out of Azure, then lands
+        back on the login page (see SecurityConfig / AuthController#afterLogout).
+        Guarded so the inactivity interval and a button click can't both
+        fire it before the redirect takes over. ── */
+  const loggingOutRef = useRef(false);
   const logout = () => {
+    if (loggingOutRef.current) return;
+    loggingOutRef.current = true;
     setIsLoggingOut(true);
     clearStoredAuth();
     resetActiveRole();
@@ -567,6 +607,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAuthError(null);
     window.location.href = `${AUTH_BASE_URL}/logout`;
   };
+
+  /* If the browser restores this page from its back/forward cache after a
+     logout, React state (and the guard above) comes back frozen mid-logout.
+     Reset it so the login screen is usable. */
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        loggingOutRef.current = false;
+        setIsLoggingOut(false);
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
 
   /* ── Profile update ── */
   const updateProfile = async (userData: Partial<User>): Promise<boolean> => {
