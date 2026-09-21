@@ -605,7 +605,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsAuthenticated(false);
     setAuthError(null);
-    window.location.href = `${AUTH_BASE_URL}/logout`;
+    // /auth/logout, not /logout: nginx forwards /auth/* to the gateway (the
+    // same prefix as the working /auth/user) but a bare /logout falls
+    // through to the SPA's index.html fallback — the app just reloads, sees
+    // the still-alive gateway session, silently signs back in and redirects
+    // the unknown route to /dashboard.
+    window.location.href = `${AUTH_BASE_URL}/auth/logout`;
   };
 
   /* If the browser restores this page from its back/forward cache after a
