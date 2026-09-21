@@ -8,7 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types/roles';
-import { summarizeDsaDecisions } from '../types/certificate';
+import { summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
 
 const API = 'https://hc.aui.ma';
 
@@ -487,17 +487,19 @@ const DSADashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API}/api/consultations/certificates/pending-dsa`)
+    fetch(`${API}/api/consultations/certificates`)
       .then(r => r.ok ? r.json() : [])
       .then(d => setCerts(Array.isArray(d) ? d : []))
       .catch(() => setCerts([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const pendingDSA = certs.filter(c => !c.dsaStatus);
-  const processed = certs.filter(c => c.dsaStatus);
-  const approved = certs.filter(c => c.dsaStatus === 'APPROVED_DSA');
-  const rejected = certs.filter(c => c.dsaStatus === 'REJECTED_DSA');
+  // Pending = HC-approved with undecided absences; processed = fully decided.
+  // Approved/refused count certificates where every absence went the same way.
+  const pendingDSA = certs.filter(isDsaPending);
+  const processed = certs.filter(isDsaDecided);
+  const approved = certs.filter(c => isDsaDecided(c) && summarizeDsaDecisions(c) === 'APPROVED');
+  const rejected = certs.filter(c => isDsaDecided(c) && summarizeDsaDecisions(c) === 'REJECTED');
 
   return (
     <div className="space-y-6">

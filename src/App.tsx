@@ -27,6 +27,7 @@ import MedicinesList from './pages/MedicinesList';
 import StudentCertificates from './pages/StudentCertificates';
 import CertificateReview from './pages/CertificateReview';
 import DSACertificates from './pages/DSACertificates';
+import DSAReports from './pages/DSAReports';
 
 function AppContent() {
   const { user, isAuthenticated, isAuthLoading, activeRole, effectiveRole, isMedecin, isStudent, isDSA, isPsy } = useAuth();
@@ -138,6 +139,9 @@ function AppContent() {
             {/* DSA */}
             {isDSARole && (
               <Route path="/dsa-certificates" element={<DSACertificates />} />
+            )}
+            {isDSARole && (
+              <Route path="/dsa-reports" element={<DSAReports />} />
             )}
 
             {/* Fallback */}

@@ -121,3 +121,19 @@ export function summarizeDsaDecisions(cert: AbsenceCertificate): 'PENDING' | 'AP
   if (decisions.every(d => d === 'REJECTED')) return 'REJECTED';
   return 'MIXED';
 }
+
+// A certificate is only actionable by the DSA once the Health Center has
+// approved it; from then on each absence selection is decided individually.
+// "Pending" = HC-approved with at least one absence still undecided.
+export function isDsaPending(cert: AbsenceCertificate): boolean {
+  return cert.healthCenterStatus === 'APPROVED_HC'
+    && (cert.absenceSelections ?? []).some(s => s.dsaDecision === 'PENDING');
+}
+
+// "Decided" (history) = HC-approved, has absences, and none left undecided.
+export function isDsaDecided(cert: AbsenceCertificate): boolean {
+  const sels = cert.absenceSelections ?? [];
+  return cert.healthCenterStatus === 'APPROVED_HC'
+    && sels.length > 0
+    && sels.every(s => s.dsaDecision !== 'PENDING');
+}

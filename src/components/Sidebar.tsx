@@ -79,6 +79,7 @@ const Sidebar = () => {
   const dsaNavItems = [
     { icon: LayoutDashboard, label: 'Tableau de bord',    path: '/dashboard' },
     { icon: ShieldCheck,     label: 'Certificats DSA',    path: '/dsa-certificates' },
+    { icon: BarChart3,       label: 'Rapports DSA',       path: '/dsa-reports' },
   ];
 
   const psyNavItems = [

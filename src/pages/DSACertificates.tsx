@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, AlertTriangle } from 'lucide-react';
-import { AbsenceCertificate, AppealReason, DsaReviewPayload, summarizeDsaDecisions } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, DsaReviewPayload, summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
 
@@ -9,12 +9,18 @@ const APPEAL_REASON_LABELS: Record<AppealReason, string> = {
   QUIZ_EXAM_MISSING: 'Quiz/Exam missing',
 };
 
-const HCBadge = ({ status }: { status: string }) => (
-  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${status === 'APPROVED_HC' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-    {status === 'APPROVED_HC' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-    {status === 'APPROVED_HC' ? 'HC Approved' : 'HC Rejected'}
-  </span>
-);
+const HCBadge = ({ status }: { status: string }) => {
+  if (status === 'PENDING_HC') {
+    return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700"><Clock className="w-3 h-3" />HC Pending</span>;
+  }
+  const ok = status === 'APPROVED_HC';
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+      {ok ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+      {ok ? 'HC Approved' : 'HC Rejected'}
+    </span>
+  );
+};
 
 const DSABadge = ({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'MIXED' | null }) => {
   if (!status || status === 'PENDING') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3" />Pending DSA</span>;
@@ -27,7 +33,7 @@ const DSACertificates: React.FC = () => {
   const [certificates, setCertificates] = useState<AbsenceCertificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'PENDING' | 'ALL'>('PENDING');
+  const [tab, setTab] = useState<'PENDING' | 'HISTORY' | 'ALL'>('PENDING');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<AbsenceCertificate | null>(null);
   const [dsaReviewer, setDsaReviewer] = useState('');
@@ -38,7 +44,7 @@ const DSACertificates: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const res = await fetch(`${API}/pending-dsa`);
+      const res = await fetch(API);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setCertificates(Array.isArray(data) ? data : []);
@@ -67,10 +73,15 @@ const DSACertificates: React.FC = () => {
     setDecisions(prev => ({ ...prev, [selectionId]: decision }));
   };
 
+  // The DSA can only decide while the certificate is HC-approved and still
+  // has undecided absences. Everything else (already reviewed, or not yet
+  // approved by the Health Center) opens read-only — decided reviews are kept
+  // as a record, and re-submitting would also re-trigger the student's email.
+  const canDecide = !!selected && isDsaPending(selected);
   const allDecided = !!selected && selected.absenceSelections.every(sel => decisions[sel.id]);
 
   const handleSubmitReview = async () => {
-    if (!selected) return;
+    if (!selected || !canDecide) return;
     if (!dsaReviewer.trim()) {
       setError('Please enter the DSA reviewer name.');
       return;
@@ -120,18 +131,19 @@ const DSACertificates: React.FC = () => {
     }
   };
 
+  // The DSA only acts on HC-approved certificates. Pending = still has
+  // undecided absences; History = fully decided; All = everything on record
+  // (including certificates still awaiting or rejected by the Health Center).
   const displayed = certificates
-    .filter(c => tab === 'ALL' || summarizeDsaDecisions(c) === 'PENDING' || summarizeDsaDecisions(c) === null)
+    .filter(c => tab === 'ALL' || (tab === 'PENDING' ? isDsaPending(c) : isDsaDecided(c)))
     .filter(c =>
       !search ||
       c.studentName.toLowerCase().includes(search.toLowerCase()) ||
       c.studentEmail.toLowerCase().includes(search.toLowerCase())
     );
 
-  const pendingCount = certificates.filter(c => {
-    const s = summarizeDsaDecisions(c);
-    return s === 'PENDING' || s === null;
-  }).length;
+  const pendingCount = certificates.filter(isDsaPending).length;
+  const historyCount = certificates.filter(isDsaDecided).length;
 
   return (
     <div className="space-y-6">
@@ -150,6 +162,15 @@ const DSACertificates: React.FC = () => {
           Pending DSA Review
           {pendingCount > 0 && (
             <span className="ml-2 bg-yellow-400 text-yellow-900 text-xs rounded-full px-1.5 py-0.5">{pendingCount}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setTab('HISTORY')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === 'HISTORY' ? 'bg-orange-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+        >
+          History
+          {historyCount > 0 && (
+            <span className={`ml-2 text-xs rounded-full px-1.5 py-0.5 ${tab === 'HISTORY' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700'}`}>{historyCount}</span>
           )}
         </button>
         <button
@@ -180,7 +201,7 @@ const DSACertificates: React.FC = () => {
         ) : displayed.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">{tab === 'PENDING' ? 'No pending DSA reviews.' : 'No certificates found.'}</p>
+            <p className="text-gray-500">{tab === 'PENDING' ? 'No pending DSA reviews.' : tab === 'HISTORY' ? 'No reviewed certificates yet.' : 'No certificates found.'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -206,7 +227,13 @@ const DSACertificates: React.FC = () => {
                     <td className="px-5 py-4 text-sm text-gray-600 hidden sm:table-cell">{cert.studentEmail}</td>
                     <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">{new Date(cert.submissionDate).toLocaleDateString()}</td>
                     <td className="px-5 py-4"><HCBadge status={cert.healthCenterStatus} /></td>
-                    <td className="px-5 py-4"><DSABadge status={summarizeDsaDecisions(cert)} /></td>
+                    <td className="px-5 py-4">
+                      {cert.healthCenterStatus !== 'APPROVED_HC'
+                        ? <span className="text-xs text-gray-400">Awaiting HC decision</span>
+                        : (cert.absenceSelections ?? []).length === 0
+                          ? <span className="text-xs text-gray-400">No absences ticked</span>
+                          : <DSABadge status={summarizeDsaDecisions(cert)} />}
+                    </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <button onClick={(e) => { e.stopPropagation(); openReview(cert); }} className="text-orange-600 hover:text-orange-800 transition-colors" title="Review"><Eye className="w-4 h-4" /></button>
@@ -264,11 +291,22 @@ const DSACertificates: React.FC = () => {
                 </div>
               </div>
 
+              {!canDecide && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600">
+                  {selected.healthCenterStatus !== 'APPROVED_HC'
+                    ? 'Read-only — the Health Center has not approved this certificate yet.'
+                    : 'Read-only — this review is complete and kept as a record.'}
+                  {selected.dsaReviewer ? ` Reviewed by ${selected.dsaReviewer}` : ''}
+                  {selected.dsaReviewDate ? ` on ${new Date(selected.dsaReviewDate).toLocaleDateString()}.` : ''}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">DSA Reviewer <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={dsaReviewer}
+                  disabled={!canDecide}
                   onChange={e => setDsaReviewer(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="Reviewer full name"
@@ -306,6 +344,7 @@ const DSACertificates: React.FC = () => {
                                 value={val}
                                 checked={decisions[sel.id] === val}
                                 onChange={() => setDecision(sel.id, val)}
+                                disabled={!canDecide}
                                 className="sr-only"
                               />
                               {val === 'APPROVED'
@@ -323,14 +362,16 @@ const DSACertificates: React.FC = () => {
             </div>
 
             <div className="p-5 border-t flex justify-end gap-3">
-              <button onClick={() => setSelected(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button
-                onClick={handleSubmitReview}
-                disabled={submitting}
-                className="px-5 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
-              >
-                {submitting ? 'Saving…' : 'Submit DSA Review'}
-              </button>
+              <button onClick={() => setSelected(null)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50">{canDecide ? 'Cancel' : 'Close'}</button>
+              {canDecide && (
+                <button
+                  onClick={handleSubmitReview}
+                  disabled={submitting}
+                  className="px-5 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 disabled:opacity-50"
+                >
+                  {submitting ? 'Saving…' : 'Submit DSA Review'}
+                </button>
+              )}
             </div>
           </div>
         </div>
