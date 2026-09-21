@@ -78,7 +78,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   }, [user]);
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-3 md:px-6 py-3 md:py-4">
+    <header className="bg-white shadow-sm border-b border-gray-200 px-3 md:px-6 py-3 md:py-4 safe-top">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {onMenuClick && (

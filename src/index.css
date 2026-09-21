@@ -9,3 +9,19 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Standalone PWA draws under the notch / Dynamic Island (viewport-fit=cover +
+   translucent status bar). env() resolves to 0 wherever there is no cutout,
+   so desktop and non-notched layouts keep their normal padding. */
+.safe-top {
+  padding-top: calc(env(safe-area-inset-top) + 0.75rem);
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+@media (min-width: 768px) {
+  .safe-top {
+    padding-top: 1rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
