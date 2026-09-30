@@ -85,7 +85,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             <button
               type="button"
               onClick={onMenuClick}
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+              className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
               aria-label="Open menu"
             >
               <Menu className="w-6 h-6" />

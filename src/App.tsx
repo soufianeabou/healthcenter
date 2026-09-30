@@ -66,20 +66,20 @@ function AppContent() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile overlay */}
+      {/* Drawer overlay: mobile and tablet (anything under the lg static-sidebar breakpoint) */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
           aria-hidden
         />
       )}
-      {/* Sidebar: drawer on mobile, static on desktop */}
+      {/* Sidebar: foldable drawer on mobile/tablet, static on desktop (lg+) */}
       <aside
         className={`
           w-64 flex-shrink-0 flex flex-col bg-white shadow-lg
-          fixed md:relative inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-out
-          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          fixed lg:relative inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-out
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
         style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
