@@ -182,6 +182,7 @@ const StudentCertificates: React.FC = () => {
           courseSisId: record?.course_sis_id ?? null,
           courseName: record?.course_name ?? null,
           instructorName: record?.instructor_name ?? null,
+          professorId: record?.marked_by_sis_id ?? null,
           markedAt: record?.session_date ?? null,
           markedTime: record?.session_type ?? null,
           attendanceStatus: record?.status ?? null,
@@ -338,7 +339,8 @@ const StudentCertificates: React.FC = () => {
                       return (
                         <div
                           key={record.id}
-                          className={`border-2 rounded-lg p-3 transition-colors ${checked ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}
+                          style={{ overflowAnchor: 'none' }}
+                          className={`relative border-2 rounded-lg p-3 transition-colors ${checked ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}
                         >
                           <label className="flex items-start gap-2 cursor-pointer">
                             <input
@@ -361,7 +363,7 @@ const StudentCertificates: React.FC = () => {
                               {(Object.keys(APPEAL_REASON_LABELS) as AppealReason[]).map(reason => (
                                 <label
                                   key={reason}
-                                  className={`flex-1 text-center border rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                                  className={`relative flex-1 text-center border rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
                                     selectedReasons[record.id] === reason
                                       ? 'border-teal-500 bg-teal-100 text-teal-800'
                                       : 'border-gray-300 text-gray-600 hover:bg-gray-50'

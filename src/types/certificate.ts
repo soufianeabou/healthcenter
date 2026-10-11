@@ -59,6 +59,7 @@ export interface CertificateAbsenceSelection {
   courseSisId: string | null;
   courseName: string | null;
   instructorName: string | null;
+  professorId: string | null;
   markedAt: string | null;
   markedTime: string | null;
   attendanceStatus: string | null;
@@ -105,6 +106,7 @@ export interface SelectedAbsencePayload {
   courseSisId: string | null;
   courseName: string | null;
   instructorName: string | null;
+  professorId: string | null;
   markedAt: string | null;
   markedTime: string | null;
   attendanceStatus: string | null;
