@@ -71,8 +71,25 @@ const StudentCertificates: React.FC = () => {
 
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceFilterRecord[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  // Keyed by the attendance record's id — presence of a key means ticked.
-  const [selectedReasons, setSelectedReasons] = useState<Record<number, AppealReason | ''>>({});
+  // Keyed by course_sis_id — presence of a key means the course is picked.
+  const [selectedCourses, setSelectedCourses] = useState<Record<string, { reason: AppealReason | ''; quizDate: string }>>({});
+
+  // The student's courses, derived from their absence records (one entry per course).
+  const courses = React.useMemo(() => {
+    const map = new Map<string, { courseSisId: string; courseName: string; instructorName: string | null; professorId: string | null; absences: number }>();
+    attendanceRecords.forEach(r => {
+      const existing = map.get(r.course_sis_id);
+      if (existing) existing.absences += 1;
+      else map.set(r.course_sis_id, {
+        courseSisId: r.course_sis_id,
+        courseName: r.course_name?.trim() || r.course_sis_id,
+        instructorName: r.instructor_name,
+        professorId: r.marked_by_sis_id,
+        absences: 1,
+      });
+    });
+    return Array.from(map.values());
+  }, [attendanceRecords]);
 
   const fetchAttendance = async () => {
     // Diagnostic: show exactly what identity we have to key the attendance
@@ -116,21 +133,25 @@ const StudentCertificates: React.FC = () => {
 
   const openForm = () => {
     setShowForm(true);
-    setSelectedReasons({});
+    setSelectedCourses({});
     void fetchAttendance();
   };
 
-  const toggleAbsence = (recordId: number, checked: boolean) => {
-    setSelectedReasons(prev => {
+  const toggleCourse = (courseSisId: string, checked: boolean) => {
+    setSelectedCourses(prev => {
       const next = { ...prev };
-      if (checked) next[recordId] = next[recordId] || '';
-      else delete next[recordId];
+      if (checked) next[courseSisId] = next[courseSisId] ?? { reason: '', quizDate: '' };
+      else delete next[courseSisId];
       return next;
     });
   };
 
-  const setAbsenceReason = (recordId: number, reason: AppealReason) => {
-    setSelectedReasons(prev => ({ ...prev, [recordId]: reason }));
+  const setCourseReason = (courseSisId: string, reason: AppealReason) => {
+    setSelectedCourses(prev => ({ ...prev, [courseSisId]: { ...prev[courseSisId], reason } }));
+  };
+
+  const setCourseQuizDate = (courseSisId: string, quizDate: string) => {
+    setSelectedCourses(prev => ({ ...prev, [courseSisId]: { ...prev[courseSisId], quizDate } }));
   };
 
   const fetchCertificates = async () => {
@@ -155,9 +176,13 @@ const StudentCertificates: React.FC = () => {
     e.preventDefault();
     if (!selectedFile || !user) return;
 
-    const tickedIds = Object.keys(selectedReasons).map(Number);
-    if (tickedIds.some(id => !selectedReasons[id])) {
-      setError('Please choose an appeal reason for each ticked absence.');
+    const pickedIds = Object.keys(selectedCourses);
+    if (pickedIds.some(id => !selectedCourses[id].reason)) {
+      setError('Please choose a reason (reinstatement or quiz) for each selected course.');
+      return;
+    }
+    if (pickedIds.some(id => selectedCourses[id].reason === 'QUIZ_EXAM_MISSING' && !selectedCourses[id].quizDate)) {
+      setError('Please enter the quiz date for each course with a quiz/exam reason.');
       return;
     }
 
@@ -170,23 +195,21 @@ const StudentCertificates: React.FC = () => {
       form.append('studentEmail', user.email);
       if (user.idNum) form.append('studentIdNum', String(user.idNum));
 
-      const selectedAbsences: SelectedAbsencePayload[] = tickedIds.map(id => {
-        const record = attendanceRecords.find(r => r.id === id);
-        // Map the new attendance API fields onto the existing stored-selection
-        // keys, so the backend entity and the DSA view need no change:
-        //   markedAt        ← session_date
-        //   markedTime      ← session_type (e.g. "morning")
-        //   attendanceStatus ← status      (e.g. "absent")
+      // One selection per course; the DSA sees the full attendance records separately.
+      const selectedAbsences: SelectedAbsencePayload[] = pickedIds.map(id => {
+        const course = courses.find(c => c.courseSisId === id);
+        const picked = selectedCourses[id];
         return {
-          attendanceRecordId: id,
-          courseSisId: record?.course_sis_id ?? null,
-          courseName: record?.course_name ?? null,
-          instructorName: record?.instructor_name ?? null,
-          professorId: record?.marked_by_sis_id ?? null,
-          markedAt: record?.session_date ?? null,
-          markedTime: record?.session_type ?? null,
-          attendanceStatus: record?.status ?? null,
-          appealReason: selectedReasons[id] as AppealReason,
+          attendanceRecordId: null,
+          courseSisId: id,
+          courseName: course?.courseName ?? null,
+          instructorName: course?.instructorName ?? null,
+          professorId: course?.professorId ?? null,
+          markedAt: null,
+          markedTime: null,
+          attendanceStatus: null,
+          appealReason: picked.reason as AppealReason,
+          quizDate: picked.reason === 'QUIZ_EXAM_MISSING' ? picked.quizDate : null,
         };
       });
       if (selectedAbsences.length > 0) {
@@ -197,7 +220,7 @@ const StudentCertificates: React.FC = () => {
       if (!res.ok) throw new Error('Submission failed');
       setShowForm(false);
       setSelectedFile(null);
-      setSelectedReasons({});
+      setSelectedCourses({});
       await fetchCertificates();
     } catch {
       setError('Submission failed. Please try again.');
@@ -321,24 +344,25 @@ const StudentCertificates: React.FC = () => {
               />
             </div>
 
-            {/* Absences to excuse */}
+            {/* Courses to excuse, derived from the student's attendance records */}
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absences to Excuse</p>
+              <p className="text-sm font-semibold text-gray-700 border-b pb-2">Courses to Excuse</p>
               {attendanceLoading ? (
-                <p className="text-xs text-gray-500">Loading your attendance records…</p>
-              ) : attendanceRecords.length === 0 ? (
-                <p className="text-xs text-gray-500">No attendance records found. You can still submit the certificate.</p>
+                <p className="text-xs text-gray-500">Loading your courses…</p>
+              ) : courses.length === 0 ? (
+                <p className="text-xs text-gray-500">No courses with absences found. You can still submit the certificate.</p>
               ) : (
                 <>
                   <p className="text-xs text-gray-500">
-                    Tick each absence this certificate should excuse, and choose a reason for it.
+                    Select each course this certificate should cover and choose a reason. For a quiz/exam, enter its date.
                   </p>
                   <div className="space-y-2">
-                    {attendanceRecords.map(record => {
-                      const checked = record.id in selectedReasons;
+                    {courses.map(course => {
+                      const picked = selectedCourses[course.courseSisId];
+                      const checked = !!picked;
                       return (
                         <div
-                          key={record.id}
+                          key={course.courseSisId}
                           style={{ overflowAnchor: 'none' }}
                           className={`relative border-2 rounded-lg p-3 transition-colors ${checked ? 'border-teal-400 bg-teal-50' : 'border-gray-200'}`}
                         >
@@ -346,39 +370,54 @@ const StudentCertificates: React.FC = () => {
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={e => toggleAbsence(record.id, e.target.checked)}
+                              onChange={e => toggleCourse(course.courseSisId, e.target.checked)}
                               className="w-4 h-4 accent-teal-600 mt-0.5"
                             />
                             <span className="text-sm text-gray-700 flex-1">
-                              <span className="font-medium block">{record.course_name?.trim() || record.course_sis_id}</span>
+                              <span className="font-medium block">{course.courseName}</span>
                               <span className="block text-xs text-gray-500">
-                                {record.session_date ? new Date(record.session_date).toLocaleDateString() : '—'}
-                                {record.session_type ? ` · ${record.session_type}` : ''} · {record.status || '—'}
-                                {record.instructor_name ? ` · ${record.instructor_name}` : ''}
+                                {course.absences} absence{course.absences === 1 ? '' : 's'}
+                                {course.instructorName ? ` · ${course.instructorName}` : ''}
                               </span>
                             </span>
                           </label>
                           {checked && (
-                            <div className="mt-2 ml-6 flex gap-2">
-                              {(Object.keys(APPEAL_REASON_LABELS) as AppealReason[]).map(reason => (
-                                <label
-                                  key={reason}
-                                  className={`relative flex-1 text-center border rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
-                                    selectedReasons[record.id] === reason
-                                      ? 'border-teal-500 bg-teal-100 text-teal-800'
-                                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                                  }`}
-                                >
+                            <div className="mt-2 ml-6 space-y-2">
+                              <div className="flex gap-2">
+                                {(Object.keys(APPEAL_REASON_LABELS) as AppealReason[]).map(reason => (
+                                  <label
+                                    key={reason}
+                                    className={`relative flex-1 text-center border rounded-lg px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${
+                                      picked.reason === reason
+                                        ? 'border-teal-500 bg-teal-100 text-teal-800'
+                                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name={`reason-${course.courseSisId}`}
+                                      className="sr-only"
+                                      checked={picked.reason === reason}
+                                      onChange={() => setCourseReason(course.courseSisId, reason)}
+                                    />
+                                    {APPEAL_REASON_LABELS[reason]}
+                                  </label>
+                                ))}
+                              </div>
+                              {picked.reason === 'QUIZ_EXAM_MISSING' && (
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">
+                                    Quiz/exam date <span className="text-red-500">*</span>
+                                  </label>
                                   <input
-                                    type="radio"
-                                    name={`reason-${record.id}`}
-                                    className="sr-only"
-                                    checked={selectedReasons[record.id] === reason}
-                                    onChange={() => setAbsenceReason(record.id, reason)}
+                                    type="date"
+                                    required
+                                    value={picked.quizDate}
+                                    onChange={e => setCourseQuizDate(course.courseSisId, e.target.value)}
+                                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                                   />
-                                  {APPEAL_REASON_LABELS[reason]}
-                                </label>
-                              ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -392,7 +431,7 @@ const StudentCertificates: React.FC = () => {
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setSelectedFile(null); setSelectedReasons({}); }}
+                onClick={() => { setShowForm(false); setSelectedFile(null); setSelectedCourses({}); }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
               >
                 Cancel
@@ -520,6 +559,7 @@ const StudentCertificates: React.FC = () => {
                             <p className="font-medium text-gray-800 truncate">{sel.courseName || sel.courseSisId}</p>
                             <p className="text-xs text-gray-500">
                               {APPEAL_REASON_LABELS[sel.appealReason]}
+                              {sel.quizDate ? ` · Quiz on ${sel.quizDate}` : ''}
                               {sel.markedAt ? ` · ${sel.markedAt}` : ''}
                             </p>
                           </div>

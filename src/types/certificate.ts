@@ -64,6 +64,8 @@ export interface CertificateAbsenceSelection {
   markedTime: string | null;
   attendanceStatus: string | null;
   appealReason: AppealReason;
+  // Date of the missed quiz/exam; set when appealReason is QUIZ_EXAM_MISSING.
+  quizDate: string | null;
   dsaDecision: DsaDecision;
 }
 
@@ -100,7 +102,7 @@ export interface DsaReviewPayload {
   decisions: { selectionId: number; dsaDecision: 'APPROVED' | 'REJECTED' }[];
 }
 
-// One absence the student ticked, ready to send back on submission.
+// One course the student picked (one entry per course), ready to send back on submission.
 export interface SelectedAbsencePayload {
   attendanceRecordId: number | null;
   courseSisId: string | null;
@@ -111,6 +113,7 @@ export interface SelectedAbsencePayload {
   markedTime: string | null;
   attendanceStatus: string | null;
   appealReason: AppealReason;
+  quizDate: string | null;
 }
 
 // Rolls up each absence's own DSA decision into one summary for list/badge

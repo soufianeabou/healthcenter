@@ -136,7 +136,7 @@ const toRow = (c: AbsenceCertificate, s: CertificateAbsenceSelection, basis: Dat
   medicalType: c.medicalType ?? '',
   course: s.courseName?.trim() || s.courseSisId || 'Unknown course',
   instructor: s.instructorName?.trim() || 'Unknown instructor',
-  absenceDate: s.markedAt,
+  absenceDate: s.markedAt ?? s.quizDate,
   session: s.markedTime,
   reason: s.appealReason,
   decision: c.healthCenterStatus !== 'APPROVED_HC' ? 'INELIGIBLE' : s.dsaDecision,

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, AlertTriangle } from 'lucide-react';
-import { AbsenceCertificate, AppealReason, DsaReviewPayload, summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, DsaReviewPayload, summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
+// ?all=true returns every attendance status, not just absences (DSA only).
+const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter?all=true';
 
 const APPEAL_REASON_LABELS: Record<AppealReason, string> = {
   REINSTATEMENT: 'Reinstatement',
@@ -39,6 +41,9 @@ const DSACertificates: React.FC = () => {
   const [dsaReviewer, setDsaReviewer] = useState('');
   const [decisions, setDecisions] = useState<Record<number, 'APPROVED' | 'REJECTED'>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [attendance, setAttendance] = useState<AttendanceFilterRecord[]>([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceError, setAttendanceError] = useState('');
 
   const fetchAll = async () => {
     try {
@@ -67,6 +72,34 @@ const DSACertificates: React.FC = () => {
       }
     });
     setDecisions(initial);
+    void loadAttendance(cert);
+  };
+
+  // The DSA sees the student's complete attendance history, not only the
+  // absences behind the courses they picked.
+  const loadAttendance = async (cert: AbsenceCertificate) => {
+    setAttendance([]);
+    setAttendanceError('');
+    if (!cert.studentIdNum || cert.studentIdNum === 'unknown') {
+      setAttendanceError('No student ID on this certificate, so attendance cannot be loaded.');
+      return;
+    }
+    try {
+      setAttendanceLoading(true);
+      const res = await fetch(ATTENDANCE_API, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentSisId: String(cert.studentIdNum) }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setAttendance(Array.isArray(data) ? data : []);
+    } catch {
+      setAttendanceError('Could not load the student\'s attendance records.');
+    } finally {
+      setAttendanceLoading(false);
+    }
   };
 
   const setDecision = (selectionId: number, decision: 'APPROVED' | 'REJECTED') => {
@@ -87,7 +120,7 @@ const DSACertificates: React.FC = () => {
       return;
     }
     if (!allDecided) {
-      setError('Please approve or reject every absence before submitting.');
+      setError('Please approve or reject every course before submitting.');
       return;
     }
     try {
@@ -313,9 +346,49 @@ const DSACertificates: React.FC = () => {
                 />
               </div>
 
-              {/* Absences the student ticked, each with its own decision */}
+              {/* Full attendance history of the student */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Attendance records ({attendance.length})</p>
+                {attendanceLoading ? (
+                  <p className="text-xs text-gray-500">Loading attendance…</p>
+                ) : attendanceError ? (
+                  <p className="text-xs text-red-600">{attendanceError}</p>
+                ) : attendance.length === 0 ? (
+                  <p className="text-xs text-gray-500">No attendance records found.</p>
+                ) : (
+                  <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          {['Date', 'Course', 'Session', 'Status'].map(h => (
+                            <th key={h} className="px-3 py-2 text-left font-medium text-gray-500">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {[...attendance]
+                          .sort((a, b) => (b.session_date || '').localeCompare(a.session_date || ''))
+                          .map(r => {
+                            const requested = selected.absenceSelections.some(sel => sel.courseSisId === r.course_sis_id);
+                            return (
+                              <tr key={r.id} className={requested ? 'bg-orange-50' : ''}>
+                                <td className="px-3 py-1.5 whitespace-nowrap">{r.session_date || '—'}</td>
+                                <td className="px-3 py-1.5">{r.course_name?.trim() || r.course_sis_id}</td>
+                                <td className="px-3 py-1.5">{r.session_type || '—'}</td>
+                                <td className={`px-3 py-1.5 font-medium ${(r.status || '').toLowerCase() === 'absent' ? 'text-red-600' : 'text-gray-700'}`}>{r.status || '—'}</td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <p className="text-xs text-gray-400">Rows shaded orange belong to courses the student requested.</p>
+              </div>
+
+              {/* Courses the student picked, each with its own decision */}
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Absences ({selected.absenceSelections.length})</p>
+                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Requested courses ({selected.absenceSelections.length})</p>
                 {selected.absenceSelections.length === 0 ? (
                   <p className="text-sm text-gray-500">The student did not tick any absences with this certificate.</p>
                 ) : (
@@ -325,11 +398,12 @@ const DSACertificates: React.FC = () => {
                         <div>
                           <p className="font-medium text-gray-800">{sel.courseName || sel.courseSisId}</p>
                           <p className="text-xs text-gray-500">
-                            {sel.markedAt || '—'}{sel.markedTime ? ` · ${sel.markedTime}` : ''} · {sel.attendanceStatus || '—'}
+                            {sel.markedAt ? `${sel.markedAt}${sel.markedTime ? ` · ${sel.markedTime}` : ''} · ${sel.attendanceStatus || '—'}` : `${attendance.filter(r => r.course_sis_id === sel.courseSisId && (r.status || '').toLowerCase() === 'absent').length} absence(s) on record`}
                             {sel.instructorName ? ` · ${sel.instructorName}` : ''}
                           </p>
                           <p className="text-xs text-gray-600 mt-1">
                             Reason: <span className="font-medium">{APPEAL_REASON_LABELS[sel.appealReason]}</span>
+                            {sel.quizDate ? <> · Quiz date: <span className="font-medium">{sel.quizDate}</span></> : null}
                           </p>
                         </div>
                         <div className="flex gap-3">
