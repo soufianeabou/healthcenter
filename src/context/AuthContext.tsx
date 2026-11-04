@@ -171,6 +171,8 @@ const toUserRole = (rawRole: unknown): UserRole => {
     if (rawRole === 0) return UserRole.MEDECIN;
     if (rawRole === 1) return UserRole.INFIRMIER;
     if (rawRole === 2) return UserRole.ADMIN;
+    if (rawRole === 3) return UserRole.DSA;
+    if (rawRole === 4) return UserRole.PSY;
   }
   const s = String(rawRole ?? '').trim().toUpperCase();
   if (s === 'MEDECIN')   return UserRole.MEDECIN;
@@ -178,7 +180,9 @@ const toUserRole = (rawRole: unknown): UserRole => {
   if (s === 'ADMIN')     return UserRole.ADMIN;
   if (s === 'STUDENT')   return UserRole.STUDENT;
   if (s === 'DSA')       return UserRole.DSA;
-  return UserRole.ADMIN; // safe fallback
+  if (s === 'PSY')       return UserRole.PSY;
+  // Unknown role: least privilege. Never default to ADMIN.
+  return UserRole.STUDENT;
 };
 
 /* Fetches the personnels table and matches by email.
@@ -511,13 +515,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               'Impossible de vérifier votre profil pour le moment. Merci de réessayer dans un instant.',
             );
           } else {
-            // Authenticated by Azure but genuinely not found as personnel or student
-            clearStoredAuth();
-            setUser(null);
-            setIsAuthenticated(false);
-            setAuthError(
-              `Le compte ${email} est authentifié mais n'a pas de profil dans le système. Contactez l'administrateur.`,
-            );
+            // Not personnel and not matched in the roster: still a student.
+            // Everyone outside the staff list is treated as a student (the
+            // backend applies the same rule). Without a roster match there is
+            // no idNum, so attendance can't be loaded, but they can log in
+            // and submit certificates.
+            const azure = extractNameFromPrincipal(principal);
+            const fallbackStudent: User = {
+              id:         0,
+              nom:        azure?.nom    ?? '',
+              prenom:     azure?.prenom ?? normalizedEmail.split('@')[0],
+              username:   email,
+              passwd:     null,
+              role:       UserRole.STUDENT,
+              specialite: '',
+              telephone:  '',
+              email,
+              status:     UserStatus.ACTIVE,
+            };
+            setAuthError(null);
+            setUser(fallbackStudent);
+            setIsAuthenticated(true);
+            persistUser(fallbackStudent, 'sso');
           }
         }
       } catch (err: any) {
