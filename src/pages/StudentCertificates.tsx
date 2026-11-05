@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Clock, CheckCircle, XCircle, Plus, Eye, Download, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, Clock, CheckCircle, XCircle, Plus, Eye, Download, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, SelectedAbsencePayload, summarizeDsaDecisions } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, CertificateDownload, MAX_CERTIFICATE_FILES, MAX_CERTIFICATE_FILE_BYTES, SelectedAbsencePayload, certificateDownloads, summarizeDsaDecisions } from '../types/certificate';
+import { downloadCertificateFile } from '../utils/certificateFiles';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
 // Must go through the hc.aui.ma gateway, NOT attendance.aui.ma directly:
@@ -65,7 +66,7 @@ const StudentCertificates: React.FC = () => {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [viewCert, setViewCert] = useState<AbsenceCertificate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,15 +132,30 @@ const StudentCertificates: React.FC = () => {
     }
   };
 
-  // Only one certificate may await Health Center review at a time (enforced server-side too).
-  const hasPendingHc = certificates.some(c => c.healthCenterStatus === 'PENDING_HC');
-  const PENDING_MSG = 'You already have a certificate pending Health Center review. You can submit a new one once it has been reviewed.';
+  // Adds picked files to the selection (up to MAX_CERTIFICATE_FILES, 10 MB each).
+  const addFiles = (picked: FileList | null) => {
+    if (!picked || picked.length === 0) return;
+    const incoming = Array.from(picked);
+    const tooBig = incoming.filter(f => f.size > MAX_CERTIFICATE_FILE_BYTES);
+    const fresh = incoming.filter(f => f.size <= MAX_CERTIFICATE_FILE_BYTES
+      && !selectedFiles.some(s => s.name === f.name && s.size === f.size));
+    const room = MAX_CERTIFICATE_FILES - selectedFiles.length;
+    if (tooBig.length > 0) {
+      setError(`${tooBig.map(f => f.name).join(', ')} ${tooBig.length > 1 ? 'are' : 'is'} larger than 10 MB.`);
+    } else if (fresh.length > room) {
+      setError(`You can attach at most ${MAX_CERTIFICATE_FILES} files per submission.`);
+    } else {
+      setError('');
+    }
+    setSelectedFiles(prev => [...prev, ...fresh.slice(0, Math.max(room, 0))]);
+    if (fileInputRef.current) fileInputRef.current.value = '';   // allow re-picking the same file
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const openForm = () => {
-    if (hasPendingHc) {
-      setError(PENDING_MSG);
-      return;
-    }
     setShowForm(true);
     setSelectedCourses({});
     void fetchAttendance();
@@ -182,7 +198,7 @@ const StudentCertificates: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !user) return;
+    if (selectedFiles.length === 0 || !user) return;
 
     const pickedIds = Object.keys(selectedCourses);
     if (pickedIds.some(id => !selectedCourses[id].reason)) {
@@ -198,7 +214,7 @@ const StudentCertificates: React.FC = () => {
       setSubmitting(true);
       setError('');
       const form = new FormData();
-      form.append('file', selectedFile);
+      selectedFiles.forEach(f => form.append('file', f));
       form.append('studentName', `${user.prenom} ${user.nom}`);
       form.append('studentEmail', user.email);
       if (user.idNum) form.append('studentIdNum', String(user.idNum));
@@ -225,15 +241,9 @@ const StudentCertificates: React.FC = () => {
       }
 
       const res = await fetch(API, { method: 'POST', body: form });
-      if (res.status === 409) {
-        setShowForm(false);
-        setError(PENDING_MSG);
-        await fetchCertificates();
-        return;
-      }
       if (!res.ok) throw new Error('Submission failed');
       setShowForm(false);
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setSelectedCourses({});
       await fetchCertificates();
     } catch {
@@ -243,17 +253,17 @@ const StudentCertificates: React.FC = () => {
     }
   };
 
-  const handleDownloadFile = async (cert: AbsenceCertificate) => {
+  const handleDownloadFile = async (file: CertificateDownload) => {
     try {
-      const res = await fetch(`${API}/${cert.id}/file`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = cert.certificateFileName || 'certificate';
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadCertificateFile(API, file);
+    } catch {
+      setError('Could not download file.');
+    }
+  };
+
+  const handleDownloadAll = async (cert: AbsenceCertificate) => {
+    try {
+      for (const file of certificateDownloads(cert)) await downloadCertificateFile(API, file);
     } catch {
       setError('Could not download file.');
     }
@@ -279,9 +289,7 @@ const StudentCertificates: React.FC = () => {
           </div>
           <button
             onClick={openForm}
-            disabled={hasPendingHc}
-            title={hasPendingHc ? PENDING_MSG : undefined}
-            className="bg-white text-teal-700 px-5 py-2.5 rounded-lg hover:bg-teal-50 transition-colors font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
+            className="bg-white text-teal-700 px-5 py-2.5 rounded-lg hover:bg-teal-50 transition-colors font-medium flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Submit Certificate
           </button>
@@ -302,12 +310,6 @@ const StudentCertificates: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {hasPendingHc && !error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800 text-sm flex items-center gap-2">
-          <Clock className="w-4 h-4 shrink-0" /> {PENDING_MSG}
-        </div>
-      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{error}</div>
@@ -337,32 +339,55 @@ const StudentCertificates: React.FC = () => {
             {/* File upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Medical Certificate <span className="text-red-500">*</span>
+                Medical Certificate(s) <span className="text-red-500">*</span>
+                <span className="ml-2 text-xs font-normal text-gray-400">
+                  {selectedFiles.length}/{MAX_CERTIFICATE_FILES} files
+                </span>
               </label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                  selectedFile
-                    ? 'border-teal-400 bg-teal-50'
-                    : 'border-gray-300 hover:border-teal-400 hover:bg-gray-50'
-                }`}
-              >
-                <Upload className={`w-8 h-8 mx-auto mb-2 ${selectedFile ? 'text-teal-500' : 'text-gray-400'}`} />
-                {selectedFile ? (
-                  <p className="text-sm text-teal-700 font-medium">{selectedFile.name}</p>
-                ) : (
-                  <>
-                    <p className="text-sm text-gray-600">Click to upload your medical certificate</p>
-                    <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG — max 10 MB</p>
-                  </>
-                )}
-              </div>
+              {selectedFiles.length < MAX_CERTIFICATE_FILES && (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                    selectedFiles.length > 0
+                      ? 'border-teal-400 bg-teal-50'
+                      : 'border-gray-300 hover:border-teal-400 hover:bg-gray-50'
+                  }`}
+                >
+                  <Upload className={`w-8 h-8 mx-auto mb-2 ${selectedFiles.length > 0 ? 'text-teal-500' : 'text-gray-400'}`} />
+                  <p className="text-sm text-gray-600">
+                    {selectedFiles.length > 0 ? 'Click to add another file' : 'Click to upload your medical certificate(s)'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF, JPG, PNG — up to {MAX_CERTIFICATE_FILES} files, max 10 MB each
+                  </p>
+                </div>
+              )}
+              {selectedFiles.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {selectedFiles.map((f, i) => (
+                    <li key={`${f.name}-${f.size}`} className="flex items-center gap-3 border border-gray-200 rounded-lg px-3 py-2">
+                      <FileText className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{f.name}</span>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(i)}
+                        className="text-gray-400 hover:text-red-600 flex-shrink-0"
+                        title="Remove file"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 accept=".pdf,.jpg,.jpeg,.png"
                 className="hidden"
-                onChange={e => setSelectedFile(e.target.files?.[0] ?? null)}
+                onChange={e => addFiles(e.target.files)}
               />
             </div>
 
@@ -453,14 +478,14 @@ const StudentCertificates: React.FC = () => {
             <div className="flex gap-3 justify-end">
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setSelectedFile(null); setSelectedCourses({}); }}
+                onClick={() => { setShowForm(false); setSelectedFiles([]); setSelectedCourses({}); }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={!selectedFile || submitting}
+                disabled={selectedFiles.length === 0 || submitting}
                 className="px-5 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 text-sm font-medium"
               >
                 {submitting ? 'Submitting…' : 'Submit Certificate'}
@@ -497,7 +522,12 @@ const StudentCertificates: React.FC = () => {
                     <FileText className="w-5 h-5 text-teal-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{cert.certificateFileName}</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {certificateDownloads(cert)[0]?.fileName ?? 'Certificate'}
+                      {certificateDownloads(cert).length > 1 && (
+                        <span className="ml-1.5 text-xs font-normal text-gray-500">+{certificateDownloads(cert).length - 1} more</span>
+                      )}
+                    </p>
                     <p className="text-xs text-gray-500">
                       Submitted {new Date(cert.submissionDate).toLocaleDateString()}
                     </p>
@@ -521,9 +551,9 @@ const StudentCertificates: React.FC = () => {
                     <Eye className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDownloadFile(cert)}
+                    onClick={() => handleDownloadAll(cert)}
                     className="text-gray-400 hover:text-gray-700 transition-colors"
-                    title="Download certificate"
+                    title={certificateDownloads(cert).length > 1 ? 'Download all files' : 'Download certificate'}
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -548,8 +578,22 @@ const StudentCertificates: React.FC = () => {
                 <p className="font-medium">{new Date(viewCert.submissionDate).toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">File</p>
-                <p className="font-medium">{viewCert.certificateFileName}</p>
+                <p className="text-xs text-gray-500 mb-1">{certificateDownloads(viewCert).length > 1 ? 'Files' : 'File'}</p>
+                <div className="space-y-1.5">
+                  {certificateDownloads(viewCert).map(file => (
+                    <div key={file.key} className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="font-medium flex-1 min-w-0 truncate">{file.fileName}</span>
+                      <button
+                        onClick={() => handleDownloadFile(file)}
+                        className="text-teal-600 hover:text-teal-800 flex-shrink-0"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* HC review section */}
@@ -600,8 +644,8 @@ const StudentCertificates: React.FC = () => {
               )}
             </div>
             <div className="p-5 border-t flex justify-end gap-3">
-              <button onClick={() => handleDownloadFile(viewCert)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                <Download className="w-4 h-4" /> Download
+              <button onClick={() => handleDownloadAll(viewCert)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                <Download className="w-4 h-4" /> {certificateDownloads(viewCert).length > 1 ? 'Download all' : 'Download'}
               </button>
               <button onClick={() => setViewCert(null)} className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700">Close</button>
             </div>

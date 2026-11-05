@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AbsenceCertificate, HCReviewPayload, MedicalType } from '../types/certificate';
+import { AbsenceCertificate, CertificateDownload, HCReviewPayload, MedicalType, certificateDownloads } from '../types/certificate';
+import { downloadCertificateFile } from '../utils/certificateFiles';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
 
@@ -99,17 +100,17 @@ const CertificateReview: React.FC = () => {
     }
   };
 
-  const handleDownloadFile = async (cert: AbsenceCertificate) => {
+  const handleDownloadFile = async (file: CertificateDownload) => {
     try {
-      const res = await fetch(`${API}/${cert.id}/file`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = cert.certificateFileName || 'certificate';
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadCertificateFile(API, file);
+    } catch {
+      setError('Could not download file.');
+    }
+  };
+
+  const handleDownloadAll = async (cert: AbsenceCertificate) => {
+    try {
+      for (const file of certificateDownloads(cert)) await downloadCertificateFile(API, file);
     } catch {
       setError('Could not download file.');
     }
@@ -207,7 +208,7 @@ const CertificateReview: React.FC = () => {
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDownloadFile(cert); }}
+                          onClick={(e) => { e.stopPropagation(); handleDownloadAll(cert); }}
                           className="text-gray-400 hover:text-gray-700 transition-colors"
                           title="Download certificate"
                         >
@@ -242,16 +243,22 @@ const CertificateReview: React.FC = () => {
 
               {/* File */}
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Attached Certificate</p>
-                <div className="flex items-center gap-3 border border-gray-200 rounded-lg p-3">
-                  <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{selected.certificateFileName}</span>
-                  <button
-                    onClick={() => handleDownloadFile(selected)}
-                    className="text-green-600 hover:text-green-800 text-sm flex items-center gap-1 flex-shrink-0"
-                  >
-                    <Download className="w-4 h-4" /> Download
-                  </button>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Attached {certificateDownloads(selected).length > 1 ? `Documents (${certificateDownloads(selected).length})` : 'Certificate'}
+                </p>
+                <div className="space-y-2">
+                  {certificateDownloads(selected).map(file => (
+                    <div key={file.key} className="flex items-center gap-3 border border-gray-200 rounded-lg p-3">
+                      <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{file.fileName}</span>
+                      <button
+                        onClick={() => handleDownloadFile(file)}
+                        className="text-green-600 hover:text-green-800 text-sm flex items-center gap-1 flex-shrink-0"
+                      >
+                        <Download className="w-4 h-4" /> Download
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 

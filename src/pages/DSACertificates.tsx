@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, AlertTriangle } from 'lucide-react';
-import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, DsaReviewPayload, summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, CertificateDownload, DsaReviewPayload, certificateDownloads, summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
+import { downloadCertificateFile } from '../utils/certificateFiles';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
 // ?all=true returns every attendance status, not just absences (DSA only).
@@ -148,17 +149,17 @@ const DSACertificates: React.FC = () => {
     }
   };
 
-  const handleDownloadFile = async (cert: AbsenceCertificate) => {
+  const handleDownloadFile = async (file: CertificateDownload) => {
     try {
-      const res = await fetch(`${API}/${cert.id}/file`);
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = cert.certificateFileName || 'certificate';
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadCertificateFile(API, file);
+    } catch {
+      setError('Could not download file.');
+    }
+  };
+
+  const handleDownloadAll = async (cert: AbsenceCertificate) => {
+    try {
+      for (const file of certificateDownloads(cert)) await downloadCertificateFile(API, file);
     } catch {
       setError('Could not download file.');
     }
@@ -270,7 +271,7 @@ const DSACertificates: React.FC = () => {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <button onClick={(e) => { e.stopPropagation(); openReview(cert); }} className="text-orange-600 hover:text-orange-800 transition-colors" title="Review"><Eye className="w-4 h-4" /></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDownloadFile(cert); }} className="text-gray-400 hover:text-gray-700 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDownloadAll(cert); }} className="text-gray-400 hover:text-gray-700 transition-colors" title="Download"><Download className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -315,13 +316,15 @@ const DSACertificates: React.FC = () => {
                 {selected.healthCenterSignature && (
                   <div><p className="text-xs text-gray-500">HC Signature</p><p className="font-medium font-serif italic">{selected.healthCenterSignature}</p></div>
                 )}
-                <div className="flex items-center gap-3">
-                  <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-gray-700 min-w-0 truncate flex-1">{selected.certificateFileName}</span>
-                  <button onClick={() => handleDownloadFile(selected)} className="text-orange-600 hover:text-orange-800 text-xs flex items-center gap-1 flex-shrink-0">
-                    <Download className="w-3 h-3" /> Download
-                  </button>
-                </div>
+                {certificateDownloads(selected).map(file => (
+                  <div key={file.key} className="flex items-center gap-3">
+                    <FileText className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-700 min-w-0 truncate flex-1">{file.fileName}</span>
+                    <button onClick={() => handleDownloadFile(file)} className="text-orange-600 hover:text-orange-800 text-xs flex items-center gap-1 flex-shrink-0">
+                      <Download className="w-3 h-3" /> Download
+                    </button>
+                  </div>
+                ))}
               </div>
 
               {!canDecide && (

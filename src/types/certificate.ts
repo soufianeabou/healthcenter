@@ -6,6 +6,30 @@ export type CertificateStatus =
   | 'APPROVED_DSA'
   | 'REJECTED_DSA';
 
+export interface CertificateFileInfo {
+  id: number;
+  fileName: string;
+  fileType: string;
+}
+
+export const MAX_CERTIFICATE_FILES = 5;
+export const MAX_CERTIFICATE_FILE_BYTES = 10 * 1024 * 1024;
+
+/** A downloadable file of a certificate: `path` is relative to the certificates API. */
+export interface CertificateDownload {
+  key: string;
+  path: string;
+  fileName: string;
+}
+
+/** Files of a certificate, falling back to the legacy single file for old submissions. */
+export const certificateDownloads = (cert: AbsenceCertificate): CertificateDownload[] =>
+  cert.files && cert.files.length > 0
+    ? cert.files.map(f => ({ key: String(f.id), path: `${cert.id}/files/${f.id}`, fileName: f.fileName }))
+    : cert.certificateFileName
+      ? [{ key: 'legacy', path: `${cert.id}/file`, fileName: cert.certificateFileName }]
+      : [];
+
 export interface AbsenceCertificate {
   id: number;
 
@@ -16,6 +40,9 @@ export interface AbsenceCertificate {
   submissionDate: string; // ISO datetime
   certificateFileName: string;
   certificateFileType: string;
+  // Every document of the submission (1..5). Empty on submissions made before
+  // multi-file upload; those only have certificateFileName above.
+  files?: CertificateFileInfo[];
 
   // Health center review
   medicalType: MedicalType | null;
