@@ -241,7 +241,17 @@ const StudentCertificates: React.FC = () => {
       }
 
       const res = await fetch(API, { method: 'POST', body: form });
-      if (!res.ok) throw new Error('Submission failed');
+      if (!res.ok) {
+        const reasons: Record<number, string> = {
+          413: 'The upload is too large for the server. Try smaller or fewer files.',
+          415: 'Only PDF, JPG or PNG files are accepted.',
+          400: 'The submission was refused (check the number of files and the quiz dates).',
+          401: 'Your session has expired. Please sign in again.',
+          403: 'You are not allowed to submit certificates with this account.',
+        };
+        setError(reasons[res.status] ?? `Submission failed (error ${res.status}). Please try again.`);
+        return;
+      }
       setShowForm(false);
       setSelectedFiles([]);
       setSelectedCourses({});
