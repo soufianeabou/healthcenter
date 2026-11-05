@@ -131,7 +131,15 @@ const StudentCertificates: React.FC = () => {
     }
   };
 
+  // Only one certificate may await Health Center review at a time (enforced server-side too).
+  const hasPendingHc = certificates.some(c => c.healthCenterStatus === 'PENDING_HC');
+  const PENDING_MSG = 'You already have a certificate pending Health Center review. You can submit a new one once it has been reviewed.';
+
   const openForm = () => {
+    if (hasPendingHc) {
+      setError(PENDING_MSG);
+      return;
+    }
     setShowForm(true);
     setSelectedCourses({});
     void fetchAttendance();
@@ -217,6 +225,12 @@ const StudentCertificates: React.FC = () => {
       }
 
       const res = await fetch(API, { method: 'POST', body: form });
+      if (res.status === 409) {
+        setShowForm(false);
+        setError(PENDING_MSG);
+        await fetchCertificates();
+        return;
+      }
       if (!res.ok) throw new Error('Submission failed');
       setShowForm(false);
       setSelectedFile(null);
@@ -265,7 +279,9 @@ const StudentCertificates: React.FC = () => {
           </div>
           <button
             onClick={openForm}
-            className="bg-white text-teal-700 px-5 py-2.5 rounded-lg hover:bg-teal-50 transition-colors font-medium flex items-center gap-2"
+            disabled={hasPendingHc}
+            title={hasPendingHc ? PENDING_MSG : undefined}
+            className="bg-white text-teal-700 px-5 py-2.5 rounded-lg hover:bg-teal-50 transition-colors font-medium flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white"
           >
             <Plus className="w-4 h-4" /> Submit Certificate
           </button>
@@ -286,6 +302,12 @@ const StudentCertificates: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {hasPendingHc && !error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800 text-sm flex items-center gap-2">
+          <Clock className="w-4 h-4 shrink-0" /> {PENDING_MSG}
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">{error}</div>
