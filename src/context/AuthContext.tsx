@@ -65,9 +65,14 @@ const clearStoredAuth = () => {
   localStorage.removeItem(LAST_ACTIVITY_KEY);
 };
 
+/* A verified SSO session (fresh login, or a gateway session still alive
+   inside its own 30-minute idle window) counts as activity — it restarts the
+   inactivity clock so a leftover timestamp from an earlier session can't
+   immediately log out a user who just signed in. */
 const persistUser = (nextUser: User, source: 'sso') => {
   localStorage.setItem('user', JSON.stringify(nextUser));
   localStorage.setItem('authSource', source);
+  localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
 };
 
 const extractEmailFromPrincipal = (principal: unknown): string | null => {
@@ -406,6 +411,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   /* ── On mount: restore from localStorage, then verify SSO with a 5-second
         timeout so a stalled/unreachable gateway never blocks the app. ── */
   useEffect(() => {
+    // A stored login whose last activity is past the limit is stale (tab
+    // closed / laptop slept without logging out). Drop it locally instead of
+    // restoring it: restoring it would make the inactivity effect fire the
+    // full gateway logout on mount — which, right after an Outlook sign-in,
+    // destroys the brand-new session and bounces the user to logout. The
+    // gateway's own 30-minute idle timeout has already ended that old
+    // session, so SSO hydration below decides whether a fresh one exists.
+    const lastActivity = Number(localStorage.getItem(LAST_ACTIVITY_KEY)) || 0;
+    if (lastActivity > 0 && Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
+      clearStoredAuth();
+    }
+
     const storedUser = localStorage.getItem('user');
 
     if (storedUser) {
