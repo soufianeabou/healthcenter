@@ -52,6 +52,8 @@ export interface AbsenceCertificate {
   healthCenterReviewerName: string | null;
   healthCenterSignature: string | null;
   healthCenterReviewDate: string | null;
+  healthCenterRejectionReason?: HcRejectionReason | null;
+  healthCenterComments?: string | null;
 
   // DSA review — legacy fields, no longer set by new submissions (decisions
   // are now per absence selection below), kept only for type compatibility
@@ -76,7 +78,40 @@ export interface AbsenceCertificate {
 }
 
 export type AppealReason = 'REINSTATEMENT' | 'QUIZ_EXAM_MISSING';
-export type DsaDecision = 'PENDING' | 'APPROVED' | 'REJECTED';
+// NO_WF is shown to the DSA as "Pending": reinstatement requested but the student
+// has no WF in any course. It is a decision (the student is told automatically);
+// PENDING means not decided yet.
+export type DsaDecision = 'PENDING' | 'APPROVED' | 'REJECTED' | 'NO_WF';
+export type DsaChoice = Exclude<DsaDecision, 'PENDING'>;
+
+export type HcRejectionReason = 'ANTIDATED_CERTIFICATE' | 'INVALID_DOCUMENTS' | 'ADDITIONAL_DOCUMENTS_REQUIRED';
+
+export const HC_REJECTION_REASON_LABELS: Record<HcRejectionReason, string> = {
+  ANTIDATED_CERTIFICATE: 'Anti-dated medical certificate',
+  INVALID_DOCUMENTS: 'Invalid documents',
+  ADDITIONAL_DOCUMENTS_REQUIRED: 'Additional supporting documents required',
+};
+
+// A WF grade from TmsEPrd.student_crs_hist (crsCde looks like "AAA  1234 56").
+export interface WfCourse {
+  crsCde: string;
+  yrCde: string | null;
+  trmCde: string | null;
+  gradeCde: string;
+}
+
+// "FA26-AAA123456" -> "AAA  1234 56" (student_crs_hist / section_master layout),
+// same conversion as the backend's toSectionMasterCode.
+export function toCrsCde(courseSisId: string | null): string | null {
+  if (!courseSisId) return null;
+  const code = courseSisId.trim().slice(courseSisId.trim().indexOf('-') + 1);
+  const m = /^([A-Za-z]+)(\d{4})(\d{2})$/.exec(code);
+  return m ? `${m[1].toUpperCase().padEnd(5, ' ')}${m[2]} ${m[3]}` : code;
+}
+
+// Whitespace-insensitive course match ("AAA  1234 56" vs "AAA 1234 56").
+export const sameCourse = (a: string | null, b: string | null) =>
+  !!a && !!b && a.replace(/\s+/g, '').toUpperCase() === b.replace(/\s+/g, '').toUpperCase();
 
 // One absence the student ticked at submission time, with the reason they
 // gave for it and the DSA's decision on that specific absence.
@@ -108,6 +143,8 @@ export interface HCReviewPayload {
   healthCenterStatus: 'APPROVED_HC' | 'REJECTED_HC';
   healthCenterReviewerName: string;
   healthCenterSignature: string;
+  healthCenterRejectionReason: HcRejectionReason | null;
+  healthCenterComments: string;
 }
 
 // One attendance record from attendance.aui.ma's /api/v1/attendance/filter
@@ -126,7 +163,7 @@ export interface AttendanceFilterRecord {
 
 export interface DsaReviewPayload {
   dsaReviewer: string;
-  decisions: { selectionId: number; dsaDecision: 'APPROVED' | 'REJECTED' }[];
+  decisions: { selectionId: number; dsaDecision: DsaChoice }[];
 }
 
 // One course the student picked (one entry per course), ready to send back on submission.
@@ -145,12 +182,13 @@ export interface SelectedAbsencePayload {
 
 // Rolls up each absence's own DSA decision into one summary for list/badge
 // display — decisions are per absence, but a certificate row needs one status.
-export function summarizeDsaDecisions(cert: AbsenceCertificate): 'PENDING' | 'APPROVED' | 'REJECTED' | 'MIXED' | null {
+export function summarizeDsaDecisions(cert: AbsenceCertificate): 'PENDING' | 'APPROVED' | 'REJECTED' | 'NO_WF' | 'MIXED' | null {
   if (!cert.absenceSelections || cert.absenceSelections.length === 0) return null;
   const decisions = cert.absenceSelections.map(s => s.dsaDecision);
   if (decisions.some(d => d === 'PENDING')) return 'PENDING';
   if (decisions.every(d => d === 'APPROVED')) return 'APPROVED';
   if (decisions.every(d => d === 'REJECTED')) return 'REJECTED';
+  if (decisions.every(d => d === 'NO_WF')) return 'NO_WF';
   return 'MIXED';
 }
 

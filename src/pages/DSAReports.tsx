@@ -30,7 +30,7 @@ const DAY = 86_400_000;
 
 // One ticked absence. INELIGIBLE = the certificate is not HC-approved, so the
 // DSA cannot decide it yet (it is neither pending nor decided from the DSA's view).
-type Decision = 'APPROVED' | 'REJECTED' | 'PENDING' | 'INELIGIBLE';
+type Decision = 'APPROVED' | 'REJECTED' | 'NO_WF' | 'PENDING' | 'INELIGIBLE';
 type DateBasis = 'submission' | 'decision';
 type Preset = '7d' | '30d' | '90d' | 'month' | 'year' | 'all' | 'custom';
 
@@ -70,7 +70,7 @@ const MEDICAL_LABEL: Record<string, string> = {
   '': 'Not specified',
 };
 const DECISION_LABEL: Record<Decision, string> = {
-  APPROVED: 'Approved', REJECTED: 'Rejected', PENDING: 'Pending DSA', INELIGIBLE: 'Awaiting HC',
+  APPROVED: 'Approved', REJECTED: 'Rejected', NO_WF: 'Pending (no WF)', PENDING: 'Pending DSA', INELIGIBLE: 'Awaiting HC',
 };
 const COLOR = {
   approved: '#16a34a', rejected: '#dc2626', pending: '#f59e0b', muted: '#9ca3af',
@@ -151,7 +151,7 @@ const aggregate = (rows: AbsenceRow[], keyOf: (r: AbsenceRow) => string): Agg[] 
     const a = map.get(k) ?? { name: k, requested: 0, approved: 0, rejected: 0, pending: 0 };
     a.requested += 1;
     if (r.decision === 'APPROVED') a.approved += 1;
-    else if (r.decision === 'REJECTED') a.rejected += 1;
+    else if (r.decision === 'REJECTED' || r.decision === 'NO_WF') a.rejected += 1;
     else if (r.decision === 'PENDING') a.pending += 1;
     map.set(k, a);
   });
@@ -245,7 +245,7 @@ const NoData = () => (
 
 const DecisionBadge = ({ d }: { d: Decision }) => {
   const style: Record<Decision, string> = {
-    APPROVED: 'bg-green-100 text-green-800', REJECTED: 'bg-red-100 text-red-800',
+    APPROVED: 'bg-green-100 text-green-800', REJECTED: 'bg-red-100 text-red-800', NO_WF: 'bg-amber-100 text-amber-800',
     PENDING: 'bg-yellow-100 text-yellow-800', INELIGIBLE: 'bg-gray-100 text-gray-600',
   };
   return <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${style[d]}`}>{DECISION_LABEL[d]}</span>;
@@ -374,7 +374,7 @@ const DSAReports: React.FC = () => {
     }).length;
 
     const approved = rows.filter(r => r.decision === 'APPROVED').length;
-    const rejected = rows.filter(r => r.decision === 'REJECTED').length;
+    const rejected = rows.filter(r => r.decision === 'REJECTED' || r.decision === 'NO_WF').length;
     const pending = rows.filter(r => r.decision === 'PENDING').length;
     const ineligible = rows.filter(r => r.decision === 'INELIGIBLE').length;
     const decided = approved + rejected;
@@ -408,7 +408,7 @@ const DSAReports: React.FC = () => {
     return {
       reason,
       approved: rs.filter(r => r.decision === 'APPROVED').length,
-      rejected: rs.filter(r => r.decision === 'REJECTED').length,
+      rejected: rs.filter(r => r.decision === 'REJECTED' || r.decision === 'NO_WF').length,
       pending: rs.filter(r => r.decision === 'PENDING').length,
       total: rs.length,
     };
@@ -461,7 +461,7 @@ const DSAReports: React.FC = () => {
       const d = validDate(r.basisDate);
       if (!d || r.decision === 'INELIGIBLE') return;
       const i = idx.get(keyOf(d));
-      if (i !== undefined) dec[r.decision][i] += 1;
+      if (i !== undefined) dec[r.decision === 'NO_WF' ? 'REJECTED' : r.decision][i] += 1;
     });
     return { labels, certCounts, dec, gran };
   }, [scopedCerts, rows, dateBasis]);
@@ -550,6 +550,7 @@ const DSAReports: React.FC = () => {
       'Absences ticked': sels.length,
       'Approved': sels.filter(s => s.dsaDecision === 'APPROVED').length,
       'Rejected': sels.filter(s => s.dsaDecision === 'REJECTED').length,
+      'No WF': sels.filter(s => s.dsaDecision === 'NO_WF').length,
       'Pending': sels.filter(s => s.dsaDecision === 'PENDING').length,
       'DSA reviewer': c.dsaReviewer ?? '',
       'DSA review date': fmtDate(c.dsaReviewDate),
@@ -683,6 +684,7 @@ const DSAReports: React.FC = () => {
             <option value="PENDING">DSA: pending</option>
             <option value="APPROVED">DSA: approved</option>
             <option value="REJECTED">DSA: rejected</option>
+            <option value="NO_WF">DSA: pending (no WF)</option>
             <option value="INELIGIBLE">Awaiting Health Center</option>
           </select>
           <select value={reasonFilter} onChange={e => setReasonFilter(e.target.value as 'ALL' | AppealReason)} className={selectCls} aria-label="Appeal reason">
@@ -954,7 +956,7 @@ const DSAReports: React.FC = () => {
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{REASON_LABEL[r.reason] ?? r.reason}</td>
                     <td className="px-4 py-3"><DecisionBadge d={r.decision} /></td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {r.decision === 'APPROVED' || r.decision === 'REJECTED'
+                      {r.decision === 'APPROVED' || r.decision === 'REJECTED' || r.decision === 'NO_WF'
                         ? <>{r.dsaReviewer || '—'}<br />{fmtDate(r.dsaReviewDate)}</>
                         : '—'}
                     </td>

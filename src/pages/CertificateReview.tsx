@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AbsenceCertificate, CertificateDownload, HCReviewPayload, MedicalType, certificateDownloads } from '../types/certificate';
+import { AbsenceCertificate, CertificateDownload, HCReviewPayload, HcRejectionReason, HC_REJECTION_REASON_LABELS, MedicalType, certificateDownloads } from '../types/certificate';
 import { downloadCertificateFile } from '../utils/certificateFiles';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
@@ -45,6 +45,8 @@ const CertificateReview: React.FC = () => {
     healthCenterStatus: 'APPROVED_HC',
     healthCenterReviewerName: user ? `${user.prenom} ${user.nom}` : '',
     healthCenterSignature: '',
+    healthCenterRejectionReason: null,
+    healthCenterComments: '',
   });
 
   const fetchAll = async () => {
@@ -73,6 +75,8 @@ const CertificateReview: React.FC = () => {
       healthCenterStatus: cert.healthCenterStatus === 'APPROVED_HC' ? 'APPROVED_HC' : cert.healthCenterStatus === 'REJECTED_HC' ? 'REJECTED_HC' : 'APPROVED_HC',
       healthCenterReviewerName: cert.healthCenterReviewerName ?? (user ? `${user.prenom} ${user.nom}` : ''),
       healthCenterSignature: cert.healthCenterSignature ?? '',
+      healthCenterRejectionReason: cert.healthCenterRejectionReason ?? null,
+      healthCenterComments: cert.healthCenterComments ?? '',
     });
   };
 
@@ -82,13 +86,20 @@ const CertificateReview: React.FC = () => {
       setError('Please fill all required fields before submitting.');
       return;
     }
+    if (form.healthCenterStatus === 'REJECTED_HC' && !form.healthCenterRejectionReason) {
+      setError('Please select a rejection reason.');
+      return;
+    }
     try {
       setSubmitting(true);
       setError('');
       const res = await fetch(`${API}/${selected.id}/hc-review`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          healthCenterRejectionReason: form.healthCenterStatus === 'REJECTED_HC' ? form.healthCenterRejectionReason : null,
+        }),
       });
       if (!res.ok) throw new Error();
       setSelected(null);
@@ -327,6 +338,36 @@ const CertificateReview: React.FC = () => {
                       </label>
                     ))}
                   </div>
+                </div>
+
+                {form.healthCenterStatus === 'REJECTED_HC' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Rejection Reason <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={form.healthCenterRejectionReason ?? ''}
+                      onChange={e => setForm(f => ({ ...f, healthCenterRejectionReason: (e.target.value || null) as HcRejectionReason | null }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    >
+                      <option value="">Select a reason…</option>
+                      {(Object.entries(HC_REJECTION_REASON_LABELS) as [HcRejectionReason, string][]).map(([val, label]) => (
+                        <option key={val} value={val}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Additional Comments</label>
+                  <textarea
+                    rows={3}
+                    maxLength={2000}
+                    placeholder="Optional explanation for the student (included in the notification email)"
+                    value={form.healthCenterComments}
+                    onChange={e => setForm(f => ({ ...f, healthCenterComments: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent resize-y"
+                  />
                 </div>
 
                 <div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Clock, CheckCircle, XCircle, Plus, Eye, Download, AlertTriangle, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, CertificateDownload, MAX_CERTIFICATE_FILES, MAX_CERTIFICATE_FILE_BYTES, SelectedAbsencePayload, certificateDownloads, summarizeDsaDecisions } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, CertificateDownload, MAX_CERTIFICATE_FILES, MAX_CERTIFICATE_FILE_BYTES, SelectedAbsencePayload, HC_REJECTION_REASON_LABELS, certificateDownloads, summarizeDsaDecisions } from '../types/certificate';
 import { downloadCertificateFile } from '../utils/certificateFiles';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
@@ -46,6 +46,12 @@ const StatusBadge = ({ status }: { status: string }) => {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-3 h-3" /> DSA Rejected
+        </span>
+      );
+    case 'NO_WF_DSA':
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+          <AlertTriangle className="w-3 h-3" /> Not Approved (no WF)
         </span>
       );
     case 'MIXED_DSA':
@@ -549,6 +555,7 @@ const StudentCertificates: React.FC = () => {
                       const dsa = summarizeDsaDecisions(cert);
                       if (dsa === 'APPROVED') return 'APPROVED_DSA';
                       if (dsa === 'REJECTED') return 'REJECTED_DSA';
+                      if (dsa === 'NO_WF') return 'NO_WF_DSA';
                       if (dsa === 'MIXED') return 'MIXED_DSA';
                       return cert.healthCenterStatus;
                     })()
@@ -617,6 +624,12 @@ const StudentCertificates: React.FC = () => {
                     {viewCert.medicalType && <div><span className="text-gray-500">Type:</span> <span className="ml-1">{viewCert.medicalType.replace(/_/g, ' ')}</span></div>}
                     {viewCert.medicalStartDate && <div><span className="text-gray-500">Period:</span> <span className="ml-1">{viewCert.medicalStartDate} → {viewCert.medicalEndDate}</span></div>}
                     {viewCert.healthCenterReviewerName && <div><span className="text-gray-500">Reviewed by:</span> <span className="ml-1">{viewCert.healthCenterReviewerName}</span></div>}
+                    {viewCert.healthCenterStatus === 'REJECTED_HC' && viewCert.healthCenterRejectionReason && (
+                      <div><span className="text-gray-500">Reason:</span> <span className="ml-1 text-red-700">{HC_REJECTION_REASON_LABELS[viewCert.healthCenterRejectionReason]}</span></div>
+                    )}
+                    {viewCert.healthCenterComments && (
+                      <div><span className="text-gray-500">Comments:</span> <span className="ml-1 whitespace-pre-line">{viewCert.healthCenterComments}</span></div>
+                    )}
                   </div>
                 )}
               </div>
@@ -641,6 +654,8 @@ const StudentCertificates: React.FC = () => {
                           </div>
                           {sel.dsaDecision === 'PENDING' ? (
                             <span className="text-xs font-medium text-blue-600 flex-shrink-0">Awaiting DSA</span>
+                          ) : sel.dsaDecision === 'NO_WF' ? (
+                            <span className="text-xs font-medium text-amber-700 flex-shrink-0 text-right">Not approved — no WF in any course</span>
                           ) : (
                             <span className={`text-xs font-medium flex-shrink-0 ${sel.dsaDecision === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}>
                               {sel.dsaDecision === 'APPROVED' ? 'Approved' : 'Rejected'}

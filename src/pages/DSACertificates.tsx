@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, CheckCircle, XCircle, Clock, FileText, Download, Search, AlertTriangle } from 'lucide-react';
-import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, CertificateDownload, DsaReviewPayload, certificateDownloads, summarizeDsaDecisions, isDsaPending, isDsaDecided } from '../types/certificate';
+import { AbsenceCertificate, AppealReason, AttendanceFilterRecord, CertificateDownload, DsaChoice, DsaReviewPayload, HC_REJECTION_REASON_LABELS, WfCourse, certificateDownloads, sameCourse, summarizeDsaDecisions, isDsaPending, isDsaDecided, toCrsCde } from '../types/certificate';
 import { downloadCertificateFile } from '../utils/certificateFiles';
 
 const API = 'https://hc.aui.ma/api/consultations/certificates';
 // ?all=true returns every attendance status, not just absences (DSA only).
 const ATTENDANCE_API = 'https://hc.aui.ma/api/attendance/filter?all=true';
+// WF grades from TmsEPrd.student_crs_hist (staff only).
+const wfCoursesApi = (idNum: string) => `https://hc.aui.ma/api/students/${encodeURIComponent(idNum)}/wf-courses`;
 
 const APPEAL_REASON_LABELS: Record<AppealReason, string> = {
   REINSTATEMENT: 'Reinstatement',
@@ -25,9 +27,10 @@ const HCBadge = ({ status }: { status: string }) => {
   );
 };
 
-const DSABadge = ({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'MIXED' | null }) => {
+const DSABadge = ({ status }: { status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'NO_WF' | 'MIXED' | null }) => {
   if (!status || status === 'PENDING') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3" />Pending DSA</span>;
   if (status === 'APPROVED') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="w-3 h-3" />DSA Approved</span>;
+  if (status === 'NO_WF') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"><Clock className="w-3 h-3" />Pending (no WF)</span>;
   if (status === 'REJECTED') return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3" />DSA Rejected</span>;
   return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"><AlertTriangle className="w-3 h-3" />Partially Approved</span>;
 };
@@ -40,11 +43,14 @@ const DSACertificates: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<AbsenceCertificate | null>(null);
   const [dsaReviewer, setDsaReviewer] = useState('');
-  const [decisions, setDecisions] = useState<Record<number, 'APPROVED' | 'REJECTED'>>({});
+  const [decisions, setDecisions] = useState<Record<number, DsaChoice>>({});
   const [submitting, setSubmitting] = useState(false);
   const [attendance, setAttendance] = useState<AttendanceFilterRecord[]>([]);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [attendanceError, setAttendanceError] = useState('');
+  const [wfCourses, setWfCourses] = useState<WfCourse[]>([]);
+  const [wfLoading, setWfLoading] = useState(false);
+  const [wfError, setWfError] = useState('');
 
   const fetchAll = async () => {
     try {
@@ -66,14 +72,39 @@ const DSACertificates: React.FC = () => {
   const openReview = (cert: AbsenceCertificate) => {
     setSelected(cert);
     setDsaReviewer(cert.dsaReviewer ?? '');
-    const initial: Record<number, 'APPROVED' | 'REJECTED'> = {};
+    const initial: Record<number, DsaChoice> = {};
     cert.absenceSelections.forEach(sel => {
-      if (sel.dsaDecision === 'APPROVED' || sel.dsaDecision === 'REJECTED') {
-        initial[sel.id] = sel.dsaDecision;
-      }
+      if (sel.dsaDecision !== 'PENDING') initial[sel.id] = sel.dsaDecision;
     });
     setDecisions(initial);
     void loadAttendance(cert);
+    void loadWfCourses(cert);
+  };
+
+  // Which courses the student got a WF in — reinstatement only makes sense for those.
+  const loadWfCourses = async (cert: AbsenceCertificate) => {
+    setWfCourses([]);
+    setWfError('');
+    if (!cert.studentIdNum || cert.studentIdNum === 'unknown') {
+      setWfError('No student ID on this certificate, so grades cannot be loaded.');
+      return;
+    }
+    try {
+      setWfLoading(true);
+      const res = await fetch(wfCoursesApi(String(cert.studentIdNum)), { credentials: 'include' });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setWfCourses(Array.isArray(data) ? data : []);
+    } catch {
+      setWfError('Could not load the student\'s grades.');
+    } finally {
+      setWfLoading(false);
+    }
+  };
+
+  const wfFor = (courseSisId: string | null) => {
+    const code = toCrsCde(courseSisId);
+    return wfCourses.find(w => sameCourse(w.crsCde, code));
   };
 
   // The DSA sees the student's complete attendance history, not only the
@@ -103,7 +134,7 @@ const DSACertificates: React.FC = () => {
     }
   };
 
-  const setDecision = (selectionId: number, decision: 'APPROVED' | 'REJECTED') => {
+  const setDecision = (selectionId: number, decision: DsaChoice) => {
     setDecisions(prev => ({ ...prev, [selectionId]: decision }));
   };
 
@@ -121,7 +152,7 @@ const DSACertificates: React.FC = () => {
       return;
     }
     if (!allDecided) {
-      setError('Please approve or reject every course before submitting.');
+      setError('Please approve, reject or mark every course as pending before submitting.');
       return;
     }
     try {
@@ -313,6 +344,12 @@ const DSACertificates: React.FC = () => {
                 {selected.medicalStartDate && (
                   <div><p className="text-xs text-gray-500">Medical Period</p><p className="font-medium">{selected.medicalStartDate} → {selected.medicalEndDate}</p></div>
                 )}
+                {selected.healthCenterComments && (
+                  <div><p className="text-xs text-gray-500">HC Comments</p><p className="font-medium whitespace-pre-line">{selected.healthCenterComments}</p></div>
+                )}
+                {selected.healthCenterStatus === 'REJECTED_HC' && selected.healthCenterRejectionReason && (
+                  <div><p className="text-xs text-gray-500">HC Rejection Reason</p><p className="font-medium text-red-700">{HC_REJECTION_REASON_LABELS[selected.healthCenterRejectionReason]}</p></div>
+                )}
                 {selected.healthCenterSignature && (
                   <div><p className="text-xs text-gray-500">HC Signature</p><p className="font-medium font-serif italic">{selected.healthCenterSignature}</p></div>
                 )}
@@ -347,6 +384,28 @@ const DSACertificates: React.FC = () => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   placeholder="Reviewer full name"
                 />
+              </div>
+
+              {/* WF grades from student_crs_hist */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-700 border-b pb-2">WF grades</p>
+                {wfLoading ? (
+                  <p className="text-xs text-gray-500">Loading grades…</p>
+                ) : wfError ? (
+                  <p className="text-xs text-red-600">{wfError}</p>
+                ) : wfCourses.length === 0 ? (
+                  <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    No WF on record in any course. A reinstatement request can be marked <span className="font-medium">Pending</span>.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {wfCourses.map((w, i) => (
+                      <span key={`${w.crsCde}-${w.yrCde}-${w.trmCde}-${i}`} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {w.crsCde} · WF{w.trmCde || w.yrCde ? ` · ${[w.trmCde, w.yrCde].filter(Boolean).join(' ')}` : ''}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Full attendance history of the student */}
@@ -399,7 +458,12 @@ const DSACertificates: React.FC = () => {
                     {selected.absenceSelections.map(sel => (
                       <div key={sel.id} className="border-2 border-gray-200 rounded-lg p-3 space-y-2">
                         <div>
-                          <p className="font-medium text-gray-800">{sel.courseName || sel.courseSisId}</p>
+                          <p className="font-medium text-gray-800 flex items-center gap-2 flex-wrap">
+                            {sel.courseName || sel.courseSisId}
+                            {!wfLoading && !wfError && (wfFor(sel.courseSisId)
+                              ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">WF</span>
+                              : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No WF</span>)}
+                          </p>
                           <p className="text-xs text-gray-500">
                             {sel.markedAt ? `${sel.markedAt}${sel.markedTime ? ` · ${sel.markedTime}` : ''} · ${sel.attendanceStatus || '—'}` : `${attendance.filter(r => r.course_sis_id === sel.courseSisId && (r.status || '').toLowerCase() === 'absent').length} absence(s) on record`}
                             {sel.instructorName ? ` · ${sel.instructorName}` : ''}
@@ -410,10 +474,15 @@ const DSACertificates: React.FC = () => {
                           </p>
                         </div>
                         <div className="flex gap-3">
-                          {(['APPROVED', 'REJECTED'] as const).map(val => (
+                          {/* "Pending" (NO_WF) only applies to reinstatement: the student is told they have no WF to be reinstated from. */}
+                          {(sel.appealReason === 'REINSTATEMENT' || sel.dsaDecision === 'NO_WF'
+                            ? (['APPROVED', 'REJECTED', 'NO_WF'] as const)
+                            : (['APPROVED', 'REJECTED'] as const)
+                          ).map(val => (
                             <label
                               key={val}
-                              className={`flex-1 flex items-center justify-center gap-2 border-2 rounded-lg p-2 cursor-pointer transition-colors ${decisions[sel.id] === val ? (val === 'APPROVED' ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50') : 'border-gray-200 hover:border-gray-300'}`}
+                              title={val === 'NO_WF' ? 'No WF in any course — the student is told the request cannot be approved' : undefined}
+                              className={`flex-1 flex items-center justify-center gap-2 border-2 rounded-lg p-2 cursor-pointer transition-colors ${decisions[sel.id] === val ? (val === 'APPROVED' ? 'border-green-500 bg-green-50' : val === 'REJECTED' ? 'border-red-500 bg-red-50' : 'border-amber-500 bg-amber-50') : 'border-gray-200 hover:border-gray-300'}`}
                             >
                               <input
                                 type="radio"
@@ -426,11 +495,18 @@ const DSACertificates: React.FC = () => {
                               />
                               {val === 'APPROVED'
                                 ? <><CheckCircle className="w-4 h-4 text-green-600" /><span className="text-sm font-medium text-green-700">Approved</span></>
-                                : <><XCircle className="w-4 h-4 text-red-600" /><span className="text-sm font-medium text-red-700">Rejected</span></>
+                                : val === 'REJECTED'
+                                  ? <><XCircle className="w-4 h-4 text-red-600" /><span className="text-sm font-medium text-red-700">Rejected</span></>
+                                  : <><Clock className="w-4 h-4 text-amber-600" /><span className="text-sm font-medium text-amber-700">Pending</span></>
                               }
                             </label>
                           ))}
                         </div>
+                        {decisions[sel.id] === 'NO_WF' && (
+                          <p className="text-xs text-amber-700">
+                            Automatic response: "This request cannot be approved, as you have not received a WF in any of your courses."
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
