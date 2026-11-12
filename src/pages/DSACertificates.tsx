@@ -134,6 +134,11 @@ const DSACertificates: React.FC = () => {
     }
   };
 
+  // Only absences are shown in the review modal, newest first.
+  const absences = attendance
+    .filter(r => (r.status || '').toLowerCase() === 'absent')
+    .sort((a, b) => (b.session_date || '').localeCompare(a.session_date || ''));
+
   const setDecision = (selectionId: number, decision: DsaChoice) => {
     setDecisions(prev => ({ ...prev, [selectionId]: decision }));
   };
@@ -408,39 +413,37 @@ const DSACertificates: React.FC = () => {
                 )}
               </div>
 
-              {/* Full attendance history of the student */}
+              {/* The student's absences on record */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Attendance records ({attendance.length})</p>
+                <p className="text-sm font-semibold text-gray-700 border-b pb-2">Attendance records ({absences.length})</p>
                 {attendanceLoading ? (
                   <p className="text-xs text-gray-500">Loading attendance…</p>
                 ) : attendanceError ? (
                   <p className="text-xs text-red-600">{attendanceError}</p>
-                ) : attendance.length === 0 ? (
-                  <p className="text-xs text-gray-500">No attendance records found.</p>
+                ) : absences.length === 0 ? (
+                  <p className="text-xs text-gray-500">No absences found.</p>
                 ) : (
                   <div className="max-h-56 overflow-y-auto border border-gray-200 rounded-lg">
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>
-                          {['Date', 'Course', 'Session', 'Status'].map(h => (
+                          {['Student ID', 'Course', 'Status', 'Date'].map(h => (
                             <th key={h} className="px-3 py-2 text-left font-medium text-gray-500">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {[...attendance]
-                          .sort((a, b) => (b.session_date || '').localeCompare(a.session_date || ''))
-                          .map(r => {
-                            const requested = selected.absenceSelections.some(sel => sel.courseSisId === r.course_sis_id);
-                            return (
-                              <tr key={r.id} className={requested ? 'bg-orange-50' : ''}>
-                                <td className="px-3 py-1.5 whitespace-nowrap">{r.session_date || '—'}</td>
-                                <td className="px-3 py-1.5">{r.course_name?.trim() || r.course_sis_id}</td>
-                                <td className="px-3 py-1.5">{r.session_type || '—'}</td>
-                                <td className={`px-3 py-1.5 font-medium ${(r.status || '').toLowerCase() === 'absent' ? 'text-red-600' : 'text-gray-700'}`}>{r.status || '—'}</td>
-                              </tr>
-                            );
-                          })}
+                        {absences.map(r => {
+                          const requested = selected.absenceSelections.some(sel => sel.courseSisId === r.course_sis_id);
+                          return (
+                            <tr key={r.id} className={requested ? 'bg-orange-50' : ''}>
+                              <td className="px-3 py-1.5 whitespace-nowrap">{r.student_sis_id || '—'}</td>
+                              <td className="px-3 py-1.5">{r.course_sis_id || '—'}</td>
+                              <td className="px-3 py-1.5 font-medium text-red-600">{r.status}</td>
+                              <td className="px-3 py-1.5 whitespace-nowrap">{r.session_date || '—'}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
