@@ -209,7 +209,8 @@ const DSACertificates: React.FC = () => {
     .filter(c =>
       !search ||
       c.studentName.toLowerCase().includes(search.toLowerCase()) ||
-      c.studentEmail.toLowerCase().includes(search.toLowerCase())
+      c.studentEmail.toLowerCase().includes(search.toLowerCase()) ||
+      (c.studentIdNum ?? '').toLowerCase().includes(search.toLowerCase())
     );
 
   const pendingCount = certificates.filter(isDsaPending).length;
@@ -254,7 +255,7 @@ const DSACertificates: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by name or email…"
+            placeholder="Search by name, email or ID…"
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent w-64"
@@ -280,6 +281,7 @@ const DSACertificates: React.FC = () => {
                 <tr>
                   {[
                     { label: 'Student', className: '' },
+                    { label: 'Student ID', className: '' },
                     { label: 'Email', className: 'hidden sm:table-cell' },
                     { label: 'Submitted', className: '' },
                     { label: 'HC Decision', className: '' },
@@ -294,6 +296,7 @@ const DSACertificates: React.FC = () => {
                 {displayed.map(cert => (
                   <tr key={cert.id} onClick={() => openReview(cert)} className="hover:bg-gray-50 transition-colors cursor-pointer">
                     <td className="px-5 py-4 text-sm font-medium text-gray-900 max-w-[140px] sm:max-w-none truncate">{cert.studentName}</td>
+                    <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap font-mono">{cert.studentIdNum && cert.studentIdNum !== 'unknown' ? cert.studentIdNum : '—'}</td>
                     <td className="px-5 py-4 text-sm text-gray-600 hidden sm:table-cell">{cert.studentEmail}</td>
                     <td className="px-5 py-4 text-sm text-gray-600 whitespace-nowrap">{new Date(cert.submissionDate).toLocaleDateString()}</td>
                     <td className="px-5 py-4"><HCBadge status={cert.healthCenterStatus} /></td>
